@@ -13,6 +13,8 @@ interface Item {
   factItemId?: string;
   eventDate?: string;
   dateText?: string;
+  /** Item que o usuário informou pela conversa (E2): fica fora do caso até ser confirmado. */
+  userAdded?: { frase: string; addedAt: string };
 }
 interface Review {
   deliveryId: string;
@@ -35,6 +37,17 @@ const relations: Record<string, string> = {
   CONTEXT: 'Contexto',
 };
 const api = <T,>(path: string, init?: RequestInit) => requestApi<T>(path, init, { sessionOnly: true });
+
+/** Tipo do item e, no que o usuário informou pela conversa, o selo: não é fato da análise nem prova. */
+export function ReviewItemKind({ item }: { item: Pick<Item, 'kind' | 'classification' | 'userAdded'> }) {
+  return (
+    <span className="mb-1 block text-xs text-stone-500">
+      {labels[item.kind]}
+      {item.classification === 'DISPUTED' ? ' · controvertido' : ''}
+      {item.userAdded ? ' · informado por você, a confirmar' : ''}
+    </span>
+  );
+}
 
 /** Selection starts empty. A dependent fact is never selected or approved implicitly. */
 export function EvidenceReviewPanel({
@@ -241,10 +254,7 @@ export function EvidenceReviewPanel({
                           }
                         />
                         <span>
-                          <span className="mb-1 block text-xs text-stone-500">
-                            {labels[item.kind]}
-                            {item.classification === 'DISPUTED' ? ' · controvertido' : ''}
-                          </span>
+                          <ReviewItemKind item={item} />
                           {edits[item.id] ?? item.text}
                         </span>
                       </label>

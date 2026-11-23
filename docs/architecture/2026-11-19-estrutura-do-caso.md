@@ -101,6 +101,57 @@ relato curto não dispara; mesmo hash não repete; sem autorização não gasta.
 
 **Em aberto.** Limiar de 600 caracteres como ponto de partida, a calibrar com textos sintéticos.
 
+## Desenho do E2 (20/11/2026): correção da estrutura pela conversa
+
+### Intenção
+O usuário corrige o que o ForgeLex entendeu falando no compositor ("o fato 3 foi em 2021", "tire a prova 2", "o cliente também pagou
+o aluguel de abril em dinheiro"), sem formulário e sem botão. Hoje o mesmo efeito exige o painel de conferência (`EvidenceReviewPanel`),
+que é seleção por item. A aba Estrutura, que já mostra a análise, passa a refletir o que foi corrigido, e ganha um resumo do caso.
+
+### Metas, não metas e antimetas
+- **Metas:** alterar (texto ou data do evento), remover e acrescentar itens da análise vigente do caso; resumo curto do caso na aba.
+- **Não metas:** reanalisar o caso (continua sendo o E1b); aprovar item para o contexto do caso por fora do fluxo atual (`evidence-review`);
+  PDF direto (E4); estrutura entrando na minuta (E3).
+- **Antimeta:** o usuário acrescentar um fato e ele parecer tão firme quanto um fato com trecho de fonte. Isso falha o produto mesmo que
+  tudo funcione.
+
+### Restrições
+- TRAVA DE PRODUTO: sem tela, painel ou botão novo. Escolha de ação continua automática, sem seletor novo.
+- Relato do usuário não é prova documental (regra do agente de análise): fato acrescentado nunca nasce com trecho nem prova.
+- Contratos versionados dos agentes não mudam; o que for novo entra numa versão nova (ver `case-task.ts`, fixtures `pre-*`).
+- Acesso da IA ao caso, autorização de inferência e orçamento valem como em qualquer trabalho.
+
+### Abordagens consideradas
+- **A. Ação nova no fluxo agêntico (escolhida por Boni).** Um agente lê o pedido e a análise vigente e devolve comandos estruturados; o
+  servidor valida e aplica. Interpretação livre; custo de um trabalho por correção; exige versão nova do contrato.
+- B. Comandos por regra, sem agente. Barato e previsível, mas só entende frases no formato exato (formulário disfarçado) e não cobre
+  "falta o contrato". Descartada.
+- C. Híbrido (regra para o inequívoco, agente para o resto). Dois caminhos para manter. Fica como otimização futura se o custo pesar.
+
+### O que foi decidido
+1. **Ação nova `adjust_structure`** ("Ajustar a estrutura"), papel `matter-analyst`, conferida por `adversarial-reviewer`. Entra como
+   versão nova do contrato; os contratos anteriores ficam intactos.
+2. **A análise vigente se localiza pelo caso, não pela conversa.** Quem corrige está na aba Estrutura (peça aberta, `matterId`, sem
+   `conversationId`); a análise alvo é a mesma que a rota `GET /api/agentic/matters/:matterId/structure` indica.
+3. **O agente recebe os itens com id e texto e resolve a referência do usuário.** Não depende de número, mas a aba passa a numerar os
+   fatos e as provas ("F3", "P2") para o usuário ter como se referir a eles.
+4. **O agente devolve comandos, nunca texto livre aplicado direto:** `ALTERAR {itemId, texto?, dataEvento?}`, `REMOVER {itemId}`,
+   `ACRESCENTAR {texto}`. O servidor rejeita `itemId` que não pertence à análise alvo e comando sem efeito.
+5. **Alterar e remover usam as decisões que já existem** (`ADOPT` com texto e `eventDate` editados; `DISCARD`). Nada de novo repositório.
+6. **Acrescentar cria item "informado por você, a confirmar":** classificação própria, sem trecho, sem prova, fora do contexto
+   aprovado até o usuário confirmar. Vira fato do caso só por confirmação explícita pela conversa.
+7. **Resumo do caso** sai do mesmo trabalho: um parágrafo curto, gerado junto com a correção, guardado com a entrega. O contrato do
+   agente de análise (`analyze_evidence`) não muda.
+8. **A aba mostra o que mudou:** itens alterados, removidos e acrescentados aparecem marcados, com a frase do usuário que os originou.
+
+### O que fica para quem construir
+- Como a Mesa escolhe `adjust_structure` sem seletor. Proposta: com a aba Estrutura aberta, o compositor envia a ação explicitamente
+  (contexto da tela decide, sem controle novo). Confirmar no código se o compositor sabe qual aba está ativa.
+- Onde guardar itens acrescentados e o resumo (nova coluna ou JSON da entrega), e a regra de expiração quando uma nova análise
+  substitui a vigente (correções antigas não se reaplicam sozinhas; o usuário é avisado).
+- Limiar e erros: comando ambíguo ("o fato 3" que não existe) vira pergunta ao usuário, não palpite.
+- Fatias sugeridas: (1) numeração + comandos alterar/remover; (2) acrescentar com selo; (3) resumo do caso.
+
 ## Limites
 
 Só textos sintéticos nos testes. Sem a aba, nada de dado real é estruturado. Regras de privacidade e consentimento de IA do
@@ -113,3 +164,27 @@ caso; 3 testes, com mutação) e aba **Estrutura** na peça (gelo), que mostra o
 formulário e sem botão. Ambiente sem o fluxo de análise (rota ausente) mostra o estado vazio, não erro. **Limite:** o teste de navegador usa as
 duas rotas de leitura simuladas; o encontro real rota + tela só aparece com o fluxo de análise ligado. **Falta:** disparo automático ao salvar
 documento ou colar relato (E1b), decisão pela conversa (E2), estrutura na orientação guiada e na minuta (E3), PDF direto (E4).
+
+**E2 entregue (22/11/2026, branch `claude/e2-ajustar-estrutura`):** ação `adjust_structure` no contrato v13 (v1 a v12 e as fixtures `pre-*`
+intactos). Com a aba Estrutura aberta **e uma estrutura carregada**, o pedido no compositor (modo Automático) vira ajuste, numa conversa
+nova; o campo diz isso em texto ("Corrija a estrutura do caso…"). Aba vazia, carregando ou com falha: o pedido segue o fluxo normal
+(E1/E1b). O agente recebe os itens da análise vigente (localizada pelo caso, paginando as conversas do próprio caso) e devolve comandos
+ALTERAR/REMOVER/ACRESCENTAR e um resumo; pedido que não é correção (redigir, pesquisar, reanalisar, relato novo) volta sem comandos e com
+aviso para pedir fora da aba. O servidor aplica numa transação, idempotente por trabalho; ACRESCENTAR só entra no caso por ADOPT explícito.
+A aba numera F/P, mostra o selo "informado por você, a confirmar", as marcas "corrigido por você e confirmado no caso" (sem as citações do
+texto antigo) e "retirado por você", o resumo e as perguntas em português; recarrega quando o ajuste termina; e, quando uma análise nova
+substituiu outra com correções pela conversa, avisa em "Pontos a conferir" que elas não foram reaplicadas. Ajuste sem caso é recusado
+(`MATTER_REQUIRED`); análise grande demais para a lista falha com `TASK_CONTEXT_LIMIT`. A revisão guarda só os 10 registros de ajuste mais
+recentes (a idempotência fica nos ids de comando, que não são podados).
+
+**Limites e pendências do E2 (para Boni decidir):**
+- **Decisão 8 em parte:** só o item acrescentado mostra a frase do usuário ("Você disse: …"); alterados e retirados mostram a marca sem a
+  frase, porque a decisão não guarda o pedido.
+- **Confirmar item acrescentado pela conversa não existe:** ALTERAR num item "informado por você" vira pergunta; a confirmação hoje é só
+  pelo painel de conferência antigo.
+- **ALTERAR = ADOPT (decisão 5):** corrigir um item o confirma no caso; a marca da aba diz isso ("corrigido por você e confirmado no caso").
+- **Cobrança:** trabalho com pelo menos um comando é cobrado mesmo que todos virem perguntas; sem comando, não é cobrado.
+- **Histórico:** cada correção abre uma conversa e aparece na lista de conversas recentes (adiado).
+- **Busca da análise vigente:** percorre até 1000 conversas visíveis do caso; conversa escondida do histórico não conta.
+- **Não verificado:** o caminho real até o modelo (pedido em linguagem natural resolvido pelo agente) não foi exercitado; os testes de
+  navegador usam as rotas de leitura e do trabalho simuladas.

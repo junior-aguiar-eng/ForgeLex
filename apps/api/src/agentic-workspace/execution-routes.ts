@@ -34,6 +34,7 @@ import {
 import type { ClosedPilot } from './closed-pilot.js';
 import type { CommercialRuntime } from './commercial-runtime.js';
 import { EditorialCommercialCommand } from './editorial-commercial-runtime.js';
+import { findCurrentStructure } from './current-structure.js';
 import { reportAgenticFailure, throttledReporter } from './failure-log.js';
 import { GuidanceService, type GuidanceServiceOptions } from './guidance-service.js';
 import { registerGuidanceRoutes } from './guidance-routes.js';
@@ -94,6 +95,7 @@ export function registerAgenticWorkspace(
           {
             ...(pilot?.caseTask ?? commercial?.caseTask ?? deps.options!.caseTask)!,
             guidedWorkflow: !pilot && deps.environment.FORGELEX_DESK_GUIDANCE_ENABLED === 'true',
+            manages: commercial?.canManageExecution ?? pilot?.canManageExecution,
           },
           pilot || commercial ? undefined : deps.researchService,
         )
@@ -284,6 +286,7 @@ export function registerAgenticWorkspace(
                   'LIFECYCLE_CONFLICT',
                   'IDEMPOTENCY_CONFLICT',
                   'CONTEXT_CONFLICT',
+                  'MATTER_REQUIRED',
                   'APPROVED_CONTEXT_CHANGED',
                   'APPROVED_FACT_REQUIRED',
                   'TASK_CONTEXT_LIMIT',
@@ -309,7 +312,7 @@ export function registerAgenticWorkspace(
         const status =
           code === 'STREAM_LIMIT_EXCEEDED'
             ? 429
-            : code === 'INVALID_INPUT'
+            : code === 'INVALID_INPUT' || code === 'MATTER_REQUIRED'
               ? 400
               : code === 'EXECUTION_NOT_FOUND'
                 ? 404
@@ -325,7 +328,9 @@ export function registerAgenticWorkspace(
               ? 'Confira os dados da solicitação.'
               : code === 'COMMERCIAL_INPUT_TOO_LARGE'
                 ? 'O texto passa de 100.000 caracteres, cerca de 30 páginas. Envie um trecho menor. Nada foi cobrado.'
-                : 'Não foi possível concluir esta operação. Consulte o estado do trabalho.',
+                : code === 'MATTER_REQUIRED'
+                  ? 'Escolha o caso cuja estrutura será ajustada.'
+                  : 'Não foi possível concluir esta operação. Consulte o estado do trabalho.',
         });
       }
     };
@@ -717,18 +722,12 @@ export function registerAgenticWorkspace(
         reply.header('Cache-Control', 'no-store');
         const { matterId } = z.object({ matterId: z.string().uuid() }).parse(req.params);
         const manages = commercial?.canManageExecution ?? pilot?.canManageExecution;
-        const conversations = await required().store.workspace.listRecentConversations(owner(req), 50, false);
-        for (const conversation of conversations) {
-          const execution = conversation.execution;
-          if (conversation.matterId !== matterId || execution.status !== 'COMPLETED') continue;
-          if (manages && !manages(execution)) continue;
-          const deliveryId = execution.deliveryIds.at(-1);
-          if (!deliveryId) continue;
-          const found = await caseTask.native.getDelivery(owner(req), deliveryId);
-          if (found.delivery.action !== 'analyze_evidence') continue;
-          return { structure: { executionId: execution.id, deliveryId, updatedAt: execution.updatedAt } };
-        }
-        return { structure: null };
+        const structure = await findCurrentStructure(
+          { store: required().store, native: caseTask.native, manages },
+          owner(req),
+          matterId,
+        );
+        return { structure };
       }),
     );
   if (caseTask)

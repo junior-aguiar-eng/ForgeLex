@@ -50,4 +50,10 @@ describe('routePastedAccount', () => {
     expect(routePastedAccount({ ...base, objective: edge }).actionId).toBe('analyze_evidence');
     expect(routePastedAccount({ ...base, objective: edge.slice(1) }).actionId).toBeUndefined();
   });
+  it('pedido longo de correção da estrutura mantém adjust_structure', () => {
+    const correction = 'Corrija a estrutura: o fato F1 foi em 2021, não em 2020. '.repeat(13).slice(0, 700);
+    expect(correction.length).toBe(700);
+    const routed = routePastedAccount({ ...base, objective: correction, actionId: 'adjust_structure' });
+    expect(routed.actionId).toBe('adjust_structure');
+  });
 });

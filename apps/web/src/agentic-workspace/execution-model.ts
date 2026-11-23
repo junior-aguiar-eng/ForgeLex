@@ -28,7 +28,16 @@ interface TaskEvidenceMatrix {
   contradictions: { id: string; claimIds: string[]; explanation: string }[];
 }
 export type ActionId =
-  'analyze_documents' | 'research_question' | 'create_document' | 'review_text' | 'analyze_evidence';
+  | 'analyze_documents'
+  | 'research_question'
+  | 'create_document'
+  | 'review_text'
+  | 'analyze_evidence'
+  | 'adjust_structure';
+export type StructureCommand =
+  | { op: 'ALTERAR'; itemId: string; texto?: string; dataEvento?: string }
+  | { op: 'REMOVER'; itemId: string }
+  | { op: 'ACRESCENTAR'; texto: string; frase: string };
 export interface Question {
   id: string;
   version: number;
@@ -141,6 +150,7 @@ export interface Delivery {
       integrityAlerts: { kind: string; statement: string; sourceIds: string[] }[];
     };
     evidenceMatrix?: TaskEvidenceMatrix;
+    structureAdjustment?: { commands: StructureCommand[]; caseSummary: string };
     document?: {
       title: string;
       documentType: string;

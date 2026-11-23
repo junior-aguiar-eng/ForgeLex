@@ -1,5 +1,10 @@
 import { createHash } from 'node:crypto';
-import type { ForgeLexDatabase, Client } from '@forgelex/persistence';
+import {
+  AgenticWorkspaceRepository,
+  NativeEvidenceReviewRepository,
+  type ForgeLexDatabase,
+  type Client,
+} from '@forgelex/persistence';
 import { InferenceBudgetService, getForgeLexBillingPolicy } from '@forgelex/billing-ledger';
 import {
   NativeCaseContextService,
@@ -18,7 +23,15 @@ import {
   caseTaskPreviousDeliveryIds,
   type CaseTaskOptions,
 } from '@forgelex/legal-workflows';
-import { AgenticTaskActionSchema, type TaskBinding } from '@forgelex/domain';
+import {
+  AgenticTaskActionSchema,
+  structureItemsSource,
+  type AgenticExecution,
+  type AgenticOwner,
+  type TaskBinding,
+} from '@forgelex/domain';
+import { findCurrentStructure } from './current-structure.js';
+import { applyStructureAdjustment } from './apply-structure-adjustment.js';
 import type { AgentTool, ToolExecutionContext } from '@forgelex/agent-core';
 import type { SearchCaseLawInput } from '@forgelex/legal-tools';
 import type { IndexedLegislationProvider } from '@forgelex/source-providers';
@@ -35,6 +48,8 @@ export interface NativeCaseTaskOptions {
   /** Trusted commercial gate: indexed research is included in its existing reservation. */
   executeIncludedResearch?: <T>(binding: TaskBinding, operation: () => Promise<T>) => Promise<T>;
   legislationProvider?: IndexedLegislationProvider;
+  /** Runtime execution boundary (commercial or pilot); the current analysis is searched only among these. */
+  manages?: (execution: AgenticExecution) => boolean;
 }
 export function createCaseTaskDriver(
   database: ForgeLexDatabase,
@@ -57,6 +72,33 @@ export function createCaseTaskDriver(
     ...(researchTools ?? []),
     ...(legislation ? [legislation] : []),
   ]);
+  const reviews = new NativeEvidenceReviewRepository(database, options.authorizeNative);
+  const workspace = new AgenticWorkspaceRepository(database);
+  // adjust_structure: the items of the case's current analysis (same criterion as the Estrutura tab), with id and text.
+  const structureSource = async (owner: AgenticOwner, matterId: string | undefined) => {
+    if (!matterId) throw new Error('STRUCTURE_NOT_AVAILABLE');
+    const current = await findCurrentStructure(
+      { store: { workspace }, native, manages: options.manages },
+      owner,
+      matterId,
+    );
+    if (!current) throw new Error('STRUCTURE_NOT_AVAILABLE');
+    const review = await reviews.preview(owner, current.deliveryId);
+    return structureItemsSource(current.deliveryId, review.items, new Set(Object.keys(review.decisions)));
+  };
+  const applyAdjustment = async (owner: AgenticOwner, matterId: string | undefined, id: string) => {
+    if (!matterId) throw new Error('STRUCTURE_NOT_AVAILABLE');
+    const { delivery } = await native.getDelivery(owner, id);
+    return applyStructureAdjustment(
+      { store: { workspace }, native, reviews, manages: options.manages },
+      owner,
+      matterId,
+      {
+        id,
+        delivery,
+      },
+    );
+  };
   const driver: ExecutionDriver = {
     next: ({ execution }) => ({
       callId: `case-task:${caseTaskStepIndex(execution.checkpoint?.caseTask)}:${execution.contextRevision}`,
@@ -72,6 +114,22 @@ export function createCaseTaskDriver(
           matterId: execution.matterId ?? undefined,
           previousDeliveryIds: caseTaskPreviousDeliveryIds(execution.checkpoint?.caseTask),
         };
+        // Re-run of a step whose adjust_structure delivery is already persisted: the review has changed since (that is
+        // the point), so the structure source cannot be rebuilt; finish by (re)applying, which is idempotent.
+        if (binding.actionId === 'adjust_structure') {
+          const id = `delivery:${execution.id}`;
+          const saved = await native.getDelivery(owner, id).then(
+            () => true,
+            (error: unknown) => {
+              if (error instanceof Error && error.message === 'DELIVERY_NOT_FOUND') return false;
+              throw error;
+            },
+          );
+          if (saved) {
+            await applyAdjustment(owner, binding.matterId, id);
+            return { kind: 'completed', checkpoint: execution.checkpoint ?? {}, deliveryIds: [id] };
+          }
+        }
         const tools: AgentTool<any, any>[] = [createNativeSelectedSourceTool(native, binding)];
         if (researchTools) {
           let ordinal = 0;
@@ -117,12 +175,19 @@ export function createCaseTaskDriver(
           workflowVersion: options.workflowVersion ?? 10,
           guidedWorkflow: options.guidedWorkflow,
           skills: options.skills,
-          context: native,
+          context:
+            binding.actionId === 'adjust_structure'
+              ? native.withTrustedSources([await structureSource(owner, binding.matterId)])
+              : native,
           tools,
           createProvider: options.createProvider,
           authorizeRealProvider: options.authorizeRealProvider,
         });
         const result = await task.step(binding, execution.checkpoint?.caseTask, signal);
+        // adjust_structure: once its delivery is persisted, apply the commands to the current analysis (idempotent per
+        // execution; what cannot be applied safely is kept as questions with the analysis' review).
+        if (binding.actionId === 'adjust_structure' && result.kind === 'completed' && result.deliveryIds?.length)
+          await applyAdjustment(owner, binding.matterId, result.deliveryIds.at(-1)!);
         if (result.kind === 'question')
           return { kind: 'question', checkpoint: { caseTask: result.state }, question: result.question! };
         return {

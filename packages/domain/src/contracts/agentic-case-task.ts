@@ -5,6 +5,7 @@ import { MAX_SOURCE_TEXT_CHARS } from './agentic-limits.js';
 import { TaskEvidenceMatrixSchema } from './task-evidence.js';
 import { ApprovedItemSnapshotSchema } from './approved-case-context.js';
 import { GuidanceSnapshotSchema } from './desk-guidance.js';
+import { StructureAdjustmentSchema } from './structure-commands.js';
 const id = z.string().trim().min(1).max(200);
 const text = z.string().trim().min(1).max(16000);
 export const AgenticTaskActionSchema = z.enum([
@@ -13,6 +14,8 @@ export const AgenticTaskActionSchema = z.enum([
   'create_document',
   'review_text',
   'analyze_evidence',
+  // Native contract v13 only; every earlier plan contract excludes it.
+  'adjust_structure',
 ]);
 export const TaskSourceSchema = z.strictObject({
   id,
@@ -173,6 +176,8 @@ export const AgenticTaskDeliverySchema = z.strictObject({
   // Server-bound edit target; omitted for new pieces and read-only reviews.
   replacesVersionId: id.optional(),
   review: TaskReviewedDeliverySchema.optional(),
+  // adjust_structure only: commands resolved later against the current analysis, plus a short case summary.
+  structureAdjustment: StructureAdjustmentSchema.optional(),
 });
 export type AgenticTaskDelivery = z.infer<typeof AgenticTaskDeliverySchema>;
 export interface TaskBinding {

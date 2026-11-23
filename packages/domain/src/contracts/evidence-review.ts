@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { AnalysisItem, AnalysisDecision } from './case-analysis.js';
 import type { TaskEvidenceMatrix } from './task-evidence.js';
+import type { StructureAdjustmentRecord } from './structure-commands.js';
 
 export interface EvidenceReviewItem extends Omit<AnalysisItem, 'sources'> {
   sources: AnalysisItem['sources'];
@@ -8,6 +9,8 @@ export interface EvidenceReviewItem extends Omit<AnalysisItem, 'sources'> {
   originIds: string[];
   blockedReasons: string[];
   dateText?: string;
+  /** Item acrescentado pelo usuário na conversa: selo "informado por você, a confirmar"; não é prova. */
+  userAdded?: { frase: string; addedAt: string };
 }
 export interface EvidenceReviewDecision extends AnalysisDecision {
   eventDate?: string;
@@ -21,6 +24,8 @@ export interface EvidenceReview {
   reviewToken: string;
   items: EvidenceReviewItem[];
   decisions: Record<string, EvidenceReviewDecision>;
+  /** Outcomes of adjust_structure works applied to this review, by command id (summary and questions for the tab). */
+  adjustments?: Record<string, StructureAdjustmentRecord>;
   isReplay?: boolean;
 }
 export const EvidenceReviewCommandSchema = z
