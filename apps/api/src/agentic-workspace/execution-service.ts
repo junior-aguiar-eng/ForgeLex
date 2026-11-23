@@ -27,7 +27,7 @@ import { InferenceBudgetService } from '@forgelex/billing-ledger';
 import { ExecutionStore, digest, type ExecutionJob, type WorkerLease } from './execution-store.js';
 import { projectClientExecutionEvent, publicQuestion, type ExecutionFailureReason } from './event-stream.js';
 import { reportAgenticFailure } from './failure-log.js';
-import { routePastedAccount } from './pasted-account.js';
+import { routeCaseInput, startHasAttachmentText } from './pasted-account.js';
 
 const id = z.string().trim().min(1).max(200);
 export const StartExecutionSchema = z
@@ -308,10 +308,17 @@ export class ExecutionService {
           ? StartExecutionSchema.parse(await this.options.prepareStart(s, owner, requested))
           : requested;
         // E1b: o relato colado vira análise de fatos e provas, salvo se o mesmo texto já foi analisado neste caso.
-        const routed = routePastedAccount(prepared);
+        // E4: o anexo com texto também vira análise; o texto completo já analisado é recusado (nada é cobrado de novo).
+        const routed = routeCaseInput(prepared);
+        const autoRouted = routed.actionId !== prepared.actionId;
+        const byAttachment = autoRouted && startHasAttachmentText(routed);
+        if (
+          byAttachment &&
+          (await s.hasLiveEvidenceAnalysis(owner, routed.matterId!, routed.objective, routed.context?.text ?? ''))
+        )
+          throw new Error('ALREADY_ANALYZED');
         const input =
-          routed.actionId !== prepared.actionId &&
-          (await s.hasLiveEvidenceAnalysis(owner, routed.matterId!, routed.objective))
+          autoRouted && !byAttachment && (await s.hasLiveEvidenceAnalysis(owner, routed.matterId!, routed.objective))
             ? prepared
             : routed;
         let conversation = input.conversationId

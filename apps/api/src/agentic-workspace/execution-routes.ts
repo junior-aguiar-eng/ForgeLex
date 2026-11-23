@@ -287,6 +287,7 @@ export function registerAgenticWorkspace(
                   'IDEMPOTENCY_CONFLICT',
                   'CONTEXT_CONFLICT',
                   'MATTER_REQUIRED',
+                  'ALREADY_ANALYZED',
                   'APPROVED_CONTEXT_CHANGED',
                   'APPROVED_FACT_REQUIRED',
                   'TASK_CONTEXT_LIMIT',
@@ -330,7 +331,9 @@ export function registerAgenticWorkspace(
                 ? 'O texto passa de 100.000 caracteres, cerca de 30 páginas. Envie um trecho menor. Nada foi cobrado.'
                 : code === 'MATTER_REQUIRED'
                   ? 'Escolha o caso cuja estrutura será ajustada.'
-                  : 'Não foi possível concluir esta operação. Consulte o estado do trabalho.',
+                  : code === 'ALREADY_ANALYZED'
+                    ? 'Este texto já foi analisado neste caso. Nada foi cobrado.'
+                    : 'Não foi possível concluir esta operação. Consulte o estado do trabalho.',
         });
       }
     };

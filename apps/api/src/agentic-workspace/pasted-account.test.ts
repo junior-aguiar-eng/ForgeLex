@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { PASTED_ACCOUNT_MIN_CHARS, routePastedAccount } from './pasted-account.js';
+import { buildAttachmentHeader } from '@forgelex/domain';
+import { PASTED_ACCOUNT_MIN_CHARS, routeCaseInput, routePastedAccount } from './pasted-account.js';
 
 const matterId = '11111111-1111-4111-8111-111111111111';
 const account = 'Em março de 2021 o cliente assinou o contrato de locação. '.repeat(12);
@@ -55,5 +56,41 @@ describe('routePastedAccount', () => {
     expect(correction.length).toBe(700);
     const routed = routePastedAccount({ ...base, objective: correction, actionId: 'adjust_structure' });
     expect(routed.actionId).toBe('adjust_structure');
+  });
+
+  describe('anexo com texto (E4)', () => {
+    const withAttachment = (body: string, extra: Record<string, unknown> = {}) => ({
+      objective: 'Analise este documento.',
+      matterId,
+      context: {
+        text: `${buildAttachmentHeader({ name: 'a.pdf', ocr: false })}\n${body}`,
+        origin: 'USER' as const,
+        documents: [],
+      },
+      ...extra,
+    });
+    it('objetivo curto com anexo com texto vai para a análise', () => {
+      expect(routeCaseInput(withAttachment('Cláusula primeira.')).actionId).toBe('analyze_evidence');
+    });
+    it('anexo vazio não dispara', () => {
+      expect(routeCaseInput(withAttachment('  ')).actionId).toBeUndefined();
+    });
+    it('ação escolhida, conversa anterior, peça aberta e pergunta no fim não disparam', () => {
+      expect(routeCaseInput(withAttachment('Texto.', { actionId: 'review_text' })).actionId).toBe('review_text');
+      expect(
+        routeCaseInput(withAttachment('Texto.', { conversationId: '22222222-2222-4222-8222-222222222222' })).actionId,
+      ).toBeUndefined();
+      expect(
+        routeCaseInput(withAttachment('Texto.', { objective: 'O que diz o documento?' })).actionId,
+      ).toBeUndefined();
+      const draft = withAttachment('Texto.');
+      expect(
+        routeCaseInput({ ...draft, context: { ...draft.context, draft: { draftId: 'a', versionId: 'b' } } }).actionId,
+      ).toBeUndefined();
+    });
+    it('sem caso não dispara', () => {
+      const { matterId: _omit, ...noMatter } = withAttachment('Texto.');
+      expect(routeCaseInput(noMatter).actionId).toBeUndefined();
+    });
   });
 });
