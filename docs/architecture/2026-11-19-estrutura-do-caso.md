@@ -152,6 +152,61 @@ que é seleção por item. A aba Estrutura, que já mostra a análise, passa a r
 - Limiar e erros: comando ambíguo ("o fato 3" que não existe) vira pergunta ao usuário, não palpite.
 - Fatias sugeridas: (1) numeração + comandos alterar/remover; (2) acrescentar com selo; (3) resumo do caso.
 
+## Desenho do E3 (23/11/2026)
+
+**Pedido do Boni.** A estrutura do caso aparece como contexto na orientação guiada e na minuta, e alimenta a redação da peça. A minuta já
+deve sair contextualizada pelos documentos enviados. Itens ainda "a confirmar" entram, marcados como **alegação**; a revisão do usuário
+é necessária.
+
+**Ponto de partida (verificado em `main` em 23/11/2026).** Os documentos enviados já entram no contexto de toda execução do caso
+(`context.documents`). Os itens que o usuário confirmou (`approvedItems`: CASE_FACT e CASE_EVIDENCE) também entram, tratados como contexto,
+não como verdade (`agentic-approved-case.ts`). Não chegam à redação: o resumo do caso (E2), os itens "a confirmar" e qualquer sinal de
+quais itens sustentam a peça. A orientação guiada só pergunta área, tarefa, peça e tribunal e não mostra a estrutura.
+
+**Decisões do Boni.** (1) Fonte montada na execução, reaproveitando o mecanismo do E2. (2) Item "a confirmar" entra na minuta como
+alegação. (3) A minuta exige revisão do usuário. Sem análise nem disparo automático novo: sem estrutura, a minuta sai como hoje.
+
+**Desenho.**
+1. **Ação:** só `create_document`. `review_text`, `analyze_documents`, `research_question` e `analyze_evidence` ficam como estão.
+2. **Fonte da estrutura.** Ao iniciar `create_document` com caso, o `case-task-driver` lê a estrutura vigente (`findCurrentStructure`, mesmo
+   critério da aba) e monta uma fonte confiável `structure-context:<deliveryId>`, no molde de `structureItemsSource`: cada item com id, label
+   (F1, P1), classificação, texto e estado (`CONFIRMADO`, `A_CONFIRMAR`, `RETIRADO` fora), mais o resumo do caso. Itens retirados pelo
+   usuário não entram. Sem estrutura, nenhuma fonte e nenhum erro (diferente do `adjust_structure`, que recusa).
+3. **Instrução do agente (contrato novo, v14).** O texto da redação muda, então vale a regra do v13: versão nova, v1 a v13 e as
+   fixtures `pre-*` congeladas. O agente usa os confirmados como contexto, escreve os `A_CONFIRMAR` como alegação ("segundo o cliente…",
+   nunca como fato provado), não sustenta pedido ou data só em item `A_CONFIRMAR` sem avisar, e transforma lacuna em pergunta objetiva
+   (mecanismo de perguntas que já existe).
+4. **Revisão.** A entrega devolve `structureUse`: os ids dos itens `A_CONFIRMAR` em que a peça se apoia. O servidor audita que cada id existe
+   na fonte (mesma auditoria de itemId do E2, nos mesmos três pontos); id inventado derruba o trabalho. A peça mostra, nas fontes e
+   conferência que já existem, o aviso "Baseada em itens ainda a confirmar: F2, P1". É aviso, não bloqueio: nada de botão nem trava de
+   exportação (trava de produto); a confirmação continua pela conversa e pelo painel de conferência.
+5. **Orientação guiada.** Uma linha só de leitura no resumo da orientação, com o caso escolhido: "Estrutura do caso: 5 fatos, 2 a confirmar"
+   (contagem da rota `GET .../structure` que já existe). Sem estrutura, a linha não aparece. Sem botão, sem formulário.
+6. **Limite de tamanho.** A fonte respeita o teto de texto por fonte: entram primeiro o resumo e os confirmados, depois os `A_CONFIRMAR`,
+   até o teto; o que ficar de fora é dito na própria fonte ("N itens omitidos"). Diferente do `adjust_structure`, a redação não falha por
+   estrutura grande.
+7. **Privacidade.** Mesma regra da análise: só com o acesso da IA autorizado no caso.
+
+**Metas.** Minuta que usa os documentos e a estrutura; o que é alegação aparece como alegação; o usuário sabe em que a peça se apoia sem ter
+de procurar.
+**Fora de escopo.** Disparar análise ao salvar documento; reaplicar correções; PDF direto (E4); qualquer tela, aba ou rota nova.
+**Anti-metas (seriam fracasso mesmo funcionando).** Alegação escrita como fato provado; minuta que falha ou trava por falta de estrutura;
+aviso de revisão que vira controle obrigatório a operar.
+
+**Abordagens consideradas.** (A) Fonte montada na execução, a escolhida: reaproveita o E2 e não mexe no formato do contexto. (B) Colocar os
+itens a confirmar em `approvedItems`: mistura "aprovado" com "não aprovado" e exige mexer no formato do contexto e na regra de revisão.
+(C) Rodar a análise antes de cada redação sem estrutura: custa uma execução a mais por peça e contraria a decisão de não disparar análise
+ao salvar documento.
+
+**Chamadas minhas (marcadas para o Boni conferir).** Aviso sem bloqueio de exportação; só `create_document`; itens retirados fora da fonte;
+omissão por tamanho em vez de falha; nova versão de contrato em vez de alterar o v13.
+
+**Fica para quem constrói.** Nome e formato exatos de `structureUse` na entrega e onde a web o mostra; como a web conta fatos e itens para a
+linha da orientação sem nova rota; qual o limite de caracteres de cada parte da fonte.
+
+**Fatias sugeridas.** (1) Fonte + contrato v14 + auditoria de `structureUse`. (2) Aviso "baseada em itens a confirmar" nas fontes da peça.
+(3) Linha de leitura na orientação guiada.
+
 ## Limites
 
 Só textos sintéticos nos testes. Sem a aba, nada de dado real é estruturado. Regras de privacidade e consentimento de IA do
