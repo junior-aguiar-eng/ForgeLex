@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Delivery } from './execution-model';
-import { presentDelivery, deliveryPlainText } from './present-delivery';
+import { presentDelivery, deliveryPlainText, structureUseNotice } from './present-delivery';
 import { readFileSync } from 'node:fs';
 
 it('historical D01 already presents five issues without exposing scoped identifiers', () => {
@@ -160,5 +160,34 @@ describe('apresentação da entrega', () => {
       labels: view.sources.map((s) => s.label),
     });
     expect(visible).not.toMatch(/hash-|v-a/);
+  });
+});
+
+describe('structureUseNotice (E3)', () => {
+  const a = 'a'.repeat(64);
+  const b = 'b'.repeat(64);
+  it('lista os rótulos dos itens a confirmar em que a peça se apoia', () => {
+    expect(
+      structureUseNotice([
+        { itemId: a, label: 'F2' },
+        { itemId: b, label: 'P1' },
+      ]),
+    ).toBe('Baseada em itens ainda a confirmar: F2, P1.');
+  });
+  it('sem rótulos usa a contagem, no singular e no plural', () => {
+    expect(structureUseNotice([{ itemId: a }])).toBe('Baseada em 1 item ainda a confirmar.');
+    expect(structureUseNotice([{ itemId: a }, { itemId: b, label: 'P1' }])).toBe(
+      'Baseada em 2 itens ainda a confirmar.',
+    );
+  });
+  it('sem uso da estrutura não há aviso', () => {
+    expect(structureUseNotice(undefined)).toBeUndefined();
+    expect(structureUseNotice([])).toBeUndefined();
+  });
+  it('o aviso entra nos pontos a conferir da minuta e some quando a entrega não traz structureUse', () => {
+    expect(presentDelivery(base({ structureUse: [{ itemId: a, label: 'F2' }] })).pending).toContain(
+      'Baseada em itens ainda a confirmar: F2.',
+    );
+    expect(presentDelivery(base({})).pending.join(' ')).not.toContain('ainda a confirmar');
   });
 });

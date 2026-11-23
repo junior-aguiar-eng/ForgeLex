@@ -15,9 +15,12 @@ export function GuidanceSummary({
   disabled,
   onEdit,
   onLeave,
+  structureLine,
 }: {
   state: GuidanceState;
   disabled: boolean;
+  /** Leitura da estrutura do caso (E3); ausente quando o caso não tem estrutura. */
+  structureLine?: string;
   onEdit: (field: GuidanceField) => void;
   onLeave: () => void;
 }) {
@@ -65,6 +68,11 @@ export function GuidanceSummary({
           <Pencil size={15} aria-hidden="true" /> Alterar
         </button>
       </div>
+      {structureLine && (
+        <p role="note" className="pb-1 text-xs leading-snug text-stone-700">
+          {structureLine}
+        </p>
+      )}
       {supportNote && (
         <p role="note" className="pb-2 text-xs leading-snug text-stone-700">
           {supportNote}

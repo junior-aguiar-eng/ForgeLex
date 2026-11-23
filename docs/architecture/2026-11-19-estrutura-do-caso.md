@@ -245,3 +245,22 @@ recentes (a idempotência fica nos ids de comando, que não são podados).
 - **Busca da análise vigente:** percorre até 1000 conversas visíveis do caso; conversa escondida do histórico não conta.
 - **Não verificado:** o caminho real até o modelo (pedido em linguagem natural resolvido pelo agente) não foi exercitado; os testes de
   navegador usam as rotas de leitura e do trabalho simuladas.
+
+**E3 entregue (23/11/2026, branch `claude/e3-estrutura-na-redacao`):** o `case-task-driver` monta, para `create_document` e para o modo Automático
+de um caso com análise vigente, a fonte `structure-context:<deliveryId>` (resumo do último ajuste e itens `CONFIRMADO` ou `A_CONFIRMAR`; itens
+retirados ficam de fora; excedente de tamanho é cortado e declarado, nunca erro). Com a fonte e o fluxo guiado ligado, a execução roda no
+contrato **v14** (comportamento do v12 mais o protocolo da estrutura; v1 a v13 e as fixtures `pre-*` intactos). O redator escreve na voz da
+peça e devolve `structureUse` com os itens a confirmar em que se apoia; o servidor audita os ids (`STRUCTURE_ITEM_INVALID`) e a entrega guarda
+só os `A_CONFIRMAR`. Nos pontos a conferir da minuta aparece "Baseada em itens ainda a confirmar: F2, P1."; na orientação guiada, a linha
+"Estrutura do caso: N fatos, M itens a confirmar". Sem estrutura, acesso da IA ou leitura falha: a minuta sai como antes.
+
+**Limites e pendências do E3:**
+- **Não verificado com o modelo real:** o caminho até o modelo (o redator de fato escrever na voz da peça e listar `structureUse`) só foi
+  exercitado com agente simulado.
+- **Automático:** a versão é escolhida antes de o orquestrador decidir a ação; por isso o v14 vale para qualquer execução sem ação explícita
+  de análise ou ajuste. Se o orquestrador escolher `analyze_evidence` no v14, a fonte é retirada do que o analista recebe.
+- **Mudança durante a execução:** o hash da fonte entra no vínculo da execução; conferir um item enquanto a minuta roda derruba a execução
+  com conflito de contexto, em vez de usar estrutura mais nova.
+- **Custo de leitura:** cada redação com caso procura a análise vigente (até 1000 conversas do caso), como a aba Estrutura.
+- **Edição de trecho (`review_text` e seleção na peça):** só recebe a estrutura se a execução for escolhida sem ação explícita.
+
