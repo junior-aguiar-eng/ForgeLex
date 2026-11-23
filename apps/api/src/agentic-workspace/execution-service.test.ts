@@ -118,6 +118,33 @@ it('relato colado em Automático, num caso, grava a análise de fatos e provas c
   expect(await f.service.getExecution(owner, chosen.id)).toMatchObject({ actionId: 'review_text' });
 });
 
+it('o mesmo relato no mesmo caso não dispara a análise automática outra vez', async () => {
+  const f = await fixture();
+  const repo = new MatterRepository(f.db);
+  const matter = await repo.createMatter({ ...owner, createdBy: owner.userId, title: 'Caso A' });
+  const other = await repo.createMatter({ ...owner, createdBy: owner.userId, title: 'Caso B' });
+  const account = 'Em março de 2021 o cliente assinou o contrato de locação. '.repeat(12);
+  const start = (key: string, matterId: string, objective = account) =>
+    f.service.startExecution(owner, key, {
+      objective,
+      matterId,
+      context: { text: objective, origin: 'USER' as const, documents: [] },
+    });
+  const first = await start('dup-1', matter.id);
+  expect(await f.service.getExecution(owner, first.id)).toMatchObject({ actionId: 'analyze_evidence' });
+  const again = await start('dup-2', matter.id);
+  expect((await f.service.getExecution(owner, again.id)).actionId).toBeNull();
+  // Outro caso, ou outro texto, segue disparando.
+  const elsewhere = await start('dup-3', other.id);
+  expect(await f.service.getExecution(owner, elsewhere.id)).toMatchObject({ actionId: 'analyze_evidence' });
+  const changed = await start('dup-4', matter.id, account + ' Em abril o locador notificou o cliente.');
+  expect(await f.service.getExecution(owner, changed.id)).toMatchObject({ actionId: 'analyze_evidence' });
+  // Análise cancelada não conta como feita: o mesmo relato volta a disparar.
+  await f.service.cancelExecution(owner, first.id, 'cancel-first');
+  const retry = await start('dup-5', matter.id);
+  expect(await f.service.getExecution(owner, retry.id)).toMatchObject({ actionId: 'analyze_evidence' });
+});
+
 it('expõe contexto e histórico públicos para recuperar o trabalho sem checkpoint privado', async () => {
   const f = await fixture();
   const run = await f.service.startExecution(owner, 'public-recovery', input);
