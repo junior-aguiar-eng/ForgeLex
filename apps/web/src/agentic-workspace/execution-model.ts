@@ -151,6 +151,8 @@ export interface Delivery {
     };
     evidenceMatrix?: TaskEvidenceMatrix;
     structureAdjustment?: { commands: StructureCommand[]; caseSummary: string };
+    /** Itens da estrutura ainda não conferidos em que a peça se apoia (create_document). */
+    structureUse?: { itemId: string; label?: string }[];
     document?: {
       title: string;
       documentType: string;

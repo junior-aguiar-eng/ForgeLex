@@ -26,6 +26,7 @@ import {
 import {
   AgenticTaskActionSchema,
   structureItemsSource,
+  structureContextSource,
   type AgenticExecution,
   type AgenticOwner,
   type TaskBinding,
@@ -85,6 +86,27 @@ export function createCaseTaskDriver(
     if (!current) throw new Error('STRUCTURE_NOT_AVAILABLE');
     const review = await reviews.preview(owner, current.deliveryId);
     return structureItemsSource(current.deliveryId, review.items, new Set(Object.keys(review.decisions)));
+  };
+  // E3: the case structure (confirmed and still unchecked items, plus the summary) for drafting. Best effort: a case
+  // without structure, or one that cannot be read, drafts exactly as before.
+  const contextSource = async (owner: AgenticOwner, matterId: string | undefined, actionId: string | undefined) => {
+    if (!matterId || (actionId && actionId !== 'create_document')) return undefined;
+    try {
+      const current = await findCurrentStructure(
+        { store: { workspace }, native, manages: options.manages },
+        owner,
+        matterId,
+      );
+      if (!current) return undefined;
+      const review = await reviews.preview(owner, current.deliveryId);
+      const decisions = new Map(Object.entries(review.decisions).map(([id, decision]) => [id, decision.action]));
+      const summary = Object.values(review.adjustments ?? {})
+        .filter((adjustment) => adjustment.caseSummary)
+        .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt))[0]?.caseSummary;
+      return structureContextSource(current.deliveryId, review.items, decisions, summary);
+    } catch {
+      return undefined;
+    }
   };
   const applyAdjustment = async (owner: AgenticOwner, matterId: string | undefined, id: string) => {
     if (!matterId) throw new Error('STRUCTURE_NOT_AVAILABLE');
@@ -178,7 +200,9 @@ export function createCaseTaskDriver(
           context:
             binding.actionId === 'adjust_structure'
               ? native.withTrustedSources([await structureSource(owner, binding.matterId)])
-              : native,
+              : await contextSource(owner, binding.matterId, binding.actionId).then((source) =>
+                  source ? native.withTrustedSources([source]) : native,
+                ),
           tools,
           createProvider: options.createProvider,
           authorizeRealProvider: options.authorizeRealProvider,

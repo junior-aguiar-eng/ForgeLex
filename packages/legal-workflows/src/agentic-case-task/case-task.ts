@@ -55,6 +55,10 @@ import {
   MAX_SOURCE_TEXT_CHARS,
   StructureAdjustmentSchema,
   readStructureItemIds,
+  readStructureContext,
+  STRUCTURE_CONTEXT_SOURCE_PREFIX,
+  StructureUseSchema,
+  type StructureUse,
   type StructureAdjustment,
 } from '@forgelex/domain';
 import {
@@ -111,6 +115,8 @@ import {
   STRUCTURE_TASK_POLICY,
   structureTaskProfile,
   structureTaskResultSchema,
+  STRUCTURE_DRAFT_TASK_POLICY,
+  structureDraftProfile,
 } from '@forgelex/legal-agents';
 type TaskPlan = EvidenceTaskPlan | DeliveryTaskPlan | StructureTaskPlan;
 const hash = (v: unknown) =>
@@ -202,6 +208,23 @@ const StructureStateSchema = GuidedDeskStateSchema.omit({ version: true, plan: t
   plan: (StructureTaskPlanSchema as z.ZodType<StructureTaskPlan>).optional(),
   structureAdjustment: StructureAdjustmentSchema.optional(),
 });
+// v14 behaves as v12 (guided desk and scoped edit) and adds the drafter's use of unchecked structure items.
+const StructureDraftStateSchema = ScopedDeskEditStateSchema.omit({ version: true }).extend({
+  version: z.literal(14),
+  structureUse: StructureUseSchema.optional(),
+});
+/** Versions with guidance, skills and guided questions (v11, v12 and v14). */
+const isGuidedDesk = (state: CaseTaskState): state is Extract<CaseTaskState, { version: 11 | 12 | 14 }> =>
+  state.version === 11 || state.version === 12 || state.version === 14;
+/** Versions that can scope an edit to the user's selection in an open piece (v12 and v14). */
+const isDeskEdit = (state: CaseTaskState): state is Extract<CaseTaskState, { version: 12 | 14 }> =>
+  state.version === 12 || state.version === 14;
+/** Server conferral: every id the drafter reports must be an unchecked item of the structure it received. */
+function auditStructureUse(use: StructureUse | undefined, sources: readonly TaskSource[]) {
+  if (!use?.length) return;
+  const known = readStructureContext(sources);
+  for (const { itemId } of use) if (!known?.has(itemId)) throw new Error('STRUCTURE_ITEM_INVALID');
+}
 /** Server conferral: every referenced item must belong to the analysis items the agent received. */
 function auditStructureAdjustment(adjustment: StructureAdjustment | undefined, sources: TaskSource[]) {
   const ids = readStructureItemIds(sources);
@@ -224,6 +247,7 @@ const StateSchema = z.discriminatedUnion('version', [
   GuidedDeskStateSchema,
   ScopedDeskEditStateSchema,
   StructureStateSchema,
+  StructureDraftStateSchema,
 ]);
 export type CaseTaskState = z.infer<typeof StateSchema>;
 export function caseTaskStepIndex(raw: unknown): number {
@@ -284,7 +308,9 @@ const profileFor = (version: StateVersion, role: CaseTaskRole) =>
                         ? guidedDeskTaskProfile(role)
                         : version === 12
                           ? scopedDeskEditProfile(role)
-                          : structureTaskProfile(role);
+                          : version === 13
+                            ? structureTaskProfile(role)
+                            : structureDraftProfile(role);
 const policyFor = (version: StateVersion) =>
   version === 1
     ? CASE_TASK_POLICY
@@ -310,7 +336,9 @@ const policyFor = (version: StateVersion) =>
                         ? GUIDED_DESK_TASK_POLICY
                         : version === 12
                           ? SCOPED_DESK_EDIT_POLICY
-                          : STRUCTURE_TASK_POLICY;
+                          : version === 13
+                            ? STRUCTURE_TASK_POLICY
+                            : STRUCTURE_DRAFT_TASK_POLICY;
 const legacyClaimsSchema = TaskSpecialistResultSchema.shape.claims.element.extend({
   classification: z.enum(['ALLEGATION', 'INFERENCE', 'CONFLICT']),
 });
@@ -584,7 +612,7 @@ export class AgenticCaseTask {
               .map((requirement) => ({ ...requirement, verified: false })),
           )
         : [];
-    const scopedEdit = state.version === 12 && role === 'legal-drafter' && state.plan?.documentMode === 'EDIT';
+    const scopedEdit = isDeskEdit(state) && role === 'legal-drafter' && state.plan?.documentMode === 'EDIT';
     const structureRole = state.version === 13 && (role === 'matter-analyst' || role === 'adversarial-reviewer');
     const profile = profileFor(state.version, role),
       registry = new ToolRegistry(),
@@ -610,9 +638,10 @@ export class AgenticCaseTask {
                     .omit({ document: true })
                     .extend({ editProposal: DeskEditProposalSchema })
                 : draftCitationHandoff
-                  ? z
-                      .strictObject(resultSchema.shape)
-                      .extend({ draftCitations: z.array(DraftCitationSchema).max(100).optional() })
+                  ? z.strictObject(resultSchema.shape).extend({
+                      draftCitations: z.array(DraftCitationSchema).max(100).optional(),
+                      ...(state.version === 14 ? { structureUse: StructureUseSchema.optional() } : {}),
+                    })
                   : resultSchema
               : role === 'authority-verifier'
                 ? z
@@ -634,6 +663,7 @@ export class AgenticCaseTask {
     let draftCitations: DraftCitation[] | undefined;
     let procedureChecks: z.infer<typeof ProcedureChecksSchema> | undefined;
     let structureAdjustment: StructureAdjustment | undefined;
+    let structureUse: StructureUse | undefined;
     let submitted: unknown,
       count = 0,
       sourceFailure = false,
@@ -697,7 +727,7 @@ export class AgenticCaseTask {
       },
     });
     const needs =
-      (state.version === 11 || state.version === 12) && state.plan && state.graph
+      isGuidedDesk(state) && state.plan && state.graph
         ? researchNeeds(state.plan, graphRequests(state.graph), true)
         : undefined;
     const onlyLegislation = needs?.legislation && !needs.caseLaw;
@@ -737,17 +767,24 @@ export class AgenticCaseTask {
             draftCitations: citations,
             procedureChecks: checks,
             structureAdjustment: proposedAdjustment,
+            structureUse: proposedUse,
             ...parsed
           } = result as typeof result & {
             editProposal?: DeskEditProposal;
             draftCitations?: DraftCitation[];
             procedureChecks?: z.infer<typeof ProcedureChecksSchema>;
             structureAdjustment?: StructureAdjustment;
+            structureUse?: StructureUse;
           };
           if (state.version === 13 && role === 'matter-analyst') {
             // Refused here, so the analyst can correct the reference within its own turns.
             auditStructureAdjustment(proposedAdjustment, getSources());
             structureAdjustment = proposedAdjustment;
+          }
+          if (state.version === 14 && role === 'legal-drafter' && proposedUse?.length) {
+            // Refused here, so the drafter can correct the reference within its own turns.
+            auditStructureUse(proposedUse, getSources());
+            structureUse = proposedUse;
           }
           if (scopedEdit) {
             if (!packet.deskEdit || !proposal) throw new Error('DESK_EDIT_SCOPE_REQUIRED');
@@ -771,7 +808,7 @@ export class AgenticCaseTask {
               binding.conversationId,
               ...(binding.matterId ? [binding.matterId] : []),
             ]);
-          if ((state.version === 11 || state.version === 12) && state.skillSnapshot) {
+          if (isGuidedDesk(state) && state.skillSnapshot) {
             assertPublicTaskText(
               result,
               state.skillSnapshot.references.flatMap(({ id, content }) => [id, content]),
@@ -847,18 +884,26 @@ export class AgenticCaseTask {
     const { deskEdit, ...providerContext } = packet;
     const minimum = {
       ...providerContext,
-      ...(state.version === 12 && deskEdit ? { editScope: { target: deskEdit.target, ...deskEdit.scope } } : {}),
-      ...(state.version === 12 && state.editProposal ? { proposedEdit: state.editProposal } : {}),
+      ...(isDeskEdit(state) && deskEdit ? { editScope: { target: deskEdit.target, ...deskEdit.scope } } : {}),
+      ...(isDeskEdit(state) && state.editProposal ? { proposedEdit: state.editProposal } : {}),
       ...(state.version === 13 && state.structureAdjustment
         ? { proposedStructureAdjustment: state.structureAdjustment }
         : {}),
       // Older protocols keep their original provider payload and contract hashes.
       ...(state.version < 11 ? { guidance: undefined, guidanceAnswers: undefined } : {}),
       ...(state.version >= 11 ? { guidance: this.effectiveGuidance(packet, binding.objective) } : {}),
-      ...(state.version === 11 || state.version === 12
+      ...(isGuidedDesk(state)
         ? { skillReferences: state.skillSnapshot ? skillReferencesForRole(state.skillSnapshot, role) : [] }
         : {}),
-      sources: getSources(),
+      // The structure feeds the piece only; a fact-and-evidence analysis must not read its own earlier output.
+      sources: getSources().filter(
+        (source) =>
+          !(
+            state.version === 14 &&
+            state.plan?.action === 'analyze_evidence' &&
+            source.id.startsWith(STRUCTURE_CONTEXT_SOURCE_PREFIX)
+          ),
+      ),
       objective: binding.objective,
       plan: state.plan,
       priorResults: state.outputs,
@@ -975,8 +1020,9 @@ export class AgenticCaseTask {
       return empty();
     }
     if (!completed || !submitted) throw new Error('HANDOFF_REQUIRED');
-    if (state.version === 12 && editProposal) state.editProposal = editProposal;
+    if (isDeskEdit(state) && editProposal) state.editProposal = editProposal;
     if (state.version === 13 && structureAdjustment) state.structureAdjustment = structureAdjustment;
+    if (state.version === 14 && structureUse) state.structureUse = structureUse;
     if (draftCitations && 'citationHandoff' in state) state.draftCitations = draftCitations;
     if (procedureChecks && 'procedureHandoff' in state) state.procedureChecks = procedureChecks;
     if (role !== 'legal-drafter' && role !== 'legal-orchestrator' && (submitted as TaskSpecialistResult).document)
@@ -989,7 +1035,7 @@ export class AgenticCaseTask {
     state: CaseTaskState,
     objective: string,
   ): LegalQuestion | undefined {
-    if (state.version === 11 || state.version === 12) {
+    if (isGuidedDesk(state)) {
       const proposalQuestion = this.guidedQuestion(state.plan!, packet, state, objective);
       if (proposalQuestion) return proposalQuestion;
     }
@@ -1115,7 +1161,7 @@ export class AgenticCaseTask {
     const saved = await this.options.context.save(
       binding,
       delivery,
-      state.version === 12 ? state.editProposal : undefined,
+      isDeskEdit(state) ? state.editProposal : undefined,
     );
     return { kind: 'completed', state, deliveryIds: [saved.id] };
   }
@@ -1273,7 +1319,7 @@ export class AgenticCaseTask {
       });
     const draftSource = packet.sources.find((source) => source.kind === 'DRAFT');
     const edited =
-      state.version === 12 && plan.documentMode === 'EDIT' && packet.deskEdit && state.editProposal
+      isDeskEdit(state) && plan.documentMode === 'EDIT' && packet.deskEdit && state.editProposal
         ? {
             title: packet.deskEdit.title,
             documentType: plan.documentType ?? 'Peça',
@@ -1330,6 +1376,11 @@ export class AgenticCaseTask {
         if (!section.sourceIds.length) findings.push(this.finding('UNSUPPORTED_SECTION', section.title));
     const unique = [...new Map(findings.map((f) => [f.id, f])).values()];
     if (state.version === 13) auditStructureAdjustment(state.structureAdjustment, sources);
+    if (state.version === 14) auditStructureUse(state.structureUse, sources);
+    const structureUse =
+      state.version === 14 && document && state.structureUse?.length
+        ? state.structureUse.filter(({ itemId }) => readStructureContext(sources)?.has(itemId))
+        : undefined;
     const delivery = AgenticTaskDeliverySchema.parse({
       action: plan.action,
       contextId: packet.contextId,
@@ -1349,6 +1400,7 @@ export class AgenticCaseTask {
         ? { replacesVersionId: draftSource.versionId }
         : {}),
       ...(state.version === 13 ? { structureAdjustment: state.structureAdjustment } : {}),
+      ...(structureUse?.length ? { structureUse } : {}),
     });
     return state.version === 9 ? consolidateReviewedDelivery(delivery, all, sources, plan) : delivery;
   }
@@ -1363,11 +1415,13 @@ export class AgenticCaseTask {
       restored?.version ??
       (binding.actionId === 'adjust_structure'
         ? 13
-        : loaded.deskEdit || (this.options.guidedWorkflow && loaded.sources.some((source) => source.kind === 'DRAFT'))
-          ? 12
-          : this.options.guidedWorkflow && loaded.guidance
-            ? 11
-            : (this.options.workflowVersion ?? 8));
+        : this.options.guidedWorkflow && binding.actionId !== 'analyze_evidence' && readStructureContext(loaded.sources)
+          ? 14
+          : loaded.deskEdit || (this.options.guidedWorkflow && loaded.sources.some((source) => source.kind === 'DRAFT'))
+            ? 12
+            : this.options.guidedWorkflow && loaded.guidance
+              ? 11
+              : (this.options.workflowVersion ?? 8));
     const currentContract = contractHash(version);
     if (
       restored &&
@@ -1406,7 +1460,7 @@ export class AgenticCaseTask {
       binding.actionId,
       packet.sources.map((s) => [s.id, s.contentHash]),
       ...(version >= 11 ? [packet.guidance?.guidanceHash, packet.answers, packet.guidanceAnswers] : []),
-      ...(version === 12 ? [packet.deskEdit?.target, packet.deskEdit?.scope] : []),
+      ...(version === 12 || version === 14 ? [packet.deskEdit?.target, packet.deskEdit?.scope] : []),
     ]);
     const state: CaseTaskState = restored
       ? restored
@@ -1445,7 +1499,7 @@ export class AgenticCaseTask {
       throw new Error('TASK_GRAPH_CONFLICT');
     let node: GraphNode | undefined;
     if (state.version !== 1 && state.plan) {
-      if (state.version === 11 || state.version === 12) {
+      if (isGuidedDesk(state)) {
         const question = this.question(state.plan, packet, state, binding.objective);
         if (question) return { kind: 'question', state, question };
         if (state.skillSnapshot) {
@@ -1525,7 +1579,7 @@ export class AgenticCaseTask {
         this.refs(plan, this.merge(packet.sources, state.evidence));
         if (state.version !== 1) state.graph = createOrchestrationGraph(plan, tools);
         if (
-          state.version === 12 &&
+          isDeskEdit(state) &&
           plan.action === 'create_document' &&
           ((plan.documentMode === 'EDIT' && !packet.deskEdit) || (packet.deskEdit && plan.documentMode !== 'EDIT'))
         ) {
@@ -1544,7 +1598,7 @@ export class AgenticCaseTask {
             throw new Error('TASK_CONTEXT_LIMIT');
           return { kind: 'question', state, question };
         }
-        if (state.version === 11 || state.version === 12) {
+        if (isGuidedDesk(state)) {
           const guidance = this.effectiveGuidance(packet, binding.objective);
           if (
             guidance &&

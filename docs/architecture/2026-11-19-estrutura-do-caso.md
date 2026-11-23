@@ -152,6 +152,63 @@ que é seleção por item. A aba Estrutura, que já mostra a análise, passa a r
 - Limiar e erros: comando ambíguo ("o fato 3" que não existe) vira pergunta ao usuário, não palpite.
 - Fatias sugeridas: (1) numeração + comandos alterar/remover; (2) acrescentar com selo; (3) resumo do caso.
 
+## Desenho do E3 (23/11/2026)
+
+**Pedido do Boni.** A estrutura do caso aparece como contexto na orientação guiada e na minuta, e alimenta a redação da peça. A minuta já
+deve sair contextualizada pelos documentos enviados. Itens ainda "a confirmar" (que o usuário da Mesa não conferiu) entram na redação, com
+o registro de que são alegação; a revisão do usuário é necessária. A peça continua na voz da peça, não em terceira pessoa.
+
+**Ponto de partida (verificado em `main` em 23/11/2026).** Os documentos enviados já entram no contexto de toda execução do caso
+(`context.documents`). Os itens que o usuário confirmou (`approvedItems`: CASE_FACT e CASE_EVIDENCE) também entram, tratados como contexto,
+não como verdade (`agentic-approved-case.ts`). Não chegam à redação: o resumo do caso (E2), os itens "a confirmar" e qualquer sinal de
+quais itens sustentam a peça. A orientação guiada só pergunta área, tarefa, peça e tribunal e não mostra a estrutura.
+
+**Decisões do Boni.** (1) Fonte montada na execução, reaproveitando o mecanismo do E2. (2) Item "a confirmar" entra na minuta, registrado como
+alegação em `structureUse`, sem mudar a voz da peça. (3) A minuta exige revisão do usuário. Sem análise nem disparo automático novo: sem estrutura, a minuta sai como hoje.
+
+**Desenho.**
+1. **Ação:** só `create_document`. `review_text`, `analyze_documents`, `research_question` e `analyze_evidence` ficam como estão.
+2. **Fonte da estrutura.** Ao iniciar `create_document` com caso, o `case-task-driver` lê a estrutura vigente (`findCurrentStructure`, mesmo
+   critério da aba) e monta uma fonte confiável `structure-context:<deliveryId>`, no molde de `structureItemsSource`: cada item com id, label
+   (F1, P1), classificação, texto e estado (`CONFIRMADO`, `A_CONFIRMAR`, `RETIRADO` fora), mais o resumo do caso. Itens retirados pelo
+   usuário não entram. Sem estrutura, nenhuma fonte e nenhum erro (diferente do `adjust_structure`, que recusa).
+3. **Instrução do agente (contrato novo, v14).** O texto da redação muda, então vale a regra do v13: versão nova, v1 a v13 e as
+   fixtures `pre-*` congeladas. "A confirmar" quer dizer só que **o usuário da Mesa ainda não conferiu o item**; não muda a voz da peça. O
+   agente redige a peça na voz e na pessoa que a peça pede (como a parte, por seu advogado), sem frases do tipo "segundo o cliente" ou
+   "conforme alegado", e usa os itens `A_CONFIRMAR` no texto como usaria qualquer fato do caso. A diferença é só o registro: ele devolve em
+   `structureUse` quais itens a confirmar a peça usou. Itens `CONFIRMADO` entram como hoje (contexto, não prova). Lacuna vira pergunta
+   objetiva ao usuário (mecanismo de perguntas que já existe).
+4. **Revisão.** A entrega devolve `structureUse`: os ids dos itens `A_CONFIRMAR` em que a peça se apoia. O servidor audita que cada id existe
+   na fonte (mesma auditoria de itemId do E2, nos mesmos três pontos); id inventado derruba o trabalho. A peça mostra, nas fontes e
+   conferência que já existem, o aviso "Baseada em itens ainda a confirmar: F2, P1". É aviso, não bloqueio: nada de botão nem trava de
+   exportação (trava de produto); a confirmação continua pela conversa e pelo painel de conferência.
+5. **Orientação guiada.** Uma linha só de leitura no resumo da orientação, com o caso escolhido: "Estrutura do caso: 5 fatos, 2 a confirmar"
+   (contagem da rota `GET .../structure` que já existe). Sem estrutura, a linha não aparece. Sem botão, sem formulário.
+6. **Limite de tamanho.** A fonte respeita o teto de texto por fonte: entram primeiro o resumo e os confirmados, depois os `A_CONFIRMAR`,
+   até o teto; o que ficar de fora é dito na própria fonte ("N itens omitidos"). Diferente do `adjust_structure`, a redação não falha por
+   estrutura grande.
+7. **Privacidade.** Mesma regra da análise: só com o acesso da IA autorizado no caso.
+
+**Metas.** Minuta que usa os documentos e a estrutura, e o usuário sabe quais itens que ele ainda não conferiu sustentam a peça, sem ter de
+procurar.
+**Fora de escopo.** Disparar análise ao salvar documento; reaplicar correções; PDF direto (E4); qualquer tela, aba ou rota nova.
+**Anti-metas (seriam fracasso mesmo funcionando).** Item não conferido apresentado ao usuário como conferido (a revisão não pode ficar invisível); minuta que falha ou trava por falta de estrutura;
+aviso de revisão que vira controle obrigatório a operar.
+
+**Abordagens consideradas.** (A) Fonte montada na execução, a escolhida: reaproveita o E2 e não mexe no formato do contexto. (B) Colocar os
+itens a confirmar em `approvedItems`: mistura "aprovado" com "não aprovado" e exige mexer no formato do contexto e na regra de revisão.
+(C) Rodar a análise antes de cada redação sem estrutura: custa uma execução a mais por peça e contraria a decisão de não disparar análise
+ao salvar documento.
+
+**Chamadas minhas (marcadas para o Boni conferir).** Aviso sem bloqueio de exportação; só `create_document`; itens retirados fora da fonte;
+omissão por tamanho em vez de falha; nova versão de contrato em vez de alterar o v13.
+
+**Fica para quem constrói.** Nome e formato exatos de `structureUse` na entrega e onde a web o mostra; como a web conta fatos e itens para a
+linha da orientação sem nova rota; qual o limite de caracteres de cada parte da fonte.
+
+**Fatias sugeridas.** (1) Fonte + contrato v14 + auditoria de `structureUse`. (2) Aviso "baseada em itens a confirmar" nas fontes da peça.
+(3) Linha de leitura na orientação guiada.
+
 ## Limites
 
 Só textos sintéticos nos testes. Sem a aba, nada de dado real é estruturado. Regras de privacidade e consentimento de IA do
@@ -188,3 +245,22 @@ recentes (a idempotência fica nos ids de comando, que não são podados).
 - **Busca da análise vigente:** percorre até 1000 conversas visíveis do caso; conversa escondida do histórico não conta.
 - **Não verificado:** o caminho real até o modelo (pedido em linguagem natural resolvido pelo agente) não foi exercitado; os testes de
   navegador usam as rotas de leitura e do trabalho simuladas.
+
+**E3 entregue (23/11/2026, branch `claude/e3-estrutura-na-redacao`):** o `case-task-driver` monta, para `create_document` e para o modo Automático
+de um caso com análise vigente, a fonte `structure-context:<deliveryId>` (resumo do último ajuste e itens `CONFIRMADO` ou `A_CONFIRMAR`; itens
+retirados ficam de fora; excedente de tamanho é cortado e declarado, nunca erro). Com a fonte e o fluxo guiado ligado, a execução roda no
+contrato **v14** (comportamento do v12 mais o protocolo da estrutura; v1 a v13 e as fixtures `pre-*` intactos). O redator escreve na voz da
+peça e devolve `structureUse` com os itens a confirmar em que se apoia; o servidor audita os ids (`STRUCTURE_ITEM_INVALID`) e a entrega guarda
+só os `A_CONFIRMAR`. Nos pontos a conferir da minuta aparece "Baseada em itens ainda a confirmar: F2, P1."; na orientação guiada, a linha
+"Estrutura do caso: N fatos, M itens a confirmar". Sem estrutura, acesso da IA ou leitura falha: a minuta sai como antes.
+
+**Limites e pendências do E3:**
+- **Não verificado com o modelo real:** o caminho até o modelo (o redator de fato escrever na voz da peça e listar `structureUse`) só foi
+  exercitado com agente simulado.
+- **Automático:** a versão é escolhida antes de o orquestrador decidir a ação; por isso o v14 vale para qualquer execução sem ação explícita
+  de análise ou ajuste. Se o orquestrador escolher `analyze_evidence` no v14, a fonte é retirada do que o analista recebe.
+- **Mudança durante a execução:** o hash da fonte entra no vínculo da execução; conferir um item enquanto a minuta roda derruba a execução
+  com conflito de contexto, em vez de usar estrutura mais nova.
+- **Custo de leitura:** cada redação com caso procura a análise vigente (até 1000 conversas do caso), como a aba Estrutura.
+- **Edição de trecho (`review_text` e seleção na peça):** só recebe a estrutura se a execução for escolhida sem ação explícita.
+

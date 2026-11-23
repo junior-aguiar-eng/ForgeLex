@@ -84,6 +84,15 @@ const PREFIXED: Record<string, string> = {
 };
 const codeOf = (f: { id: string; code?: string }) => f.code ?? f.id.split(':')[0];
 
+/** Aviso de que a peça se apoia em itens da estrutura que o usuário ainda não conferiu (E3). */
+export function structureUseNotice(use: readonly { itemId: string; label?: string }[] | undefined): string | undefined {
+  if (!use?.length) return undefined;
+  const labels = use.map((item) => item.label).filter((label): label is string => Boolean(label));
+  return labels.length === use.length
+    ? `Baseada em itens ainda a confirmar: ${labels.join(', ')}.`
+    : `Baseada em ${use.length} ${use.length === 1 ? 'item ainda a confirmar' : 'itens ainda a confirmar'}.`;
+}
+
 export function presentDelivery(delivery: Delivery['delivery']): PresentedDelivery {
   const known = new Map<string, Source>();
   for (const source of delivery.sources) if (source.id) known.set(source.id, source);
@@ -264,6 +273,8 @@ export function presentDelivery(delivery: Delivery['delivery']): PresentedDelive
   const add = (text: string) => {
     if (text && !pending.includes(text)) pending.push(text);
   };
+  const structureNotice = structureUseNotice(delivery.structureUse);
+  if (structureNotice) add(structureNotice);
   const unsupportedSections: string[] = [];
   for (const finding of delivery.review || delivery.action === 'review_text' ? [] : delivery.findings) {
     const code = codeOf(finding);

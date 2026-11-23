@@ -5,7 +5,7 @@ import { MAX_SOURCE_TEXT_CHARS } from './agentic-limits.js';
 import { TaskEvidenceMatrixSchema } from './task-evidence.js';
 import { ApprovedItemSnapshotSchema } from './approved-case-context.js';
 import { GuidanceSnapshotSchema } from './desk-guidance.js';
-import { StructureAdjustmentSchema } from './structure-commands.js';
+import { StructureAdjustmentSchema, StructureUseSchema } from './structure-commands.js';
 const id = z.string().trim().min(1).max(200);
 const text = z.string().trim().min(1).max(16000);
 export const AgenticTaskActionSchema = z.enum([
@@ -178,6 +178,8 @@ export const AgenticTaskDeliverySchema = z.strictObject({
   review: TaskReviewedDeliverySchema.optional(),
   // adjust_structure only: commands resolved later against the current analysis, plus a short case summary.
   structureAdjustment: StructureAdjustmentSchema.optional(),
+  // create_document with the case structure: items the user has not checked yet that the piece leans on.
+  structureUse: StructureUseSchema.optional(),
 });
 export type AgenticTaskDelivery = z.infer<typeof AgenticTaskDeliverySchema>;
 export interface TaskBinding {
