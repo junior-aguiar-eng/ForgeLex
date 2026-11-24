@@ -1,17 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
 import { ApiRequestError, requestApi } from '../api-client';
 import type { Delivery } from '../agentic-workspace/execution-model';
-import { presentDelivery, type PresentedDelivery } from '../agentic-workspace/present-delivery';
+import type { PresentedDelivery } from '../agentic-workspace/present-delivery';
 import {
   replacedCorrectionsNotice,
-  structureQuestions,
-  structureSections,
   structureSize,
-  structureSummary,
+  unifyStructures,
+  type StructureDocument,
   type StructureEntry,
+  type StructureInput,
   type StructureReview,
   type StructureSection,
 } from './case-structure-model';
+
+/** Uma análise do caso na lista que a rota devolve (E4). */
+interface CaseStructureItem {
+  deliveryId: string;
+  updatedAt: string;
+  previousDeliveryId?: string;
+  documentKey?: string;
+  attachment?: StructureInput['attachment'];
+}
 
 interface Loaded {
   updatedAt: string;
@@ -20,6 +29,8 @@ interface Loaded {
   pending: string[];
   /** Resumo curto do caso, do ajuste mais recente feito pela conversa (E2). */
   summary?: string;
+  /** Documentos que o caso já tem (E4); vazio quando só há uma análise sem nada a mostrar. */
+  documents?: StructureDocument[];
 }
 export type StructureViewState =
   { phase: 'loading' } | { phase: 'error'; message: string } | { phase: 'empty' } | ({ phase: 'ready' } & Loaded);
@@ -59,68 +70,107 @@ export function DeskCaseStructure({
     void (async () => {
       try {
         const found = await requestApi<{
-          structure: { deliveryId: string; updatedAt: string; previousDeliveryId?: string } | null;
+          structure: CaseStructureItem | null;
+          structures?: CaseStructureItem[];
         }>(
           `/api/agentic/matters/${encodeURIComponent(matterId)}/structure`,
           { signal: controller.signal },
           { sessionOnly: true },
         );
-        if (!found.structure) {
+        // E4: a estrutura é a soma das análises do caso. Servidor sem a lista (`structures`) devolve só a mais recente.
+        const items: CaseStructureItem[] = found.structures ?? (found.structure ? [found.structure] : []);
+        if (!items.length) {
           setState({ phase: 'empty' });
           return;
         }
-        const result = await requestApi<Delivery>(
-          `/api/agentic/deliveries/${encodeURIComponent(found.structure.deliveryId)}`,
-          { signal: controller.signal },
-          { sessionOnly: true },
-        );
-        // A revisão da análise (E2) numera os itens, marca o que o usuário mudou e traz o resumo. Sem ela (rota ausente
-        // ou revisão indisponível), a aba fica como no E1: nunca vira falha.
-        let review: StructureReview | undefined;
-        try {
-          review = await requestApi<StructureReview>(
-            `/api/agentic/deliveries/${encodeURIComponent(found.structure.deliveryId)}/evidence-review`,
+        const load = async (deliveryId: string) => {
+          const result = await requestApi<Delivery>(
+            `/api/agentic/deliveries/${encodeURIComponent(deliveryId)}`,
             { signal: controller.signal },
             { sessionOnly: true },
           );
-        } catch {
-          if (controller.signal.aborted) return;
-          review = undefined;
-        }
-        // Análise nova sobre outra que tinha correções pela conversa: o usuário é avisado de que elas não foram
-        // reaplicadas. Falha ao ler a anterior só tira o aviso.
-        let previous: StructureReview | undefined;
-        if (found.structure.previousDeliveryId) {
+          // A revisão da análise (E2) numera os itens, marca o que o usuário mudou e traz o resumo. Sem ela (rota
+          // ausente ou revisão indisponível), a aba fica como no E1: nunca vira falha.
+          let review: StructureReview | undefined;
           try {
-            previous = await requestApi<StructureReview>(
-              `/api/agentic/deliveries/${encodeURIComponent(found.structure.previousDeliveryId)}/evidence-review`,
+            review = await requestApi<StructureReview>(
+              `/api/agentic/deliveries/${encodeURIComponent(deliveryId)}/evidence-review`,
               { signal: controller.signal },
               { sessionOnly: true },
+            );
+          } catch {
+            if (controller.signal.aborted) throw new DOMException('aborted', 'AbortError');
+          }
+          return { delivery: result.delivery, review };
+        };
+        // Uma análise que não carrega sai da soma com um aviso; só quando nenhuma carrega a aba mostra o erro.
+        const settled = await Promise.allSettled(items.map((item) => load(item.deliveryId)));
+        if (controller.signal.aborted) return;
+        const inputs: StructureInput[] = [];
+        let unavailable = 0;
+        settled.forEach((outcome, index) => {
+          const item = items[index]!;
+          if (outcome.status === 'fulfilled')
+            inputs.push({
+              delivery: outcome.value.delivery,
+              ...(outcome.value.review ? { review: outcome.value.review } : {}),
+              updatedAt: item.updatedAt,
+              ...(item.documentKey ? { documentKey: item.documentKey } : {}),
+              ...(item.attachment ? { attachment: item.attachment } : {}),
+            });
+          else unavailable += 1;
+        });
+        if (!inputs.length) {
+          const failed = settled.find((outcome) => outcome.status === 'rejected');
+          throw failed && failed.status === 'rejected' ? failed.reason : new Error('Estrutura indisponível.');
+        }
+        const unified = unifyStructures(inputs);
+        const latest = items[items.length - 1]!;
+        // Servidor antigo (sem `structures`): análise nova sobre outra que tinha correções pela conversa avisa que elas
+        // não foram reaplicadas. Com a soma, a análise anterior continua na estrutura e não há o que avisar.
+        let replaced: string | undefined;
+        if (!found.structures && latest.previousDeliveryId) {
+          try {
+            replaced = replacedCorrectionsNotice(
+              await requestApi<StructureReview>(
+                `/api/agentic/deliveries/${encodeURIComponent(latest.previousDeliveryId)}/evidence-review`,
+                { signal: controller.signal },
+                { sessionOnly: true },
+              ),
             );
           } catch {
             if (controller.signal.aborted) return;
           }
         }
-        const presented = presentDelivery(result.delivery);
-        const sections = structureSections(presented.blocks, review);
-        const summary = structureSummary(review);
-        const replaced = replacedCorrectionsNotice(previous);
-        const pending = [...(replaced ? [replaced] : []), ...presented.pending];
-        for (const line of structureQuestions(review)) if (!pending.includes(line)) pending.push(line);
+        const pending = [
+          ...(replaced ? [replaced] : []),
+          ...(unavailable
+            ? [
+                unavailable === 1
+                  ? 'Uma análise do caso não pôde ser carregada agora e ficou fora desta estrutura.'
+                  : `${unavailable} análises do caso não puderam ser carregadas agora e ficaram fora desta estrutura.`,
+              ]
+            : []),
+          ...unified.pending,
+        ];
+        const showDocuments =
+          unified.documents.length > 1 ||
+          unified.documents.some((document) => document.pieceType || document.parts || document.parties.length);
         setState(
-          structureSize(sections) === 0
+          structureSize(unified.sections) === 0
             ? { phase: 'empty' }
             : {
                 phase: 'ready',
-                updatedAt: found.structure.updatedAt,
-                sections,
-                sources: presented.sources,
+                updatedAt: latest.updatedAt,
+                sections: unified.sections,
+                sources: unified.sources,
                 pending,
-                ...(summary ? { summary } : {}),
+                documents: showDocuments ? unified.documents : [],
+                ...(unified.summary ? { summary: unified.summary } : {}),
               },
         );
       } catch (failure) {
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted || (failure instanceof DOMException && failure.name === 'AbortError')) return;
         // Ambiente sem o fluxo de análise do caso (ou análise já removida): não há o que mostrar, e isso não é falha.
         if (failure instanceof ApiRequestError && failure.status === 404) setState({ phase: 'empty' });
         else setState({ phase: 'error', message: failureText(failure) });
@@ -171,6 +221,30 @@ export function DeskCaseStructureView({ state }: { state: StructureViewState }) 
               <p className="text-sm leading-6 text-ink">{state.summary}</p>
             </div>
           )}
+          {(state.documents?.length ?? 0) > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-ink-soft">Documentos do caso</h3>
+              <ul className="space-y-2">
+                {(state.documents ?? []).map((document, index) => (
+                  <li key={`${document.title}-${index}`} className="text-sm leading-6 text-ink">
+                    <span className="font-medium">{document.title}</span>
+                    {document.pieceTypeUncertain && !document.pieceType && (
+                      <span className="ml-2 text-xs text-subtle">peça não identificada com segurança</span>
+                    )}
+                    {document.parties.length > 0 && (
+                      <span className="block text-xs text-muted">Partes: {document.parties.join('; ')}</span>
+                    )}
+                    <span className="block text-xs text-subtle">
+                      Analisado em {new Date(document.analyzedAt).toLocaleDateString('pt-BR')}
+                      {document.parts && document.parts.count > 1
+                        ? `. Lido em ${document.parts.count} partes${document.parts.pages ? ` (${document.parts.pages} páginas)` : ''}; cada parte foi analisada sem ver as outras.`
+                        : ''}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <p className="text-xs text-subtle">
             Análise de {new Date(state.updatedAt).toLocaleDateString('pt-BR')}. É leitura do ForgeLex sobre os
             documentos do caso, não decisão: confira as fontes. Para corrigir algo, diga no campo ao lado.
@@ -194,6 +268,7 @@ export function DeskCaseStructureView({ state }: { state: StructureViewState }) 
                         {entry.tag}
                       </span>
                     )}
+                    {entry.origin && <span className="mr-2 text-[11px] font-medium text-subtle">{entry.origin}</span>}
                     <ChangeMark entry={entry} />
                     <span
                       className={`break-words${entry.change?.kind === 'removed' ? ' text-muted line-through' : ''}`}

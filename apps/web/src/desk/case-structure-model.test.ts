@@ -14,6 +14,8 @@ import {
   structureSections,
   structureSize,
   structureSummary,
+  unifyStructures,
+  type StructureInput,
   type StructureReview,
   type StructureReviewItem,
   type StructureSection,
@@ -325,5 +327,129 @@ describe('structureReadingLine (E3)', () => {
     expect(
       structureReadingLine({ items: [it0('a', 'FACT')], decisions: { ['a'.repeat(64)]: decision('DISCARD') } }),
     ).toBeUndefined();
+  });
+});
+
+describe('unifyStructures (E4)', () => {
+  const analysis = (n: number, extra: Record<string, unknown> = {}): StructureInput['delivery'] =>
+    ({
+      action: 'analyze_evidence',
+      status: 'CANDIDATE',
+      humanReviewRequired: true,
+      legalAssessment: 'NOT_EVALUATED',
+      issues: [{ id: `i${n}`, statement: `Questão ${n}?`, sourceIds: [`s${n}`] }],
+      claims: [],
+      requirements: [],
+      findings: [],
+      sources: [
+        { id: `s${n}`, kind: 'DOCUMENT', documentId: `d${n}`, versionId: `v${n}`, contentHash: 'a'.repeat(64) },
+      ],
+      ...extra,
+    }) as unknown as StructureInput['delivery'];
+  const added = (id: string, text: string): StructureReviewItem => ({
+    id: id.repeat(64),
+    kind: 'FACT',
+    text,
+    originIds: [],
+    references: [],
+    userAdded: { frase: 'frase', addedAt: '2026-11-22T10:00:00.000Z' },
+  });
+  const input = (n: number, extra: Partial<StructureInput> = {}): StructureInput => ({
+    delivery: analysis(n),
+    updatedAt: `2026-11-2${n}T10:00:00.000Z`,
+    ...extra,
+  });
+
+  it('com uma análise só o resultado é o de sempre: sem marca de origem', () => {
+    const one = unifyStructures([input(1)]);
+    expect(entries(one.sections).every((entry) => entry.origin === undefined)).toBe(true);
+    expect(one.documents).toHaveLength(1);
+    expect(one.sections[0]?.title).toBe('Questões');
+  });
+
+  it('soma as seções pelo título, numera F e P em sequência entre as análises e marca a origem', () => {
+    const first = input(1, { review: { items: [added('a', 'Fato do primeiro.')], decisions: {} } });
+    const second = input(2, { review: { items: [added('b', 'Fato do segundo.')], decisions: {} } });
+    const unified = unifyStructures([first, second]);
+    const questions = unified.sections.find((section) => section.title === 'Questões');
+    expect(questions?.entries.map((entry) => entry.text)).toEqual(['Questão 1?', 'Questão 2?']);
+    expect(questions?.entries.map((entry) => entry.origin)).toEqual(['Documento 1', 'Documento 2']);
+    const informed = unified.sections.find((section) => section.title === USER_ADDED_TITLE);
+    expect(informed?.entries.map((entry) => [entry.label, entry.text])).toEqual([
+      ['F1', 'Fato do primeiro.'],
+      ['F2', 'Fato do segundo.'],
+    ]);
+    expect(unified.sections.at(-1)?.title).toBe(USER_ADDED_TITLE);
+  });
+
+  it('renumera as fontes para não colidirem e ajusta as citações da segunda análise', () => {
+    const unified = unifyStructures([input(1), input(2)]);
+    expect(unified.sources.map((source) => source.n)).toEqual([1, 2]);
+    const questions = unified.sections.find((section) => section.title === 'Questões');
+    expect(questions?.entries.map((entry) => entry.citations)).toEqual([[1], [2]]);
+  });
+
+  it('trechos do mesmo PDF viram um documento só, com o tipo da peça, as partes e o total de páginas', () => {
+    const profile = {
+      pieceType: 'Petição inicial',
+      pieceTypeCertainty: 'IDENTIFICADA',
+      parties: [{ name: 'Maria', role: 'autor' }],
+    };
+    const part = (index: number, extra: Record<string, unknown>, from: number, to: number) =>
+      input(index, {
+        delivery: analysis(index, extra),
+        documentKey: 'a1b2c3d4e5f6',
+        attachment: { name: 'processo.pdf', part: { index, total: 2, pageFrom: from, pageTo: to } },
+      });
+    const unified = unifyStructures([
+      part(1, { documentProfile: { pieceTypeCertainty: 'INCERTA', parties: [] } }, 1, 40),
+      part(2, { documentProfile: profile }, 41, 80),
+    ]);
+    expect(unified.documents).toHaveLength(1);
+    expect(unified.documents[0]).toMatchObject({
+      title: 'Petição inicial',
+      pieceType: 'Petição inicial',
+      parties: ['Maria (autor)'],
+      parts: { count: 2, pages: 80 },
+    });
+    const origins = entries(unified.sections).map((entry) => entry.origin);
+    expect(origins).toEqual(['Petição inicial, páginas 1 a 40', 'Petição inicial, páginas 41 a 80']);
+  });
+
+  it('sem perfil, o documento leva o nome do anexo; peça incerta é dita, não escondida', () => {
+    const unified = unifyStructures([
+      input(1, {
+        attachment: { name: 'contrato.pdf' },
+        delivery: analysis(1, { documentProfile: { pieceTypeCertainty: 'INCERTA', parties: [] } }),
+      }),
+    ]);
+    expect(unified.documents[0]).toMatchObject({ title: 'contrato', pieceTypeUncertain: true });
+  });
+
+  it('o resumo e as perguntas são os do ajuste mais recente entre todas as análises', () => {
+    const record = (recordedAt: string, caseSummary: string) => ({
+      executionId: 'e',
+      applied: 0,
+      questions: [{ reason: 'ITEM_DESCONHECIDO' as const }],
+      caseSummary,
+      recordedAt,
+    });
+    const first = input(1, {
+      review: {
+        items: [],
+        decisions: {},
+        adjustments: { '11111111-1111-4111-8111-111111111111': record('2026-11-20T10:00:00.000Z', 'Resumo antigo.') },
+      },
+    });
+    const second = input(2, {
+      review: {
+        items: [],
+        decisions: {},
+        adjustments: { '22222222-2222-4222-8222-222222222222': record('2026-11-22T10:00:00.000Z', 'Resumo novo.') },
+      },
+    });
+    const unified = unifyStructures([first, second]);
+    expect(unified.summary).toBe('Resumo novo.');
+    expect(unified.pending.filter((line) => line.startsWith('Não identifiquei'))).toHaveLength(1);
   });
 });

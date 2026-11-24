@@ -1,4 +1,6 @@
-import type { BlockOrigin, PresentedBlock } from '../agentic-workspace/present-delivery';
+import { presentDelivery } from '../agentic-workspace/present-delivery';
+import type { BlockOrigin, PresentedBlock, PresentedSource } from '../agentic-workspace/present-delivery';
+import type { Delivery } from '../agentic-workspace/execution-model';
 import type {
   EvidenceReviewDecision,
   EvidenceReviewItem,
@@ -23,6 +25,8 @@ export interface StructureEntry {
   seal?: string;
   /** Frase do usuário que originou o item acrescentado. */
   frase?: string;
+  /** De que documento o item veio (E4); só aparece quando o caso tem mais de uma análise ou o documento foi identificado. */
+  origin?: string;
   /** O que o usuário mudou: texto corrigido (com o anterior) ou item retirado. */
   change?: { kind: 'corrected'; before: string } | { kind: 'removed' };
 }
@@ -96,8 +100,13 @@ function reviewed(entry: StructureEntry, item: StructureReviewItem, review: Stru
  * análise (E2), cada fato e prova ganha o número que o agente também usa, o que o usuário corrigiu ou retirou fica
  * marcado, e os itens que ele acrescentou aparecem numa parte própria, com o selo e sem fonte.
  */
-export function structureSections(blocks: readonly PresentedBlock[], review?: StructureReview): StructureSection[] {
-  const labels = review ? structureItemLabels(review.items) : new Map<string, string>();
+export function structureSections(
+  blocks: readonly PresentedBlock[],
+  review?: StructureReview,
+  /** Numeração do caso inteiro (E4): com várias análises, F1…Fn seguem em sequência entre elas. */
+  caseLabels?: ReadonlyMap<string, string>,
+): StructureSection[] {
+  const labels = caseLabels ?? (review ? structureItemLabels(review.items) : new Map<string, string>());
   const sections: StructureSection[] = [];
   let current: StructureSection | undefined;
   for (const block of blocks) {
@@ -186,10 +195,10 @@ function questionText(question: StructureQuestion, labels: Map<string, string>):
 }
 
 /** Pontos a conferir do ajuste mais recente, em português simples, com o número do item quando há um. */
-export function structureQuestions(review?: StructureReview): string[] {
+export function structureQuestions(review?: StructureReview, caseLabels?: ReadonlyMap<string, string>): string[] {
   const latest = byRecent(review)[0];
   if (!review || !latest) return [];
-  const labels = structureItemLabels(review.items);
+  const labels = new Map(caseLabels ?? structureItemLabels(review.items));
   const lines: string[] = [];
   for (const question of latest.questions) {
     const line = questionText(question, labels);
@@ -231,4 +240,141 @@ export function structureReadingLine(review?: StructureReview): string | undefin
     unchecked ? `${unchecked} ${unchecked === 1 ? 'item a confirmar' : 'itens a confirmar'}` : 'tudo conferido',
   ];
   return `Estrutura do caso: ${parts.join(', ')}`;
+}
+
+/** O que a aba precisa de uma análise do caso para somá-la às outras (E4). */
+export interface StructureInput {
+  delivery: Delivery['delivery'];
+  review?: StructureReview;
+  updatedAt: string;
+  /** Código que agrupa os trechos de um mesmo PDF longo. */
+  documentKey?: string;
+  attachment?: { name: string; part?: { index: number; total: number; pageFrom?: number; pageTo?: number } };
+}
+/** Um documento do caso: um PDF dividido em trechos conta como um só. */
+export interface StructureDocument {
+  title: string;
+  pieceType?: string;
+  /** A peça não pôde ser identificada com segurança. */
+  pieceTypeUncertain?: boolean;
+  parties: string[];
+  analyzedAt: string;
+  parts?: { count: number; pages?: number };
+}
+export interface UnifiedStructure {
+  sections: StructureSection[];
+  documents: StructureDocument[];
+  summary?: string;
+  pending: string[];
+  sources: PresentedSource[];
+}
+
+const stripExtension = (name: string) => name.replace(/\.(pdf|txt|md|docx)$/i, '');
+const pagesLabel = (part?: { pageFrom?: number; pageTo?: number }) =>
+  part?.pageFrom !== undefined && part.pageTo !== undefined ? `páginas ${part.pageFrom} a ${part.pageTo}` : undefined;
+const partyText = (party: { name: string; role: string }) => `${party.name} (${party.role})`;
+
+/**
+ * Soma as análises do caso numa estrutura só (E4): as seções se juntam pelo título, os fatos e provas são numerados em
+ * sequência (F1…Fn, P1…Pn) na ordem de chegada, cada item diz de que documento veio e as fontes são renumeradas para não
+ * colidir. Com uma análise só o resultado é o de sempre, sem marca de origem.
+ */
+export function unifyStructures(inputs: readonly StructureInput[]): UnifiedStructure {
+  const reviews = inputs.map((input) => input.review).filter((review): review is StructureReview => Boolean(review));
+  const caseLabels = structureItemLabels(reviews.flatMap((review) => review.items));
+  const views = inputs.map((input) => presentDelivery(input.delivery));
+
+  // Documentos: os trechos de um mesmo PDF viram um só, com o perfil do primeiro trecho que identificou a peça.
+  const documents: StructureDocument[] = [];
+  const documentOf = new Map<number, number>();
+  const byKey = new Map<string, number>();
+  inputs.forEach((input, index) => {
+    const profile = input.delivery.documentProfile;
+    const part = input.attachment?.part;
+    const known = input.documentKey === undefined ? undefined : byKey.get(input.documentKey);
+    if (known !== undefined) {
+      documentOf.set(index, known);
+      const document = documents[known]!;
+      document.parts = {
+        count: (document.parts?.count ?? 1) + 1,
+        ...(document.parts?.pages !== undefined || part?.pageTo !== undefined
+          ? { pages: Math.max(document.parts?.pages ?? 0, part?.pageTo ?? 0) }
+          : {}),
+      };
+      if (profile?.pieceType && !document.pieceType) {
+        document.pieceType = profile.pieceType;
+        document.title = profile.pieceType;
+      }
+      if (profile?.pieceTypeCertainty === 'IDENTIFICADA') delete document.pieceTypeUncertain;
+      for (const party of profile?.parties ?? []) {
+        const text = partyText(party);
+        if (!document.parties.includes(text)) document.parties.push(text);
+      }
+      return;
+    }
+    documents.push({
+      title:
+        profile?.pieceType ??
+        (input.attachment ? stripExtension(input.attachment.name) : `Documento ${documents.length + 1}`),
+      ...(profile?.pieceType ? { pieceType: profile.pieceType } : {}),
+      ...(profile?.pieceTypeCertainty === 'INCERTA' ? { pieceTypeUncertain: true } : {}),
+      parties: (profile?.parties ?? []).map(partyText),
+      analyzedAt: input.updatedAt,
+      ...(part ? { parts: { count: 1, ...(part.pageTo !== undefined ? { pages: part.pageTo } : {}) } } : {}),
+    });
+    documentOf.set(index, documents.length - 1);
+    if (input.documentKey !== undefined) byKey.set(input.documentKey, documents.length - 1);
+  });
+  const showOrigin = inputs.length > 1 || documents.some((document) => document.pieceType || document.parts);
+
+  const sections: StructureSection[] = [];
+  const sources: PresentedSource[] = [];
+  const pending: string[] = [];
+  let offset = 0;
+  inputs.forEach((input, index) => {
+    const view = views[index]!;
+    let origin: string | undefined;
+    if (showOrigin) {
+      const title = documents[documentOf.get(index)!]!.title;
+      const pages = pagesLabel(input.attachment?.part);
+      origin = pages ? `${title}, ${pages}` : title;
+    }
+    for (const section of structureSections(view.blocks, input.review, caseLabels)) {
+      const entries = section.entries.map((entry) => ({
+        ...entry,
+        ...(offset && !entry.userAdded ? { citations: entry.citations.map((n) => n + offset) } : {}),
+        ...(origin ? { origin } : {}),
+      }));
+      const target = sections.find((candidate) => candidate.title === section.title);
+      if (target) target.entries.push(...entries);
+      else sections.push({ title: section.title, entries });
+    }
+    for (const source of view.sources) sources.push({ ...source, n: source.n + offset });
+    offset += view.sources.length;
+    for (const line of view.pending) if (!pending.includes(line)) pending.push(line);
+  });
+  // Os itens que o usuário acrescentou ficam juntos, no fim.
+  const added = sections.findIndex((section) => section.title === USER_ADDED_TITLE);
+  if (added >= 0 && added !== sections.length - 1) sections.push(...sections.splice(added, 1));
+
+  // Resumo e perguntas: os do ajuste mais recente do caso, entre todas as análises.
+  let latest: { review: StructureReview; recordedAt: string } | undefined;
+  let summary: { text: string; recordedAt: string } | undefined;
+  for (const review of reviews) {
+    const records = byRecent(review);
+    if (records[0] && (!latest || records[0].recordedAt > latest.recordedAt))
+      latest = { review, recordedAt: records[0].recordedAt };
+    const withSummary = records.find((record) => record.caseSummary?.trim());
+    if (withSummary && (!summary || withSummary.recordedAt > summary.recordedAt))
+      summary = { text: withSummary.caseSummary!.trim(), recordedAt: withSummary.recordedAt };
+  }
+  if (latest)
+    for (const line of structureQuestions(latest.review, caseLabels)) if (!pending.includes(line)) pending.push(line);
+  return {
+    sections: sections.filter((section) => section.entries.length > 0),
+    documents,
+    ...(summary ? { summary: summary.text } : {}),
+    pending,
+    sources,
+  };
 }

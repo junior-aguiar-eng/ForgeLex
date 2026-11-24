@@ -36,6 +36,11 @@ export interface CaseStructureEntry {
   contextTextHash: string;
   /** Code in the attachment header that groups the parts of one long PDF. */
   documentKey?: string;
+  /** First attachment of the written context (name and, for a long PDF, which part and pages). */
+  attachment?: {
+    name: string;
+    part?: { index: number; total: number; pageFrom?: number; pageTo?: number };
+  };
 }
 
 const PAGE = 50;
@@ -65,7 +70,24 @@ export async function findCaseStructure<E extends CaseStructureExecution>(
       const stored = await deps.store.workspace.getConversationReadOnly(owner, execution.conversationId);
       const text = stored?.contexts.find((context) => context.revision === execution.contextRevision)?.text ?? '';
       const contextTextHash = createHash('sha256').update(text).digest('hex');
-      const documentKey = parseAttachmentBlocks(text).find((block) => block.part)?.part?.documentCode;
+      const blocks = parseAttachmentBlocks(text);
+      const documentKey = blocks.find((block) => block.part)?.part?.documentCode;
+      const first = blocks[0];
+      const attachment = first
+        ? {
+            name: first.name,
+            ...(first.part
+              ? {
+                  part: {
+                    index: first.part.index,
+                    total: first.part.total,
+                    ...(first.part.pageFrom !== undefined ? { pageFrom: first.part.pageFrom } : {}),
+                    ...(first.part.pageTo !== undefined ? { pageTo: first.part.pageTo } : {}),
+                  },
+                }
+              : {}),
+          }
+        : undefined;
       const entry = {
         executionId: execution.id,
         deliveryId,
@@ -73,6 +95,7 @@ export async function findCaseStructure<E extends CaseStructureExecution>(
         createdAt: execution.createdAt,
         contextTextHash,
         ...(documentKey ? { documentKey } : {}),
+        ...(attachment ? { attachment } : {}),
       };
       const known = byText.get(contextTextHash);
       if (!known || known.createdAt < entry.createdAt) byText.set(contextTextHash, entry);

@@ -153,6 +153,12 @@ export interface Delivery {
     structureAdjustment?: { commands: StructureCommand[]; caseSummary: string };
     /** Itens da estrutura ainda não conferidos em que a peça se apoia (create_document). */
     structureUse?: { itemId: string; label?: string }[];
+    /** Tipo da peça e partes que a análise identificou no texto (E4); a citação de cada parte foi conferida pelo servidor. */
+    documentProfile?: {
+      pieceType?: string;
+      pieceTypeCertainty: 'IDENTIFICADA' | 'INCERTA';
+      parties: { name: string; role: string; quoteStatus?: 'MATCHED' | 'MISMATCH' }[];
+    };
     document?: {
       title: string;
       documentType: string;
