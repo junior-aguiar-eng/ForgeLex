@@ -24,6 +24,14 @@ export interface AttachmentPart {
 
 const PAGE_LINE = /^Página (\d+)$/;
 
+/** Um parágrafo maior que o teto é cortado em pedaços do tamanho do teto; os demais ficam como estão. */
+function cutAt(block: string, max: number): string[] {
+  if (block.length <= max) return [block];
+  const pieces: string[] = [];
+  for (let at = 0; at < block.length; at += max) pieces.push(block.slice(at, at + max));
+  return pieces;
+}
+
 /** As páginas do texto do PDF, ou `undefined` quando o texto não traz as marcas em sequência desde a página 1. */
 function pagesOf(text: string): { page: number; text: string }[] | undefined {
   const lines = text.split('\n');
@@ -63,9 +71,7 @@ export function splitAttachment(
       } else groups.push({ from: page.page, to: page.page, text: page.text });
     }
   } else {
-    const blocks = text
-      .split(/\n{2,}/)
-      .flatMap((block) => (block.length > max ? (block.match(new RegExp(`[\s\S]{1,${max}}`, 'g')) ?? []) : [block]));
+    const blocks = text.split(/\n{2,}/).flatMap((block) => cutAt(block, max));
     for (const block of blocks) {
       const current = groups.at(-1);
       if (current && current.text.length + 2 + block.length <= max) current.text += `\n\n${block}`;

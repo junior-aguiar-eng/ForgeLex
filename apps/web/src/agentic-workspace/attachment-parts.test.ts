@@ -58,6 +58,14 @@ describe('splitAttachment (E4)', () => {
     expect(parts.map((part) => part.text).join('\n\n')).toBe(text);
   });
 
+  it('um parágrafo único maior que o teto é cortado em pedaços do teto, sem perder nem repetir texto', () => {
+    const text = `Sem pausa: ${'abcdefghij '.repeat(12_000)}fim`;
+    const parts = splitAttachment({ text });
+    expect(parts.length).toBeGreaterThan(2);
+    expect(parts.every((part) => part.text.length <= ATTACHMENT_PART_MAX_CHARS)).toBe(true);
+    expect(parts.map((part) => part.text).join('')).toBe(text);
+  });
+
   it('linha "Página 7" dentro do texto, fora da sequência, não cria uma página nova', () => {
     const text = `Página 1\nO autor cita a Página 7\nPágina 7\ne segue.\n\n${pdf(60).replace(/^Página 1\n/, 'Página 2\n')}`;
     // Sem a sequência desde a página 1, o texto é tratado como texto corrido.
