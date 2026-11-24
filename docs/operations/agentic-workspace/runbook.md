@@ -22,10 +22,12 @@ inferência paga: [avaliação e limites](2026-10-30-pilot-evaluation.md) e
 preservam seu estado original. A aprovação não libera uso profissional, dados
 de clientes, novas chamadas pagas ou ativação da interface.
 
-A [base comercial](2026-10-30-commercial-proposal.md) foi aprovada por Boni
-em 30/10, sem ativação. Ela define preço, margem simulada, limites e
-cancelamentos; a cobrança comercial nativa ainda exige implementação e
-validação. Não misturar o ledger sintético USD com o saldo comercial BRL.
+Boni aprovou a [base comercial](2026-10-30-commercial-proposal.md) em 30/10,
+com preço, margem simulada, limites e cancelamentos. Em 01/11, a inspeção da API
+registrou a execução comercial habilitada. O ledger do piloto usa USD e o saldo
+comercial usa BRL. Consulte o [manual comercial](commercial-execution.md) para a
+política de cobrança e o [estado publicado](../../../PENDENCIAS.md) para a
+configuração registrada mais recente.
 
 ## Execução comercial
 
