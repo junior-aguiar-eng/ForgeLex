@@ -4,6 +4,7 @@ import { DraftStudioScreen } from './DraftStudioScreen';
 import { useApp } from '../context/AppContext';
 import type { DeskPiece, DeskRequest } from '../agentic-workspace/desk-model';
 import type { Execution } from '../agentic-workspace/execution-model';
+import { structureRefreshKey } from '../agentic-workspace/structure-request';
 import type { GuidanceState } from '../agentic-workspace/guidance-model';
 import {
   hasDeskPiece,
@@ -128,8 +129,12 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
     [getDeskSelection, setDeskSelection],
   );
 
+  // E2: um ajuste da estrutura concluído recarrega a aba Estrutura da peça aberta (a chave muda a cada ajuste).
+  const [structureRefresh, setStructureRefresh] = useState<string>();
   const rememberConversation = useCallback(
     (run: Execution) => {
+      const refresh = structureRefreshKey(run);
+      if (refresh) setStructureRefresh(refresh);
       const current = getDeskSelection();
       if (current.executionId !== run.id) return;
       setDeskSelection({ ...current, conversationId: run.conversationId, contextRevision: run.contextRevision });
@@ -261,6 +266,7 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
               onCaseSources={openCaseSources}
               requestedReview={requestedReview}
               deskEditorialEnabled={deskEditorialEnabled}
+              structureRefreshKey={structureRefresh}
             />
           )
         }

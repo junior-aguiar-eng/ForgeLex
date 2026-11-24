@@ -85,7 +85,12 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
       packet: NativeTaskPacket,
       draft?: { draftId: string; versionId: string; bundle: DraftVersionBundle },
     ) => Promise<T>,
-    { historical = false, completedRead = false, publishing = false } = {},
+    {
+      historical = false,
+      completedRead = false,
+      publishing = false,
+      trusted = [],
+    }: { historical?: boolean; completedRead?: boolean; publishing?: boolean; trusted?: readonly TaskSource[] } = {},
   ): Promise<T> {
     await this.authorize({ tenantId: binding.tenantId, userId: binding.userId }, binding.matterId, this.db);
     return this.db.transaction(async (transaction) => {
@@ -270,6 +275,13 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
           });
         }
       }
+      // Server-assembled sources bound to this run (e.g. the items of the current case analysis).
+      for (const raw of trusted) {
+        const source = TaskSourceSchema.parse(raw);
+        if (hash(source.text) !== source.contentHash || sources.some((s) => s.id === source.id))
+          throw new Error('SOURCE_REFERENCE_INVALID');
+        sources.push(source);
+      }
       await this.authorize({ tenantId: binding.tenantId, userId: binding.userId }, binding.matterId, db);
       if (Buffer.byteLength(JSON.stringify(sources)) > 128000) throw new Error('TASK_CONTEXT_LIMIT');
       const guidance = context.guidance;
@@ -301,16 +313,25 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
       return action(db, packet, target);
     });
   }
-  load(binding: TaskBinding): Promise<NativeTaskPacket> {
-    return this.guarded(binding, async (_db, packet) => packet);
+  load(binding: TaskBinding, trusted: readonly TaskSource[] = []): Promise<NativeTaskPacket> {
+    return this.guarded(binding, async (_db, packet) => packet, { trusted });
   }
-  async assert(binding: TaskBinding): Promise<void> {
-    await this.guarded(binding, async () => undefined);
+  async assert(binding: TaskBinding, trusted: readonly TaskSource[] = []): Promise<void> {
+    await this.guarded(binding, async () => undefined, { trusted });
+  }
+  /** The same port with extra server-assembled sources in every load, check and save of one run. */
+  withTrustedSources(trusted: readonly TaskSource[]): NativeTaskContextPort {
+    return {
+      load: (binding) => this.load(binding, trusted),
+      assert: (binding) => this.assert(binding, trusted),
+      save: (binding, delivery, edit) => this.save(binding, delivery, edit, trusted),
+    };
   }
   async save(
     binding: TaskBinding,
     raw: AgenticTaskDelivery,
     edit?: DeskEditProposal,
+    trusted: readonly TaskSource[] = [],
   ): Promise<{ id: string; draftId?: string; versionId?: string }> {
     const delivery = AgenticTaskDeliverySchema.parse(raw);
     if (delivery.contextId !== binding.conversationId || delivery.contextRevision !== binding.contextRevision)
@@ -477,7 +498,7 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
       await workspace.appendEvent(owner, binding.executionId, { type: 'DELIVERY', payload: { deliveryId: id } });
       return { id, ...(draftId ? { draftId, versionId } : {}) };
     };
-    return this.guarded(binding, persist, { publishing: true });
+    return this.guarded(binding, persist, { publishing: true, trusted });
   }
   async getDelivery(owner: AgenticOwner, id: string) {
     const [row] = await this.db

@@ -57,6 +57,7 @@ it('indica a análise de fatos e provas concluída mais recente do caso, e só e
   expect(response.headers['cache-control']).toBe('no-store');
   expect(response.json()).toMatchObject({
     structure: { executionId: f.execution.id, deliveryId: f.saved.id },
+    structures: [{ executionId: f.execution.id, deliveryId: f.saved.id }],
   });
 });
 
@@ -64,7 +65,7 @@ it('caso sem análise concluída devolve vazio, não erro', async () => {
   const { get } = await setup();
   const response = await get(randomUUID(), 'owner');
   expect(response.statusCode).toBe(200);
-  expect(response.json()).toEqual({ structure: null });
+  expect(response.json()).toEqual({ structure: null, structures: [] });
 });
 
 it('exige sessão e permissão de leitura do caso, e não mostra o trabalho de outra pessoa', async () => {
@@ -73,5 +74,5 @@ it('exige sessão e permissão de leitura do caso, e não mostra o trabalho de o
   expect((await get(f.matter.id, 'research')).statusCode).toBe(403);
   const other = await get(f.matter.id, 'other');
   expect(other.statusCode).toBe(200);
-  expect(other.json()).toEqual({ structure: null });
+  expect(other.json()).toEqual({ structure: null, structures: [] });
 });

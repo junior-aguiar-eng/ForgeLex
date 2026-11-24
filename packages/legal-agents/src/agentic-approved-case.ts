@@ -2,7 +2,10 @@ import { AgenticTaskActionSchema } from '@forgelex/domain';
 import { TaskPlanSchema, type CaseTaskRole } from './agentic-case-contracts.js';
 import { EVIDENCE_TASK_POLICY, evidenceTaskProfile } from './agentic-evidence.js';
 
-export const ApprovedCaseTaskPlanSchema = TaskPlanSchema.extend({ action: AgenticTaskActionSchema });
+// adjust_structure belongs to the v13 contract only (agentic-structure.ts).
+export const ApprovedCaseTaskPlanSchema = TaskPlanSchema.extend({
+  action: AgenticTaskActionSchema.exclude(['adjust_structure']),
+});
 export const APPROVED_CASE_TASK_POLICY = { ...EVIDENCE_TASK_POLICY, version: '1.5.0' } as const;
 /** New profile only. Historical instructions and hashes remain unchanged. */
 export function approvedCaseTaskProfile(role: CaseTaskRole) {
