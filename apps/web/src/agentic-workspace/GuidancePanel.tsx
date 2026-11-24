@@ -5,6 +5,7 @@ import { GuidanceSummary } from './GuidanceSummary';
 import { askedGuidanceFields, type GuidanceField } from './guidance-model';
 import type { QuestionDraft } from './question-draft';
 import type { useDeskGuidance } from './use-desk-guidance';
+import { useStructureLine } from './use-structure-line';
 
 export function GuidancePanel({
   guidance,
@@ -18,6 +19,7 @@ export function GuidancePanel({
   onEdit: (field?: GuidanceField) => void;
 }) {
   const { state, feedback, focus, answer, leave, retry } = guidance;
+  const structureLine = useStructureLine(state?.matterId);
   const busy = guidance.busy || blocked;
   const [editFocus, setEditFocus] = useState(0);
   const summary = useRef<HTMLDivElement>(null);
@@ -61,6 +63,7 @@ export function GuidancePanel({
         <GuidanceSummary
           state={state}
           disabled={busy}
+          structureLine={structureLine}
           onLeave={leave}
           onEdit={(field) => {
             onEdit(field);

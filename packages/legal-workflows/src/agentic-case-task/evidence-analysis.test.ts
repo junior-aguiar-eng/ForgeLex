@@ -101,7 +101,7 @@ function fixture(
 it('produces an audited evidence matrix and mandatory adversarial review without adopting facts', async () => {
   const f = fixture();
   const r = await f.finish();
-  expect(r.state.version).toBe(8);
+  expect(r.state.version).toBe(15);
   expect(f.roles).toEqual(['legal-orchestrator', 'matter-analyst', 'adversarial-reviewer']);
   expect(f.deliveries[0].evidenceMatrix.rows[0]).toMatchObject({
     claimId: f.deliveries[0].claims[0].id,
@@ -233,4 +233,61 @@ it('marks new reviewer assertions not covered by the matrix as limited', async (
   await f.finish();
   expect(f.deliveries[0].status).toBe('LIMITED');
   expect(f.deliveries[0].findings.some((x: any) => x.code === 'EVIDENCE_MATRIX_INCOMPLETE')).toBe(true);
+});
+
+const party = (extra: Record<string, unknown> = {}) => ({
+  name: 'Maria',
+  role: 'autor',
+  sourceId: 'doc',
+  start: 29,
+  quote: 'O recibo registra pagamento.',
+  ...extra,
+});
+const withProfile = (profile: Record<string, unknown>) =>
+  ({ ...empty(), claims: [claim], evidenceAnalysis: analysis(), documentProfile: profile }) as any;
+
+it('v15: a análise identifica a peça e as partes, e o servidor confere cada citação contra a fonte', async () => {
+  const f = fixture(
+    withProfile({
+      pieceType: 'Recibo',
+      pieceTypeCertainty: 'IDENTIFICADA',
+      parties: [party(), party({ quote: 'Não está no texto.', start: 0, name: 'João', role: 'réu' })],
+    }),
+  );
+  const r = await f.finish();
+  expect(r.state.version).toBe(15);
+  const profile = f.deliveries[0].documentProfile;
+  expect(profile).toMatchObject({ pieceType: 'Recibo', pieceTypeCertainty: 'IDENTIFICADA' });
+  expect(profile.parties.map((p: any) => [p.name, p.quoteStatus])).toEqual([
+    ['Maria', 'MATCHED'],
+    ['João', 'MISMATCH'],
+  ]);
+  // Citação que não confere vira limitação declarada, nunca erro.
+  expect(f.deliveries[0].findings.some((x: any) => x.code === 'EVIDENCE_REFERENCE_MISMATCH')).toBe(true);
+});
+
+it('v15: texto sem peça identificável devolve INCERTA sem tipo, e a entrega sai sem erro', async () => {
+  const f = fixture(withProfile({ pieceTypeCertainty: 'INCERTA', parties: [] }));
+  await f.finish();
+  expect(f.deliveries[0].documentProfile).toEqual({ pieceTypeCertainty: 'INCERTA', parties: [] });
+});
+
+it('v15: a análise sem documentProfile continua valendo e a entrega não traz o campo', async () => {
+  const f = fixture();
+  await f.finish();
+  expect(f.deliveries[0]).not.toHaveProperty('documentProfile');
+});
+
+it('v15: parte que cita fonte desconhecida derruba o trabalho', async () => {
+  const f = fixture(
+    withProfile({ pieceTypeCertainty: 'IDENTIFICADA', pieceType: 'Recibo', parties: [party({ sourceId: 'outra' })] }),
+  );
+  await expect(f.finish()).rejects.toThrow('EVIDENCE_REFERENCE_INVALID');
+  expect(f.deliveries).toHaveLength(0);
+});
+
+it('v15: o analista só pode devolver documentProfile no v15; o schema recusa campos soltos', async () => {
+  const f = fixture({ ...withProfile({ pieceTypeCertainty: 'INCERTA', parties: [] }), outroCampo: true });
+  await expect(f.finish()).rejects.toThrow();
+  expect(f.deliveries).toHaveLength(0);
 });

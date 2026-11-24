@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, it } from 'vitest';
 import { ResultCard } from './ResultCard';
 import { SideTable } from './SideTable';
+import { GuidanceSummary } from './GuidanceSummary';
 import { presentDelivery } from './present-delivery';
 import type { Delivery, Execution } from './execution-model';
 
@@ -194,4 +195,68 @@ it('o resultado lido pelo advogado não expõe hash, versões, identificadores n
     expect(side).not.toMatch(technical);
     if (tab === 'sources') expect(side).toContain('Contrato para leitura');
   }
+});
+
+it('E3: a minuta que se apoia em itens a confirmar avisa nos pontos a conferir, sem expor identificadores', () => {
+  const item = { ...delivery.delivery, structureUse: [{ itemId: 'f'.repeat(64), label: 'F2' }] };
+  const view = presentDelivery(item);
+  const noop = () => {};
+  const side = renderToStaticMarkup(
+    React.createElement(SideTable, {
+      tab: 'pending',
+      onTab: noop,
+      onClose: noop,
+      view,
+      activeSource: null,
+      run,
+      context: run.context,
+      titles: {},
+      onRead: noop,
+      onEditor: noop,
+    }),
+  );
+  expect(side).toContain('Baseada em itens ainda a confirmar: F2.');
+  expect(side).not.toContain('f'.repeat(64));
+});
+
+it('E3: a orientação guiada mostra a linha de leitura da estrutura só quando ela existe', () => {
+  const question = {
+    id: 'area:1',
+    version: 1,
+    contextRevision: 1,
+    prompt: 'Qual a área?',
+    selection: 'single' as const,
+    options: [{ id: 'civil', label: 'Cível' }],
+    allowFreeText: true,
+    allowUnknown: true,
+    reason: 'Delimitar',
+  };
+  const empty = { value: null, status: 'unknown' as const };
+  const state = {
+    conversationId: 'C',
+    matterId: 'M',
+    contextRevision: 1,
+    objective: 'x',
+    decisions: {
+      area: { value: 'civil', status: 'confirmed' as const, question, label: 'Cível' },
+      action: empty,
+      documentType: empty,
+    },
+    question: null,
+    history: [],
+  };
+  const render = (structureLine?: string) =>
+    renderToStaticMarkup(
+      React.createElement(GuidanceSummary, {
+        state: state as any,
+        disabled: false,
+        onEdit: () => {},
+        onLeave: () => {},
+        structureLine,
+      }),
+    );
+  expect(render('Estrutura do caso: 5 fatos, 2 itens a confirmar')).toContain(
+    'Estrutura do caso: 5 fatos, 2 itens a confirmar',
+  );
+  expect(render()).not.toContain('Estrutura do caso');
 });

@@ -27,6 +27,9 @@ export {
 
 export * from './agentic-desk.js';
 export * from './agentic-guided-desk.js';
+export * from './agentic-structure.js';
+export * from './agentic-structure-draft.js';
+export * from './agentic-document-profile.js';
 export { createSkillCatalog, type SkillCatalog } from './skills/skill-catalog.js';
 export { resolveDeskSkills, type ClassifiedSkillIssue, type DeskSkillRequest } from './skills/skill-resolver.js';
 export {

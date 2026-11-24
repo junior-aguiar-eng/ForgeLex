@@ -3,6 +3,7 @@ import { activeTheme } from '../theme/active-theme';
 import { DeskCaseSources } from '../research/DeskCaseSources';
 import { DeskCaseDocuments } from '../desk/DeskCaseDocuments';
 import { DeskCaseStructure } from '../desk/DeskCaseStructure';
+import { pieceStructureTabActive } from '../agentic-workspace/structure-request';
 import { caseNameFrom } from '../desk/case-name';
 import { EditorialReviewPanel } from '../agentic-workspace/EditorialReviewPanel';
 import { hasDeskPiece, selectDeskPiece, type DeskDocumentSelection } from '../agentic-workspace/desk-selection';
@@ -39,7 +40,7 @@ import {
 } from '../desk/draft-studio-model';
 import { ApprovalDialog, CreateCaseControls, CreateCaseFromPiece, PieceNotices, ReviewBody, ReviewDialog, VersionHistory } from '../desk/DraftStudioParts';
 
-export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedVersionId?: string; onPieceChange?: (piece: DeskPiece | null) => void; onCaseSources?: () => void; requestedReview?: DeskDocumentSelection; deskEditorialEnabled?: boolean }> = ({ requestedLocation, selectedVersionId, onPieceChange, onCaseSources, requestedReview, deskEditorialEnabled = false }) => {
+export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedVersionId?: string; onPieceChange?: (piece: DeskPiece | null) => void; onCaseSources?: () => void; requestedReview?: DeskDocumentSelection; deskEditorialEnabled?: boolean; structureRefreshKey?: string }> = ({ requestedLocation, selectedVersionId, onPieceChange, onCaseSources, requestedReview, deskEditorialEnabled = false, structureRefreshKey }) => {
   const emptySections = () => [{title:'Texto da peça',content:'',linkedFactIds:[],linkedEvidenceIds:[],linkedAuthorityIds:[],linkedThesisIds:[]}];
   const [importedDelivery, setImportedDelivery] = useState<Delivery>();
   const submittedLocalSnapshot = useRef<string>();
@@ -90,6 +91,8 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
   // Tema gelo: a peça tem abas Texto, Fontes e Revisão no lugar dos diálogos de fontes do caso e de conferência.
   const ice = activeTheme() === 'gelo';
   const [pieceTab, setPieceTab] = useState<PieceTab>('texto');
+  // A aba Estrutura avisa quando há estrutura carregada: só então o pedido vira ajuste (E2).
+  const [structureReady, setStructureReady] = useState(false);
   const lastRequestedReview = useRef<DeskDocumentSelection>();
   const [historyVersion, setHistoryVersion] = useState('');
   const [historyRuns, setHistoryRuns] = useState<DraftReviewRun[]>([]);
@@ -554,6 +557,8 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
       canOpenDelivery: attached => !loadingSelection && (!dirty || (attached && submittedLocalSnapshot.current === localSnapshot.current)),
       editSelection: !dirty && editSelection?.versionId === versionId ? editSelection : undefined,
       clearEditSelection: () => setEditSelection(undefined),
+      // E2: com a aba Estrutura aberta e uma estrutura carregada, o compositor envia o pedido como ajuste dela.
+      ...(pieceStructureTabActive({ ice, tab: pieceTab, matterId: selectedMatterId, ready: structureReady }) ? { structureTabActive: true } : {}),
     };
     snapshot.prepare = async () => {
       if (busy || loadingSelection || caseUnavailable) throw new Error('A peça ainda está sendo atualizada.');
@@ -561,10 +566,10 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
       if (!dirty && selectedDraftId && versionId) return snapshot;
       const saved = await saveDraft();
       if (!saved) throw new Error('Não foi possível guardar a edição. Seu texto foi preservado.');
-      return { matterId: selectedMatterId, draftId: saved.draft.id, versionId: saved.version.id, title: draftTitle, dirty: false };
+      return { matterId: selectedMatterId, draftId: saved.draft.id, versionId: saved.version.id, title: draftTitle, dirty: false, ...(snapshot.structureTabActive ? { structureTabActive: true } : {}) };
     };
     onPieceChange(snapshot);
-  }, [onPieceChange, selectedMatterId, selectedDraftId, details?.currentVersion?.version.id, importedDelivery, draftTitle, sections, dirty, busy, loadingSelection, caseUnavailable, contextChanged, editSelection]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [onPieceChange, selectedMatterId, selectedDraftId, details?.currentVersion?.version.id, importedDelivery, draftTitle, sections, dirty, busy, loadingSelection, caseUnavailable, contextChanged, editSelection, ice, pieceTab, structureReady]); // eslint-disable-line react-hooks/exhaustive-deps
   const expectedWorkVersion = new URLSearchParams(requestedLocation?.split('?')[1] ?? window.location.search).get('versionId');
   const selectionHasDifferentVersion = Boolean(selectedVersionId && editingVersion.current && selectedVersionId !== editingVersion.current);
   const requestedVersion = selectedVersionId ?? expectedWorkVersion;
@@ -796,7 +801,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
       revisao: Boolean(selectedMatterId && selectedDraftId && activeVersion),
     },
     panels: {
-      estrutura: selectedMatterId ? <DeskCaseStructure key={selectedMatterId} matterId={selectedMatterId} /> : null,
+      estrutura: selectedMatterId ? <DeskCaseStructure key={selectedMatterId} matterId={selectedMatterId} refreshKey={structureRefreshKey} onReadyChange={setStructureReady} /> : null,
       fontes: selectedMatterId ? <DeskCaseSources key={selectedMatterId} matterId={selectedMatterId} /> : (
         <section aria-label="Peça sem caso" className="space-y-3">
           <h2 className="font-editorial text-[17px] font-semibold text-ink">Esta peça não está ligada a um caso</h2>

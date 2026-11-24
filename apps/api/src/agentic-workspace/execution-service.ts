@@ -27,7 +27,7 @@ import { InferenceBudgetService } from '@forgelex/billing-ledger';
 import { ExecutionStore, digest, type ExecutionJob, type WorkerLease } from './execution-store.js';
 import { projectClientExecutionEvent, publicQuestion, type ExecutionFailureReason } from './event-stream.js';
 import { reportAgenticFailure } from './failure-log.js';
-import { routePastedAccount } from './pasted-account.js';
+import { routeCaseInput, startHasAttachmentText } from './pasted-account.js';
 
 const id = z.string().trim().min(1).max(200);
 export const StartExecutionSchema = z
@@ -294,16 +294,33 @@ export class ExecutionService {
   ) {
     this.available();
     const requested = StartExecutionSchema.parse(raw);
+    // E2: a structure adjustment always opens its own conversation; sharing the analysis' conversation would make the
+    // adjustment that conversation's latest work and hide the analysis it corrects.
+    if (requested.actionId === 'adjust_structure' && requested.conversationId) throw new Error('CONTEXT_CONFLICT');
+    // The adjustment targets the case's current analysis; without a case there is nothing to adjust.
+    if (requested.actionId === 'adjust_structure' && !requested.matterId) throw new Error('MATTER_REQUIRED');
     const executionId = await this.command(
       owner,
       key,
       { kind: 'start', input: requested, approval, ...(initialCheckpoint ? { initialCheckpoint } : {}) },
       async (s) => {
-        const input = routePastedAccount(
-          this.options.prepareStart
-            ? StartExecutionSchema.parse(await this.options.prepareStart(s, owner, requested))
-            : requested,
-        );
+        const prepared = this.options.prepareStart
+          ? StartExecutionSchema.parse(await this.options.prepareStart(s, owner, requested))
+          : requested;
+        // E1b: o relato colado vira análise de fatos e provas, salvo se o mesmo texto já foi analisado neste caso.
+        // E4: o anexo com texto também vira análise; o texto completo já analisado é recusado (nada é cobrado de novo).
+        const routed = routeCaseInput(prepared);
+        const autoRouted = routed.actionId !== prepared.actionId;
+        const byAttachment = autoRouted && startHasAttachmentText(routed);
+        if (
+          byAttachment &&
+          (await s.hasLiveEvidenceAnalysis(owner, routed.matterId!, routed.objective, routed.context?.text ?? ''))
+        )
+          throw new Error('ALREADY_ANALYZED');
+        const input =
+          autoRouted && !byAttachment && (await s.hasLiveEvidenceAnalysis(owner, routed.matterId!, routed.objective))
+            ? prepared
+            : routed;
         let conversation = input.conversationId
           ? await s.workspace.getConversation(owner, input.conversationId)
           : undefined;
