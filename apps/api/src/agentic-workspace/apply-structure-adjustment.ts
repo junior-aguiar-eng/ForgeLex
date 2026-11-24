@@ -3,23 +3,21 @@ import {
   STRUCTURE_ITEMS_SOURCE_PREFIX,
   StructureCommandsSchema,
   resolveStructureCommands,
+  structureItemsSource,
   type AgenticOwner,
+  type EvidenceReview,
   type AgenticTaskDelivery,
   type StructureAdjustmentRecord,
   type StructureCommand,
   type StructureQuestion,
 } from '@forgelex/domain';
-import {
-  findCurrentStructure,
-  type CurrentStructureDeps,
-  type CurrentStructureExecution,
-} from './current-structure.js';
+import { findCaseStructure, type CaseStructureDeps, type CaseStructureExecution } from './case-structure.js';
 
 export interface ApplyStructureAdjustmentDeps<
-  E extends CurrentStructureExecution = CurrentStructureExecution,
-> extends CurrentStructureDeps<E> {
-  store: CurrentStructureDeps<E>['store'] & {
-    workspace: CurrentStructureDeps<E>['store']['workspace'] & {
+  E extends CaseStructureExecution = CaseStructureExecution,
+> extends CaseStructureDeps<E> {
+  store: CaseStructureDeps<E>['store'] & {
+    workspace: CaseStructureDeps<E>['store']['workspace'] & {
       getConversation(
         owner: AgenticOwner,
         id: string,
@@ -27,6 +25,7 @@ export interface ApplyStructureAdjustmentDeps<
     };
   };
   reviews: {
+    preview(owner: AgenticOwner, id: string): Promise<EvidenceReview>;
     applyStructureCommands(
       owner: AgenticOwner,
       id: string,
@@ -54,9 +53,13 @@ export interface StructureAdjustmentOutcome {
 }
 
 const sha256 = (text: string) => createHash('sha256').update(text).digest('hex');
-/** Name-based UUID (v5 layout over SHA-256) so every replay of the same work uses the same review command. */
-export function structureCommandId(executionId: string): string {
-  const b = createHash('sha256').update(`forgelex:adjust_structure:${executionId}`).digest().subarray(0, 16);
+/**
+ * Name-based UUID (v5 layout over SHA-256) so every replay of the same work uses the same review command. With one
+ * analysis in the case the id is the one of always; an older analysis of a several-analyses case gets its own.
+ */
+export function structureCommandId(executionId: string, deliveryId?: string): string {
+  const seed = deliveryId ? `${executionId}:${deliveryId}` : executionId;
+  const b = createHash('sha256').update(`forgelex:adjust_structure:${seed}`).digest().subarray(0, 16);
   b[6] = (b[6]! & 0x0f) | 0x50;
   b[8] = (b[8]! & 0x3f) | 0x80;
   const h = b.toString('hex');
@@ -77,7 +80,7 @@ const AS_QUESTION: Record<string, StructureQuestion['reason']> = {
 };
 
 /** The user's request of the run (its USER_TEXT source), only when it still matches the hash the run used. */
-async function requestText<E extends CurrentStructureExecution>(
+async function requestText<E extends CaseStructureExecution>(
   deps: ApplyStructureAdjustmentDeps<E>,
   owner: AgenticOwner,
   delivery: AgenticTaskDelivery,
@@ -89,13 +92,24 @@ async function requestText<E extends CurrentStructureExecution>(
   return text !== undefined && sha256(text) === source.contentHash ? text : undefined;
 }
 
+const decidedIds = (review: EvidenceReview) => new Set(Object.keys(review.decisions));
+
 /**
- * Applies the commands of a completed adjust_structure work to the case's current analysis. The review repository
- * does the check, the additions, the decisions and the record in one transaction, idempotent per execution:
- * ALTERAR/REMOVER become ADOPT/DISCARD of existing items; ACRESCENTAR becomes a sealed item that stays out of the case
- * until an explicit ADOPT. Anything that cannot be applied safely becomes a question, never an error.
+ * The key the structure source of a run carries: the delivery id with one analysis in the case (as always), the case
+ * with several. Shared by the driver (that builds the source) and the apply (that checks the run read the same one).
  */
-export async function applyStructureAdjustment<E extends CurrentStructureExecution>(
+export const structureSourceKey = (matterId: string, deliveryIds: readonly string[]): string =>
+  deliveryIds.length === 1 ? deliveryIds[0]! : `case:${matterId}`;
+
+/**
+ * Applies the commands of a completed adjust_structure work to the case's analyses (E4: all of them, E2: the current
+ * one). Each command goes to the analysis that owns the item, ACRESCENTAR to the newest. The review repository does the
+ * check, the additions, the decisions and the record in one transaction per analysis, idempotent per execution:
+ * ALTERAR/REMOVER become ADOPT/DISCARD of existing items; ACRESCENTAR becomes a sealed item that stays out of the case
+ * until an explicit ADOPT. Anything that cannot be applied safely becomes a question, never an error, and a failure in
+ * one analysis does not undo the others.
+ */
+export async function applyStructureAdjustment<E extends CaseStructureExecution>(
   deps: ApplyStructureAdjustmentDeps<E>,
   owner: AgenticOwner,
   matterId: string,
@@ -106,24 +120,26 @@ export async function applyStructureAdjustment<E extends CurrentStructureExecuti
   if (delivery.action !== 'adjust_structure' || !adjustment || !saved.id.startsWith('delivery:'))
     throw new Error('STRUCTURE_ADJUSTMENT_INVALID');
   const executionId = saved.id.slice('delivery:'.length);
-  const commandId = structureCommandId(executionId);
 
-  const current = await findCurrentStructure(deps, owner, matterId);
-  if (!current) return { applied: 0, questions: [{ reason: 'ANALISE_ALTERADA' }] };
-  const target = current.deliveryId;
-  const outcome = (r: StructureAdjustmentRecord) => ({ applied: r.applied, questions: r.questions });
-  const asQuestion = async (reason: StructureQuestion['reason']) => {
+  const entries = await findCaseStructure(deps, owner, matterId);
+  const newest = entries.at(-1);
+  if (!newest) return { applied: 0, questions: [{ reason: 'ANALISE_ALTERADA' }] };
+  // One at a time: each preview is its own transaction, and a single-connection database cannot overlap them.
+  const previews: { entry: (typeof entries)[number]; review: EvidenceReview }[] = [];
+  for (const entry of entries) previews.push({ entry, review: await deps.reviews.preview(owner, entry.deliveryId) });
+  const commandIdFor = (deliveryId: string) =>
+    structureCommandId(executionId, deliveryId === newest.deliveryId ? undefined : deliveryId);
+  const record = async (deliveryId: string, reason: StructureQuestion['reason']) => {
     const questions = [{ reason }];
     try {
-      return outcome(
-        await deps.reviews.recordStructureAdjustment(owner, target, commandId, {
-          executionId,
-          applied: 0,
-          questions,
-          caseSummary: adjustment.caseSummary,
-          recordedAt: new Date().toISOString(),
-        }),
-      );
+      const r = await deps.reviews.recordStructureAdjustment(owner, deliveryId, commandIdFor(deliveryId), {
+        executionId,
+        applied: 0,
+        questions,
+        caseSummary: adjustment.caseSummary,
+        recordedAt: new Date().toISOString(),
+      });
+      return { applied: r.applied, questions: r.questions };
     } catch (error) {
       if (error instanceof Error && error.message in AS_QUESTION) return { applied: 0, questions };
       throw error;
@@ -132,29 +148,80 @@ export async function applyStructureAdjustment<E extends CurrentStructureExecuti
 
   // Empty list (handled before StructureCommandsSchema, which requires 1..20): only the summary is kept.
   const commands = adjustment.commands.length ? StructureCommandsSchema.parse(adjustment.commands) : [];
-  // The run must have read exactly this analysis; the repository also checks the items/decisions hash.
-  const seen = delivery.sources.filter(
-    (s) => s.kind === 'PREVIOUS_DELIVERY' && s.id.startsWith(STRUCTURE_ITEMS_SOURCE_PREFIX),
+  // Each command goes to the analysis that owns the item; ACRESCENTAR to the newest.
+  const ownerOf = new Map<string, string>();
+  for (const { entry, review } of previews) for (const item of review.items) ownerOf.set(item.id, entry.deliveryId);
+  const perDelivery = new Map<string, StructureCommand[]>();
+  const questions: StructureQuestion[] = [];
+  const send = (deliveryId: string, command: StructureCommand) =>
+    perDelivery.set(deliveryId, [...(perDelivery.get(deliveryId) ?? []), command]);
+  for (const command of commands) {
+    if (command.op === 'ACRESCENTAR') send(newest.deliveryId, command);
+    else {
+      const target = ownerOf.get(command.itemId);
+      if (target) send(target, command);
+      else questions.push({ reason: 'ITEM_DESCONHECIDO', itemId: command.itemId });
+    }
+  }
+  // Replay of a work already applied: every analysis it had to reach holds its record, so the outcome is the stored one
+  // (the analyses changed since, which the hash check below would take for a stale read).
+  const targets = previews.filter(
+    ({ entry }) => entry.deliveryId === newest.deliveryId || (perDelivery.get(entry.deliveryId)?.length ?? 0) > 0,
   );
-  const sourceHash =
-    seen.length === 1 && seen[0]!.id === `${STRUCTURE_ITEMS_SOURCE_PREFIX}${target}` ? seen[0]!.contentHash : undefined;
-  if (commands.length && !sourceHash) return asQuestion('ANALISE_ALTERADA');
-  const request = await requestText(deps, owner, delivery);
+  const stored = targets.map(({ entry, review }) => review.adjustments?.[commandIdFor(entry.deliveryId)]);
+  if (stored.every((record) => record !== undefined))
+    return {
+      applied: stored.reduce((sum, record) => sum + record!.applied, 0),
+      questions: stored.flatMap((record) => record!.questions),
+    };
+  // The run must have read exactly these analyses as they are now: the source it saw carries their hash.
+  let expectedHash: string | undefined;
   try {
-    return outcome(
-      await deps.reviews.applyStructureCommands(owner, target, {
-        commandId,
+    const key = structureSourceKey(
+      matterId,
+      entries.map((entry) => entry.deliveryId),
+    );
+    const source = structureItemsSource(
+      key,
+      previews.flatMap(({ review }) => review.items),
+      new Set(previews.flatMap(({ review }) => [...decidedIds(review)])),
+    );
+    const seen = delivery.sources.filter(
+      (s) => s.kind === 'PREVIOUS_DELIVERY' && s.id.startsWith(STRUCTURE_ITEMS_SOURCE_PREFIX),
+    );
+    if (seen.length === 1 && seen[0]!.id === source.id && seen[0]!.contentHash === source.contentHash)
+      expectedHash = source.contentHash;
+  } catch {
+    expectedHash = undefined;
+  }
+  if (commands.length && !expectedHash) return record(newest.deliveryId, 'ANALISE_ALTERADA');
+
+  const request = await requestText(deps, owner, delivery);
+  let applied = 0;
+  // Oldest first; the newest always runs (it keeps the summary even without commands).
+  for (const { entry, review } of previews) {
+    const own = perDelivery.get(entry.deliveryId) ?? [];
+    if (!own.length && entry.deliveryId !== newest.deliveryId) continue;
+    const sourceHash = structureItemsSource(entry.deliveryId, review.items, decidedIds(review)).contentHash;
+    try {
+      const r = await deps.reviews.applyStructureCommands(owner, entry.deliveryId, {
+        commandId: commandIdFor(entry.deliveryId),
         executionId,
-        sourceHash: sourceHash ?? '',
-        commands,
+        sourceHash,
+        commands: own,
         caseSummary: adjustment.caseSummary,
         ...(request !== undefined ? { request } : {}),
-      }),
-    );
-  } catch (error) {
-    // The transaction rolled back: nothing was applied.
-    const reason = error instanceof Error ? AS_QUESTION[error.message] : undefined;
-    if (reason) return asQuestion(reason);
-    throw error;
+      });
+      applied += r.applied;
+      questions.push(...r.questions);
+    } catch (error) {
+      // The transaction of this analysis rolled back: nothing was applied there.
+      const reason = error instanceof Error ? AS_QUESTION[error.message] : undefined;
+      if (!reason) throw error;
+      const outcome = await record(entry.deliveryId, reason);
+      applied += outcome.applied;
+      questions.push(...outcome.questions);
+    }
   }
+  return { applied, questions };
 }

@@ -32,7 +32,8 @@ import {
   type TaskBinding,
 } from '@forgelex/domain';
 import { findCurrentStructure } from './current-structure.js';
-import { applyStructureAdjustment } from './apply-structure-adjustment.js';
+import { findCaseStructure } from './case-structure.js';
+import { applyStructureAdjustment, structureSourceKey } from './apply-structure-adjustment.js';
 import type { AgentTool, ToolExecutionContext } from '@forgelex/agent-core';
 import type { SearchCaseLawInput } from '@forgelex/legal-tools';
 import type { IndexedLegislationProvider } from '@forgelex/source-providers';
@@ -75,17 +76,26 @@ export function createCaseTaskDriver(
   ]);
   const reviews = new NativeEvidenceReviewRepository(database, options.authorizeNative);
   const workspace = new AgenticWorkspaceRepository(database);
-  // adjust_structure: the items of the case's current analysis (same criterion as the Estrutura tab), with id and text.
+  // adjust_structure: the items of all the case's analyses (E4; the same ones the Estrutura tab sums), with id and text.
   const structureSource = async (owner: AgenticOwner, matterId: string | undefined) => {
     if (!matterId) throw new Error('STRUCTURE_NOT_AVAILABLE');
-    const current = await findCurrentStructure(
+    const entries = await findCaseStructure(
       { store: { workspace }, native, manages: options.manages },
       owner,
       matterId,
     );
-    if (!current) throw new Error('STRUCTURE_NOT_AVAILABLE');
-    const review = await reviews.preview(owner, current.deliveryId);
-    return structureItemsSource(current.deliveryId, review.items, new Set(Object.keys(review.decisions)));
+    if (!entries.length) throw new Error('STRUCTURE_NOT_AVAILABLE');
+    // One at a time: each preview is its own transaction.
+    const previews: Awaited<ReturnType<typeof reviews.preview>>[] = [];
+    for (const entry of entries) previews.push(await reviews.preview(owner, entry.deliveryId));
+    return structureItemsSource(
+      structureSourceKey(
+        matterId,
+        entries.map((entry) => entry.deliveryId),
+      ),
+      previews.flatMap((review) => review.items),
+      new Set(previews.flatMap((review) => Object.keys(review.decisions))),
+    );
   };
   // E3: the case structure (confirmed and still unchecked items, plus the summary) for drafting. Best effort: a case
   // without structure, or one that cannot be read, drafts exactly as before.

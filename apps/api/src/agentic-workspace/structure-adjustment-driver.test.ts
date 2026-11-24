@@ -105,15 +105,24 @@ it('gives the agent the items of the current analysis and saves the adjustment w
   expect(delivery.sources.map((s) => s.id)).toContain(structure.id);
 });
 
-it('does not run without a current analysis of the case', async () => {
+it('does not run without a live analysis of the case', async () => {
   const { f, run, packets } = await setup();
-  // The analysis conversation leaves the recent list, so the case has no current structure.
+  // The only analysis of the case is no longer a completed one, so the case has no structure.
+  await f.client.execute({
+    sql: "UPDATE agentic_executions SET payload_json = json_set(payload_json, '$.status', 'FAILED') WHERE id = ?",
+    args: [f.execution.id],
+  });
+  await expect(run()).rejects.toThrow('STRUCTURE_NOT_AVAILABLE');
+  expect(packets).toEqual({});
+});
+
+it('an analysis hidden from the history still counts as the case structure (E4)', async () => {
+  const { f, run } = await setup();
   await f.client.execute({
     sql: 'UPDATE agentic_conversations SET history_hidden_at = ? WHERE id = ?',
     args: [new Date().toISOString(), f.conversation.id],
   });
-  await expect(run()).rejects.toThrow('STRUCTURE_NOT_AVAILABLE');
-  expect(packets).toEqual({});
+  expect((await run()).kind).toBe('completed');
 });
 
 it('applies the commands when the work completes, and the analysis stays the current one', async () => {
