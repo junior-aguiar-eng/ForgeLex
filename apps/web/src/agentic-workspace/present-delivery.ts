@@ -84,6 +84,42 @@ const PREFIXED: Record<string, string> = {
 };
 const codeOf = (f: { id: string; code?: string }) => f.code ?? f.id.split(':')[0];
 
+type Finding = Delivery['delivery']['findings'][number];
+const sourceKey = (finding: Finding) => [...new Set(finding.sourceIds)].sort().join('|');
+const amounts = (text: string) =>
+  [...new Set([...text.matchAll(/R\$\s*([\d.]+,\d{2})(?!\d)/g)].map((match) => match[1].replaceAll('.', '')))]
+    .sort()
+    .join('|');
+
+/** Presentation only: the complete findings remain in the saved delivery/audit.
+ * Suppress a redundant arithmetic check only for a single occurrence in the same
+ * source, covered by an installment warning with exactly the same amounts.
+ * Ambiguous occurrences, different amounts/sources and blocking alerts stay visible.
+ */
+function reviewFindings(findings: Finding[]): Finding[] {
+  return findings.filter((finding) => {
+    if (codeOf(finding) !== 'EDITORIAL_ARITHMETIC_MISMATCH' || finding.severity !== 'WARNING') return true;
+    const key = sourceKey(finding);
+    const money = amounts(finding.statement);
+    const expected = finding.statement.match(/=\s*R\$\s*([\d.]+,\d{2})(?!\d)/)?.[1].replaceAll('.', '');
+    if (!key || !expected || money.split('|').length < 3) return true;
+    const sameSource = findings.filter((other) => sourceKey(other) === key);
+    if (sameSource.filter((other) => codeOf(other) === 'EDITORIAL_ARITHMETIC_MISMATCH').length !== 1) return true;
+    return !sameSource.some(
+      (other) =>
+        other !== finding &&
+        other.severity === 'WARNING' &&
+        /\bparcelas?\b/i.test(other.statement) &&
+        /\b(somam?|total|totalizando)\b/i.test(other.statement) &&
+        /\b(diverg\w*|diferença|não|incoer\w*)\b/i.test(other.statement) &&
+        other.statement
+          .match(/\b(?:somam?|resulta(?:m)?\s+em|totaliza(?:m)?)\s+R\$\s*([\d.]+,\d{2})(?!\d)/i)?.[1]
+          .replaceAll('.', '') === expected &&
+        amounts(other.statement) === money,
+    );
+  });
+}
+
 /** Aviso de que a peça se apoia em itens da estrutura que o usuário ainda não conferiu (E3). */
 export function structureUseNotice(use: readonly { itemId: string; label?: string }[] | undefined): string | undefined {
   if (!use?.length) return undefined;
@@ -108,13 +144,22 @@ export function presentDelivery(delivery: Delivery['delivery']): PresentedDelive
     return numbers;
   };
   const blocks: PresentedBlock[] = [];
+  const unstructuredReview = delivery.action === 'review_text' && !delivery.review;
+  const editorialOnly =
+    unstructuredReview &&
+    delivery.requirements.length > 0 &&
+    delivery.requirements.every((requirement) => requirement.kind === 'EDITORIAL') &&
+    delivery.sources.length > 0 &&
+    delivery.sources.every(
+      (source) => !source.approvedItem && (source.kind === 'DRAFT' || source.kind === 'USER_TEXT'),
+    );
   const doc = delivery.document;
   if (doc) {
     for (const section of doc.sections) {
       blocks.push({ kind: 'heading', text: section.title, citations: [] });
       blocks.push({ kind: 'paragraph', text: section.content, citations: cite(section.sourceIds) });
     }
-  } else {
+  } else if (!editorialOnly) {
     const coveredIssues = new Set(delivery.evidenceMatrix?.rows.flatMap((row) => row.issueIds) ?? []);
     const coveredClaims = new Set(delivery.evidenceMatrix?.rows.map((row) => row.claimId) ?? []);
     const issues = delivery.issues.filter((issue) => !coveredIssues.has(issue.id));
@@ -207,11 +252,25 @@ export function presentDelivery(delivery: Delivery['delivery']): PresentedDelive
         citations: cite(conflict.claimIds.flatMap((id) => delivery.claims.find((c) => c.id === id)?.sourceIds ?? [])),
       });
   }
-  if (delivery.action === 'review_text' && !delivery.review) {
-    for (const finding of delivery.findings)
+  if (editorialOnly) {
+    for (const finding of reviewFindings(delivery.findings))
       blocks.push({ kind: 'paragraph', text: finding.statement, citations: cite(finding.sourceIds) });
-    for (const requirement of delivery.requirements)
-      blocks.push({ kind: 'paragraph', text: requirement.statement, citations: cite(requirement.sourceIds) });
+    // Older deliveries may not have promoted unverified requirements to findings.
+    for (const requirement of delivery.requirements.filter((item) => !item.verified)) {
+      const existing = blocks.find((block) => block.kind === 'paragraph' && block.text === requirement.statement);
+      const citations = cite(requirement.sourceIds);
+      if (existing) existing.citations = [...new Set([...existing.citations, ...citations])];
+      else blocks.push({ kind: 'paragraph', text: requirement.statement, citations });
+    }
+    if (!blocks.length)
+      blocks.push({
+        kind: 'paragraph',
+        text: 'Nenhuma alteração foi sugerida nesta revisão. Isso não confirma fatos, fontes ou adequação jurídica.',
+        citations: [],
+      });
+  } else if (unstructuredReview) {
+    for (const item of [...delivery.findings, ...delivery.requirements])
+      blocks.push({ kind: 'paragraph', text: item.statement, citations: cite(item.sourceIds) });
   }
   if (delivery.review) {
     const section = (title: string, items: { text: string; sourceIds: string[] }[]) => {
