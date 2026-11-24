@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { readFileSync } from 'node:fs';
 const api = 'http://127.0.0.1:3301';
 const headers = { authorization: 'Bearer phase7-e2e-access-token' };
 async function login(page: Page) {
@@ -37,6 +38,85 @@ async function delivery(page: Page, run: any) {
     await page.request.get(`${api}/api/agentic/deliveries/${encodeURIComponent(run.deliveryIds[0])}`, { headers })
   ).json();
 }
+test('reabre a revisão editorial salva com seus achados e sem nova cobrança', async ({ page }) => {
+  await login(page);
+  const matter = await (
+    await page.request.post(`${api}/api/v2/matters`, {
+      headers,
+      data: { title: 'Caso sintético com título extenso para conferir a leitura e os controles da mesa' },
+    })
+  ).json();
+  await page.getByRole('button', { name: /^Vincular a um caso/ }).click();
+  await page.getByLabel('Caso', { exact: true }).selectOption(matter.id);
+  await page.getByRole('button', { name: /^Caso:/ }).click();
+  await ask(page, 'Redigir um relato sintético FLUXO_MESA com três parcelas e total');
+  await expect(page.getByLabel('Texto da seção 1', { exact: true })).toHaveValue(/200,00/);
+  const originalText = readFileSync('tests/fixtures/editorial/desk-piece.txt', 'utf8').trim();
+  await page.getByLabel('Texto da seção 1', { exact: true }).fill(originalText);
+  const run = await ask(page, 'Revisar a peça aberta, incluindo a soma, sem alterar o texto');
+  const envelope = await delivery(page, run);
+  const fixture = JSON.parse(readFileSync('tests/fixtures/editorial/desk-review.json', 'utf8'));
+  await page.route(`**/api/agentic/deliveries/${encodeURIComponent(envelope.id)}`, (route) =>
+    route.fulfill({ json: { ...envelope, delivery: fixture } }),
+  );
+  await page.route('**/api/agentic/actions', async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({ json: { ...(await response.json()), commercial: true, closedPilot: false } });
+  });
+  await page.route('**/api/agentic/commercial/quote', (route) =>
+    route.fulfill({
+      json: {
+        currency: 'BRL',
+        policyVersion: 'local-replay',
+        minCostCents: 50,
+        maxCostCents: 500,
+        availableCents: 1376,
+        dailyLimitCents: 2000,
+        monthlyLimitCents: 10000,
+      },
+    }),
+  );
+  await page.route('**/api/agentic/commercial/executions/*/receipt', (route) =>
+    route.fulfill({
+      json: {
+        currency: 'BRL',
+        reservedCents: 500,
+        chargedCents: 90,
+        releasedCents: 410,
+        status: 'COMPLETED',
+      },
+    }),
+  );
+  let paidRequests = 0;
+  await page.route('**/api/agentic/commercial/executions', (route) => {
+    paidRequests++;
+    return route.abort();
+  });
+  await page.setViewportSize({ width: 1528, height: 732 });
+  await page.reload();
+  const result = page.getByRole('article', { name: 'Resultado do trabalho' });
+  await expect(result).toContainText('300,00');
+  await expect(result).not.toContainText('EDITORIAL:');
+  await expect(result).not.toContainText('Afirmações');
+  await expect(result).not.toContainText('possível divergência');
+  await expect(result).toContainText(/CobradoR\$\s*0,90/);
+  const composer = page.getByRole('region', { name: 'Novo pedido', exact: true });
+  await expect(composer.getByRole('link', { name: 'Privacidade' })).toBeVisible();
+  await expect(composer).toContainText(/5,00/);
+  await expect(page.getByLabel('O que você precisa fazer?', { exact: true })).toHaveCount(1);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByLabel('Texto da seção 1', { exact: true })).toHaveValue(originalText);
+  const axe = await new AxeBuilder({ page }).include('[data-writing-desk]').analyze();
+  expect(axe.violations.filter((v) => ['serious', 'critical'].includes(v.impact ?? ''))).toEqual([]);
+  for (const width of [390, 320]) {
+    await page.setViewportSize({ width, height: 844 });
+    const conversation = page.getByRole('button', { name: 'Conversa', exact: true });
+    if (await conversation.isVisible()) await conversation.click();
+    await expect(page.getByLabel('O que você precisa fazer?', { exact: true })).toHaveCount(1);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  }
+  expect(paidRequests).toBe(0);
+});
 test('um chat cria, revisa sem alterar e muda a mesma peça ao lado', async ({ page }) => {
   await login(page);
   let editorialCalls = 0;
