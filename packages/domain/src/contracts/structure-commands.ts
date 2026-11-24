@@ -127,6 +127,8 @@ const StructureContextItemSchema = z.strictObject({
 });
 const StructureContextSchema = z.strictObject({
   summary: z.string().optional(),
+  /** One line per document of the case (E4): piece type and parties when the analysis identified them. */
+  documents: z.array(z.string().max(600)).max(60).optional(),
   omitted: z.number().int().positive().optional(),
   items: z.array(StructureContextItemSchema).max(STRUCTURE_LIST_MAX_ITEMS),
 });
@@ -147,6 +149,7 @@ export function structureContextSource(
   items: readonly EvidenceReviewItem[],
   decisions: ReadonlyMap<string, 'ADOPT' | 'DISCARD'>,
   summary?: string,
+  documents: readonly string[] = [],
 ): TaskSource | undefined {
   const labels = structureItemLabels(items);
   const kept = items.filter((item) => decisions.get(item.id) !== 'DISCARD');
@@ -170,6 +173,7 @@ export function structureContextSource(
     JSON.stringify(
       StructureContextSchema.parse({
         ...(trimmedSummary ? { summary: trimmedSummary } : {}),
+        ...(documents.length ? { documents: [...documents] } : {}),
         ...(count < kept.length ? { omitted: kept.length - count } : {}),
         items: entries.slice(0, count),
       }),

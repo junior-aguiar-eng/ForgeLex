@@ -355,3 +355,26 @@ só os `A_CONFIRMAR`. Nos pontos a conferir da minuta aparece "Baseada em itens 
 - **Custo de leitura:** cada redação com caso procura a análise vigente (até 1000 conversas do caso), como a aba Estrutura.
 - **Edição de trecho (`review_text` e seleção na peça):** só recebe a estrutura se a execução for escolhida sem ação explícita.
 
+**E4 entregue (24/11/2026, branch `claude/e4-pdf-direto`):** o anexo com texto, num caso e em Automático, dispara a análise de fatos e provas (a
+regra do E1b deixa de exigir 600 caracteres no objetivo). O mesmo texto já analisado no caso é recusado com `ALREADY_ANALYZED` (409), sem
+cobrança; análise falha ou cancelada não conta. O contrato **v15** (v1 a v14 e `pre-*` intactos) faz a análise devolver `documentProfile`
+(tipo da peça, certeza e partes, cada parte com a citação literal que o servidor confere; divergência vira limitação, não erro). A
+estrutura do caso passou a ser a **soma das análises vivas** (`findCaseStructure`: até 60, a mais nova de cada texto, conversas escondidas
+incluídas): a rota `GET /api/agentic/matters/:id/structure` devolve `structure` (a mais recente) e `structures` (a lista), e a aba soma as
+seções, numera F e P em sequência, marca a origem de cada item e lista "Documentos do caso" (um PDF dividido conta como um). O ajuste pela
+conversa (E2) e a redação (E3) trabalham com a soma: cada comando vai para a análise dona do item, ACRESCENTAR para a mais recente, e a fonte
+da redação traz uma linha por documento. **PDF longo:** o navegador divide o texto nos limites "Página N" em trechos de até 40.000 caracteres
+(até 12 por envio); cada trecho é um pedido com cabeçalho `parte i de n, páginas a–b, documento <código>`, enviados em ordem. O compositor diz
+"Este PDF será analisado em N partes" com o custo máximo total e bloqueia o envio quando o saldo não cobre todas. Reenviar o mesmo PDF só
+analisa os trechos que faltam.
+
+**Limites e pendências do E4:**
+- **Não verificado com o modelo real:** o redator e o analista só rodaram com agente simulado; a identificação da peça e das partes em PDF de verdade
+  não foi exercitada, nem a leitura de um processo inteiro.
+- **Trecho sem ver os outros:** cada trecho é analisado sozinho; uma afirmação que cruza dois trechos pode não aparecer. A aba diz que o PDF foi lido em N partes.
+- **Contradição entre documentos** aparece nos itens de cada um; o agente não a resolve.
+- **Custo de leitura:** a soma lê até 1000 conversas do caso e uma revisão por análise (sequencialmente, por causa do banco de conexão única).
+- **Mudança durante a execução:** conferir um item enquanto a minuta ou o ajuste roda derruba o trabalho por conflito de contexto.
+- **Ajuste com falha no meio:** se uma análise antiga falha por erro que não é de conflito depois de outra já ter sido aplicada, o reenvio do mesmo trabalho pede para refazer.
+- **Pedido novo:** um anexo grande só é enviado em pedido novo (não em conversa já aberta nem na orientação guiada).
+- **Trechos em sequência pelo navegador:** se o usuário fechar a aba no meio do envio, os trechos restantes não saem; reenviar o PDF completa.

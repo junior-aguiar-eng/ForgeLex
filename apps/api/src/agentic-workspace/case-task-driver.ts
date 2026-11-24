@@ -31,7 +31,6 @@ import {
   type AgenticOwner,
   type TaskBinding,
 } from '@forgelex/domain';
-import { findCurrentStructure } from './current-structure.js';
 import { findCaseStructure } from './case-structure.js';
 import { applyStructureAdjustment, structureSourceKey } from './apply-structure-adjustment.js';
 import type { AgentTool, ToolExecutionContext } from '@forgelex/agent-core';
@@ -97,23 +96,71 @@ export function createCaseTaskDriver(
       new Set(previews.flatMap((review) => Object.keys(review.decisions))),
     );
   };
-  // E3: the case structure (confirmed and still unchecked items, plus the summary) for drafting. Best effort: a case
-  // without structure, or one that cannot be read, drafts exactly as before.
+  // E3/E4: the case structure for drafting (confirmed and still unchecked items of all the analyses, a line per document
+  // and the latest summary). Best effort: a case without structure, or one that cannot be read, drafts exactly as before.
   const contextSource = async (owner: AgenticOwner, matterId: string | undefined, actionId: string | undefined) => {
     if (!matterId || (actionId && actionId !== 'create_document')) return undefined;
     try {
-      const current = await findCurrentStructure(
+      const entries = await findCaseStructure(
         { store: { workspace }, native, manages: options.manages },
         owner,
         matterId,
       );
-      if (!current) return undefined;
-      const review = await reviews.preview(owner, current.deliveryId);
-      const decisions = new Map(Object.entries(review.decisions).map(([id, decision]) => [id, decision.action]));
-      const summary = Object.values(review.adjustments ?? {})
-        .filter((adjustment) => adjustment.caseSummary)
-        .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt))[0]?.caseSummary;
-      return structureContextSource(current.deliveryId, review.items, decisions, summary);
+      if (!entries.length) return undefined;
+      const items: Awaited<ReturnType<typeof reviews.preview>>['items'] = [];
+      const decisions = new Map<string, 'ADOPT' | 'DISCARD'>();
+      let summary: { text: string; recordedAt: string } | undefined;
+      const documents: { title: string; pieceType?: string; parties: string[]; parts: number }[] = [];
+      const byKey = new Map<string, number>();
+      for (const entry of entries) {
+        const review = await reviews.preview(owner, entry.deliveryId);
+        items.push(...review.items);
+        for (const [id, decision] of Object.entries(review.decisions)) decisions.set(id, decision.action);
+        for (const record of Object.values(review.adjustments ?? {}))
+          if (record.caseSummary?.trim() && (!summary || record.recordedAt > summary.recordedAt))
+            summary = { text: record.caseSummary.trim(), recordedAt: record.recordedAt };
+        const { delivery } = await native.getDelivery(owner, entry.deliveryId);
+        const profile = delivery.documentProfile;
+        const parties = (profile?.parties ?? []).map((party) => `${party.name} (${party.role})`);
+        const known = entry.documentKey === undefined ? undefined : byKey.get(entry.documentKey);
+        if (known !== undefined) {
+          const document = documents[known]!;
+          document.parts += 1;
+          for (const party of parties) if (!document.parties.includes(party)) document.parties.push(party);
+          if (profile?.pieceType && !document.pieceType) {
+            document.pieceType = profile.pieceType;
+            document.title = profile.pieceType;
+          }
+          continue;
+        }
+        documents.push({
+          ...(profile?.pieceType ? { pieceType: profile.pieceType } : {}),
+          title:
+            profile?.pieceType ??
+            (entry.attachment
+              ? entry.attachment.name.replace(/\.(pdf|txt|md|docx)$/i, '')
+              : `Documento ${documents.length + 1}`),
+          parties,
+          parts: 1,
+        });
+        if (entry.documentKey !== undefined) byKey.set(entry.documentKey, documents.length - 1);
+      }
+      const lines = documents.map(
+        (document, index) =>
+          `Documento ${index + 1}: ${document.title}` +
+          (document.parties.length ? `; partes: ${document.parties.join(', ')}` : '') +
+          (document.parts > 1 ? `; lido em ${document.parts} partes` : ''),
+      );
+      return structureContextSource(
+        structureSourceKey(
+          matterId,
+          entries.map((entry) => entry.deliveryId),
+        ),
+        items,
+        decisions,
+        summary?.text,
+        lines,
+      );
     } catch {
       return undefined;
     }
