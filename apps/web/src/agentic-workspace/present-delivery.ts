@@ -13,6 +13,17 @@ export interface PresentedBlock {
   tag?: string;
   /** Source numbers cited by this block, in first-appearance order. */
   citations: number[];
+  /**
+   * Which item of the analysis review this block shows (never displayed): the Estrutura tab uses it to number the
+   * item (F1, P1…) and to mark what the user changed. `originId` is the row or event id the review item records first.
+   */
+  origin?: BlockOrigin;
+}
+export interface BlockOrigin {
+  kind: 'FACT' | 'EVIDENCE' | 'GAP' | 'TIMELINE';
+  originId: string;
+  ref?: { sourceId: string; start: number };
+  text?: string;
 }
 export interface PresentedDelivery {
   title: string;
@@ -37,6 +48,7 @@ const KIND_LABEL: Record<string, string> = {
 const TITLE: Record<string, string> = {
   analyze_documents: 'Análise dos documentos',
   analyze_evidence: 'Análise de fatos e provas',
+  adjust_structure: 'Ajuste da estrutura',
   research_question: 'Pesquisa',
   review_text: 'Revisão do texto',
 };
@@ -71,6 +83,15 @@ const PREFIXED: Record<string, string> = {
   EDITORIAL_REQUIREMENT_UNVERIFIED: 'Requisito de forma não verificado: ',
 };
 const codeOf = (f: { id: string; code?: string }) => f.code ?? f.id.split(':')[0];
+
+/** Aviso de que a peça se apoia em itens da estrutura que o usuário ainda não conferiu (E3). */
+export function structureUseNotice(use: readonly { itemId: string; label?: string }[] | undefined): string | undefined {
+  if (!use?.length) return undefined;
+  const labels = use.map((item) => item.label).filter((label): label is string => Boolean(label));
+  return labels.length === use.length
+    ? `Baseada em itens ainda a confirmar: ${labels.join(', ')}.`
+    : `Baseada em ${use.length} ${use.length === 1 ? 'item ainda a confirmar' : 'itens ainda a confirmar'}.`;
+}
 
 export function presentDelivery(delivery: Delivery['delivery']): PresentedDelivery {
   const known = new Map<string, Source>();
@@ -141,6 +162,7 @@ export function presentDelivery(delivery: Delivery['delivery']): PresentedDelive
         text: claim?.statement ?? 'Afirmação indisponível',
         tag: claim ? (CLAIM_TAG[claim.classification] ?? 'Inferência') : undefined,
         citations: cite(claim?.sourceIds ?? []),
+        ...(row.id && claim ? { origin: { kind: 'FACT' as const, originId: row.id } } : {}),
       });
       if (row.coverage === 'CONTEXT_ONLY')
         blocks.push({ kind: 'paragraph', text: 'O relato ainda não tem apoio documental.', citations: [] });
@@ -151,8 +173,23 @@ export function presentDelivery(delivery: Delivery['delivery']): PresentedDelive
           kind: 'item',
           text: `${relations[ref.relation]}: “${ref.quote}”${ref.quoteStatus === 'MATCHED' ? '' : ' — Não foi possível conferir este trecho na fonte.'}`,
           citations: cite([ref.sourceId]),
+          ...(row.id && typeof ref.start === 'number'
+            ? {
+                origin: {
+                  kind: 'EVIDENCE' as const,
+                  originId: row.id,
+                  ref: { sourceId: ref.sourceId, start: ref.start },
+                },
+              }
+            : {}),
         });
-      for (const gap of row.gaps) blocks.push({ kind: 'item', text: `Lacuna: ${gap}`, citations: [] });
+      for (const gap of row.gaps)
+        blocks.push({
+          kind: 'item',
+          text: `Lacuna: ${gap}`,
+          citations: [],
+          ...(row.id ? { origin: { kind: 'GAP' as const, originId: row.id, text: gap } } : {}),
+        });
     }
     if (matrix.chronology.length) blocks.push({ kind: 'heading', text: 'Cronologia', citations: [] });
     for (const event of matrix.chronology)
@@ -160,6 +197,7 @@ export function presentDelivery(delivery: Delivery['delivery']): PresentedDelive
         kind: 'item',
         text: `${event.sortDate ?? `Data a confirmar: ${event.dateText ?? 'não informada'}`} — ${event.description}. Trecho: “${event.reference.quote}”${event.reference.quoteStatus === 'MISMATCH' ? ' (não conferido)' : ''}`,
         citations: cite([event.reference.sourceId]),
+        ...(event.id ? { origin: { kind: 'TIMELINE' as const, originId: event.id } } : {}),
       });
     if (matrix.contradictions.length) blocks.push({ kind: 'heading', text: 'Contradições', citations: [] });
     for (const conflict of matrix.contradictions)
@@ -235,6 +273,8 @@ export function presentDelivery(delivery: Delivery['delivery']): PresentedDelive
   const add = (text: string) => {
     if (text && !pending.includes(text)) pending.push(text);
   };
+  const structureNotice = structureUseNotice(delivery.structureUse);
+  if (structureNotice) add(structureNotice);
   const unsupportedSections: string[] = [];
   for (const finding of delivery.review || delivery.action === 'review_text' ? [] : delivery.findings) {
     const code = codeOf(finding);

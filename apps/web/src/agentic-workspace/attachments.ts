@@ -6,8 +6,11 @@ import { isImageFile, isPdfFile } from '../ocr/ocr-document';
 
 export const ATTACHMENT_ACCEPT = '.pdf,.txt,.md,.docx,.doc,image/*';
 export const ATTACHMENT_MAX_FILES = 5;
-/** Teto do texto dos anexos juntos; o pedido inteiro, com o que o cliente escreveu, cabe nos 100.000 caracteres da execução. */
-export const ATTACHMENT_MAX_TOTAL_CHARS = 80_000;
+/**
+ * Teto do texto dos anexos juntos: até 12 trechos de 40.000 caracteres (E4). Cada pedido enviado leva um trecho, e o pedido
+ * inteiro, com o que o cliente escreveu, cabe nos 100.000 caracteres da execução.
+ */
+export const ATTACHMENT_MAX_TOTAL_CHARS = 480_000;
 export const ATTACHMENT_MAX_TEXT_FILE_BYTES = 2 * 1024 * 1024;
 
 export type AttachmentStatus = 'reading' | 'ocr' | 'done' | 'no-text' | 'unsupported' | 'error' | 'too-large';

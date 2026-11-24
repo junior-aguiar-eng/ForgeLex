@@ -65,7 +65,8 @@ export function scopedDeskEditProfile(role: CaseTaskRole) {
   };
 }
 
-export const REVISED_DESK_PROMPT_POLICY = { ...SCOPED_DESK_EDIT_POLICY, version: '1.14.0' } as const;
+// 1.17.0 (was 1.14.0): that identity was taken by the structure adjustment contract (v13) while this front was open.
+export const REVISED_DESK_PROMPT_POLICY = { ...SCOPED_DESK_EDIT_POLICY, version: '1.17.0' } as const;
 
 export function revisedDeskPromptProfile(role: CaseTaskRole) {
   const prior = scopedDeskEditProfile(role);

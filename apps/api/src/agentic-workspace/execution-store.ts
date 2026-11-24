@@ -9,6 +9,8 @@ import {
   agenticTenantGuards,
   agenticCommandOwners,
   agenticCommands,
+  agenticContexts,
+  agenticConversations,
   agenticExecutions,
   agenticExecutionJobs,
   agenticExecutionCalls,
@@ -196,6 +198,46 @@ export class ExecutionStore {
     await this.db
       .insert(agenticCommands)
       .values({ id: randomUUID(), ...owner, idempotencyKey: key, inputHash, executionId, createdAt });
+  }
+  /**
+   * Já existe, neste caso, uma análise de fatos e provas viva (não falha nem cancelada) pedida com este mesmo texto?
+   * Serve ao disparo automático do relato colado (E1b): o mesmo relato não é analisado e cobrado de novo sozinho.
+   */
+  async hasLiveEvidenceAnalysis(
+    owner: AgenticOwner,
+    matterId: string,
+    objective: string,
+    contextText?: string,
+  ): Promise<boolean> {
+    const rows = await this.db
+      .select({ payloadJson: agenticExecutionJobs.payloadJson, conversationId: agenticExecutions.conversationId })
+      .from(agenticExecutionJobs)
+      .innerJoin(agenticExecutions, eq(agenticExecutions.id, agenticExecutionJobs.executionId))
+      .innerJoin(agenticConversations, eq(agenticConversations.id, agenticExecutions.conversationId))
+      .where(
+        and(
+          eq(agenticConversations.tenantId, owner.tenantId),
+          eq(agenticConversations.userId, owner.userId),
+          eq(agenticConversations.matterId, matterId),
+          // Com o texto do contexto (anexos), a identidade é o texto completo: o mesmo pedido pode acompanhar vários
+          // trechos de um PDF. Sem ele, vale o objetivo (relato colado, E1b).
+          ...(contextText === undefined ? [eq(agenticConversations.objective, objective)] : []),
+        ),
+      )
+      .limit(200);
+    const live = rows.filter((row) => {
+      const job = JSON.parse(row.payloadJson) as ExecutionJob;
+      return job.actionId === 'analyze_evidence' && job.state !== 'FAILED' && job.state !== 'CANCELLED';
+    });
+    if (contextText === undefined) return live.length > 0;
+    for (const { conversationId } of live) {
+      const contexts = await this.db
+        .select({ payloadJson: agenticContexts.payloadJson })
+        .from(agenticContexts)
+        .where(eq(agenticContexts.conversationId, conversationId));
+      if (contexts.some((row) => (JSON.parse(row.payloadJson) as { text?: string }).text === contextText)) return true;
+    }
+    return false;
   }
   async getJob(owner: AgenticOwner, id: string): Promise<ExecutionJob> {
     const [row] = await this.db

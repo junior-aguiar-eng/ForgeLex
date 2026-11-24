@@ -52,6 +52,8 @@ export type CommercialRuntime = Awaited<ReturnType<typeof createCommercialRuntim
 export function hasUsableResult(delivery: AgenticTaskDelivery, actionId?: string) {
   if (actionId && delivery.action !== actionId) return false;
   if (delivery.action === 'create_document') return Boolean(delivery.document?.sections.length);
+  // A structure adjustment is usable only when it proposes at least one command; a summary alone is not.
+  if (delivery.action === 'adjust_structure') return Boolean(delivery.structureAdjustment?.commands.length);
   if (delivery.action === 'analyze_evidence')
     return Boolean(
       delivery.evidenceMatrix?.rows.some((row) =>

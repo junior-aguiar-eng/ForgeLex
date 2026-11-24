@@ -23,3 +23,6 @@ export * from './contracts/checkpoint-evidence.js';
 export * from './contracts/task-evidence.js';
 export * from './contracts/evidence-review.js';
 export * from './contracts/approved-case-context.js';
+export * from './contracts/structure-commands.js';
+export * from './contracts/attachment-blocks.js';
+export * from './contracts/document-profile.js';

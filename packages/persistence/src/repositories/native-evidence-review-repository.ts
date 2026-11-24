@@ -8,6 +8,12 @@ import {
   type EvidenceReview,
   type EvidenceReviewCommand,
   type EvidenceReviewDecision,
+  type EvidenceReviewItem,
+  type StructureAdjustmentRecord,
+  type StructureCommand,
+  type StructureQuestion,
+  resolveStructureCommands,
+  structureItemsSource,
 } from '@forgelex/domain';
 import type { ForgeLexDatabase } from '../db.js';
 import * as s from '../schema/schema.js';
@@ -23,9 +29,87 @@ interface SavedReview {
   version: 1;
   revision: number;
   decisions: Record<string, EvidenceReviewDecision>;
+  added?: EvidenceReviewItem[];
   commands: Record<string, { inputHash: string }>;
+  adjustments?: Record<string, StructureAdjustmentRecord>;
 }
+/** Cap of items the user may add to one review (also the schema limit of the saved review). */
+export const EVIDENCE_REVIEW_ADDED_LIMIT = 50;
+/**
+ * Outcome records kept per review: the tab reads only the latest, and each record can be large (summary and up to 100
+ * questions), so few are kept to spare the review's 1 MB budget. Idempotency does not depend on them: every adjustment
+ * command id also stays in `commands`, which is never evicted.
+ */
+const ADJUSTMENT_RECORDS_KEPT = 10;
+/** One dedupe rule for items the user adds: the id is the hash of (delivery, 'user', text). */
+function freshUserItems(
+  id: string,
+  items: readonly EvidenceReviewItem[],
+  input: { texto: string; frase: string }[],
+): EvidenceReviewItem[] {
+  const addedAt = new Date().toISOString();
+  const fresh: EvidenceReviewItem[] = [];
+  for (const { texto, frase } of input) {
+    const itemId = evidenceHash([id, 'user', texto]);
+    if (items.some((i) => i.id === itemId) || fresh.some((i) => i.id === itemId)) continue;
+    fresh.push({
+      id: itemId,
+      kind: 'FACT',
+      text: texto,
+      classification: 'ALLEGATION',
+      sources: [],
+      references: [],
+      originIds: [],
+      blockedReasons: [],
+      userAdded: { frase, addedAt },
+    });
+  }
+  return fresh;
+}
+function keepAdjustment(saved: SavedReview, commandId: string, record: StructureAdjustmentRecord, inputHash: string) {
+  const kept = Object.entries(saved.adjustments ?? {})
+    .sort(([, a], [, b]) => b.recordedAt.localeCompare(a.recordedAt))
+    .slice(0, ADJUSTMENT_RECORDS_KEPT - 1);
+  saved.adjustments = { ...Object.fromEntries(kept), [commandId]: record };
+  saved.commands[commandId] = { inputHash };
+}
+/**
+ * First write wins per adjustment command: the stored record, or, once it left the recent records, an empty outcome
+ * (the command was already handled; replaying it must neither apply nor record anything again).
+ */
+function handledAdjustment(
+  saved: SavedReview,
+  commandId: string,
+  executionId: string,
+): StructureAdjustmentRecord | undefined {
+  const existing = saved.adjustments?.[commandId];
+  if (existing) return existing;
+  if (saved.commands[commandId])
+    return { executionId, applied: 0, questions: [], recordedAt: new Date().toISOString() };
+  return undefined;
+}
+async function writeReview(db: ForgeLexDatabase, owner: AgenticOwner, rowId: string, saved: SavedReview) {
+  // Every writer goes through the same schema the reader uses: an invalid review is refused, never stored.
+  savedReviewSchema.parse(saved);
+  const evidenceReviewJson = JSON.stringify(saved);
+  if (Buffer.byteLength(evidenceReviewJson) > 1000000) throw new Error('EVIDENCE_REVIEW_LIMIT');
+  await db
+    .update(s.agenticTaskDeliveries)
+    .set({ evidenceReviewJson })
+    .where(
+      and(
+        eq(s.agenticTaskDeliveries.id, rowId),
+        eq(s.agenticTaskDeliveries.tenantId, owner.tenantId),
+        eq(s.agenticTaskDeliveries.userId, owner.userId),
+      ),
+    );
+}
+
 const emptyReview = (): SavedReview => ({ version: 1, revision: 1, decisions: {}, commands: {} });
+const addedItem = z.strictObject({
+  texto: z.string().trim().min(3).max(4000),
+  frase: z.string().trim().min(1).max(4000),
+});
 const approvedText = z.string().trim().min(3).max(4000);
 
 /** Human-session entrypoint only; never registered as an agent tool. */
@@ -59,7 +143,7 @@ export class NativeEvidenceReviewRepository {
       row: typeof s.agenticTaskDeliveries.$inferSelect,
       review: EvidenceReview,
       saved: SavedReview,
-      token: (revision: number) => string,
+      token: (revision: number, list?: EvidenceReviewItem[]) => string,
     ) => Promise<T>,
   ): Promise<T> {
     const initial = await this.row(this.db, owner, id);
@@ -188,19 +272,19 @@ export class NativeEvidenceReviewRepository {
         } catch {
           throw new Error('DELIVERY_INTEGRITY_FAILED');
         }
-        const items = deriveEvidenceReviewItems(id, delivery, sources);
+        const items = [...deriveEvidenceReviewItems(id, delivery, sources), ...(saved.added ?? [])];
         const lifecycleRevision = await new MatterWriteGuard(tx).captureRevision({
           tenantId: owner.tenantId,
           matterId,
         });
-        const token = (revision: number) =>
+        const token = (revision: number, list: EvidenceReviewItem[] = items) =>
           evidenceHash([
             row.contentHash,
             revision,
             context,
             lifecycleRevision,
             sources.map((source) => [source.id, source.blocked, source.fingerprint]),
-            items,
+            list,
           ]);
         const review: EvidenceReview = {
           deliveryId: id,
@@ -208,6 +292,7 @@ export class NativeEvidenceReviewRepository {
           revision: saved.revision,
           items,
           decisions: saved.decisions,
+          ...(saved.adjustments ? { adjustments: saved.adjustments } : {}),
           reviewToken: token(saved.revision),
         };
         await this.authorize(owner, matterId, tx);
@@ -220,6 +305,44 @@ export class NativeEvidenceReviewRepository {
   async preview(owner: AgenticOwner, id: string): Promise<EvidenceReview> {
     return this.guarded(owner, id, async (_db, _row, review) => review);
   }
+  /** Acrescenta itens que o usuário informou na conversa. Ficam só na revisão, com selo, até um ADOPT explícito. */
+  async addUserItems(
+    owner: AgenticOwner,
+    id: string,
+    raw: { texto: string; frase: string }[],
+  ): Promise<EvidenceReview> {
+    const input = z.array(addedItem).min(1).max(50).parse(raw);
+    return this.guarded(owner, id, async (db, row, review, saved, token) => {
+      const fresh = freshUserItems(id, review.items, input);
+      if (!fresh.length) return review;
+      if ((saved.added?.length ?? 0) + fresh.length > EVIDENCE_REVIEW_ADDED_LIMIT)
+        throw new Error('EVIDENCE_ADDED_LIMIT');
+      saved.added = [...(saved.added ?? []), ...fresh];
+      saved.revision++;
+      await writeReview(db, owner, row.id, saved);
+      const items = [...review.items, ...fresh];
+      return { ...review, items, revision: saved.revision, reviewToken: token(saved.revision, items) };
+    });
+  }
+  /**
+   * Keeps the outcome of an adjust_structure work with this review (first write wins, so a replay returns the stored
+   * outcome). It changes neither items nor decisions, so revision and token stay.
+   */
+  async recordStructureAdjustment(
+    owner: AgenticOwner,
+    id: string,
+    commandId: string,
+    record: StructureAdjustmentRecord,
+  ): Promise<StructureAdjustmentRecord> {
+    z.string().uuid().parse(commandId);
+    return this.guarded(owner, id, async (db, row, _review, saved) => {
+      const handled = handledAdjustment(saved, commandId, record.executionId);
+      if (handled) return handled;
+      keepAdjustment(saved, commandId, record, evidenceHash(record));
+      await writeReview(db, owner, row.id, saved);
+      return record;
+    });
+  }
   async decide(owner: AgenticOwner, id: string, raw: EvidenceReviewCommand): Promise<EvidenceReview> {
     const input = EvidenceReviewCommandSchema.parse(raw);
     return this.guarded(owner, id, async (db, row, review, saved, token) => {
@@ -231,61 +354,140 @@ export class NativeEvidenceReviewRepository {
       }
       if (review.revision !== input.expectedRevision || review.reviewToken !== input.reviewToken)
         throw new Error('EVIDENCE_REVIEW_CONFLICT');
-      const ordered = [...input.decisions].sort(
-        (a, b) =>
-          Number(review.items.find((i) => i.id === a.itemId)?.kind !== 'FACT') -
-          Number(review.items.find((i) => i.id === b.itemId)?.kind !== 'FACT'),
-      );
-      for (const decision of ordered) {
-        const item = review.items.find((i) => i.id === decision.itemId);
-        if (!item) throw new Error('EVIDENCE_ITEM_INVALID');
-        if (saved.decisions[item.id]) throw new Error('EVIDENCE_ALREADY_DECIDED');
-        if (decision.eventDate && item.kind !== 'TIMELINE') throw new Error('EVIDENCE_DATE_INVALID');
-        const text =
-          decision.action === 'ADOPT' ? approvedText.parse(decision.text ?? item.text) : (decision.text ?? item.text);
-        const eventDate = decision.eventDate ?? item.eventDate;
-        let targetId: string | undefined;
-        if (decision.action === 'ADOPT') {
-          if (item.blockedReasons.length || (item.kind === 'EVIDENCE' && !item.sources.length))
-            throw new Error('EVIDENCE_SOURCE_UNAVAILABLE');
-          if (item.kind === 'TIMELINE' && !z.string().date().safeParse(eventDate).success)
-            throw new Error('EVIDENCE_DATE_REQUIRED');
-          const fact = item.factItemId ? saved.decisions[item.factItemId] : undefined;
-          targetId = await adoptAnalysisItem(
-            db,
-            owner,
-            review.matterId,
-            id,
-            { ...item, eventDate },
-            text,
-            fact?.action === 'ADOPT' ? fact.targetId : undefined,
-          );
-        }
-        saved.decisions[item.id] = {
-          action: decision.action,
-          text,
-          targetId,
-          eventDate,
-          decidedAt: new Date().toISOString(),
-          decidedBy: owner.userId,
-          proposal: item,
-        };
-      }
+      await this.applyDecisions(db, owner, id, review, saved, input.decisions);
       saved.revision++;
       saved.commands[input.commandId] = { inputHash };
-      const evidenceReviewJson = JSON.stringify(saved);
-      if (Buffer.byteLength(evidenceReviewJson) > 1000000) throw new Error('EVIDENCE_REVIEW_LIMIT');
-      await db
-        .update(s.agenticTaskDeliveries)
-        .set({ evidenceReviewJson })
-        .where(
-          and(
-            eq(s.agenticTaskDeliveries.id, row.id),
-            eq(s.agenticTaskDeliveries.tenantId, owner.tenantId),
-            eq(s.agenticTaskDeliveries.userId, owner.userId),
-          ),
-        );
+      await writeReview(db, owner, row.id, saved);
       return { ...review, revision: saved.revision, reviewToken: token(saved.revision), decisions: saved.decisions };
+    });
+  }
+  /** Shared by decide and the structure adjustment: FACT items first, so evidence can link to an adopted fact. */
+  private async applyDecisions(
+    db: ForgeLexDatabase,
+    owner: AgenticOwner,
+    id: string,
+    review: EvidenceReview,
+    saved: SavedReview,
+    decisions: EvidenceReviewCommand['decisions'],
+  ) {
+    const ordered = [...decisions].sort(
+      (a, b) =>
+        Number(review.items.find((i) => i.id === a.itemId)?.kind !== 'FACT') -
+        Number(review.items.find((i) => i.id === b.itemId)?.kind !== 'FACT'),
+    );
+    for (const decision of ordered) {
+      const item = review.items.find((i) => i.id === decision.itemId);
+      if (!item) throw new Error('EVIDENCE_ITEM_INVALID');
+      if (saved.decisions[item.id]) throw new Error('EVIDENCE_ALREADY_DECIDED');
+      if (decision.eventDate && item.kind !== 'TIMELINE') throw new Error('EVIDENCE_DATE_INVALID');
+      const text =
+        decision.action === 'ADOPT' ? approvedText.parse(decision.text ?? item.text) : (decision.text ?? item.text);
+      const eventDate = decision.eventDate ?? item.eventDate;
+      let targetId: string | undefined;
+      if (decision.action === 'ADOPT') {
+        if (item.blockedReasons.length || (item.kind === 'EVIDENCE' && !item.sources.length))
+          throw new Error('EVIDENCE_SOURCE_UNAVAILABLE');
+        if (item.kind === 'TIMELINE' && !z.string().date().safeParse(eventDate).success)
+          throw new Error('EVIDENCE_DATE_REQUIRED');
+        const fact = item.factItemId ? saved.decisions[item.factItemId] : undefined;
+        targetId = await adoptAnalysisItem(
+          db,
+          owner,
+          review.matterId,
+          id,
+          { ...item, eventDate },
+          text,
+          fact?.action === 'ADOPT' ? fact.targetId : undefined,
+        );
+      }
+      saved.decisions[item.id] = {
+        action: decision.action,
+        text,
+        targetId,
+        eventDate,
+        decidedAt: new Date().toISOString(),
+        decidedBy: owner.userId,
+        proposal: item,
+      };
+    }
+  }
+  /**
+   * Applies one adjust_structure work in ONE transaction: checks that the review is still the one the agent read
+   * (`sourceHash` of the structure source), adds the sealed items, records the decisions and the outcome. Idempotent
+   * by `commandId`: a replay returns the stored outcome. ALTERAR never adopts an item the user added (that needs the
+   * user's explicit confirmation); REMOVER of it stays possible.
+   */
+  async applyStructureCommands(
+    owner: AgenticOwner,
+    id: string,
+    raw: {
+      commandId: string;
+      executionId: string;
+      sourceHash: string;
+      commands: StructureCommand[];
+      caseSummary: string;
+      request?: string;
+    },
+  ): Promise<StructureAdjustmentRecord> {
+    const input = { ...raw, commandId: z.string().uuid().parse(raw.commandId) };
+    return this.guarded(owner, id, async (db, row, review, saved) => {
+      const handled = handledAdjustment(saved, input.commandId, input.executionId);
+      if (handled) return handled;
+      const questions: StructureQuestion[] = [];
+      let applied = 0;
+      const decidedIds = new Set(Object.keys(review.decisions));
+      if (!input.commands.length) {
+        // Nothing to apply: only the summary is kept.
+      } else if (structureItemsSource(id, review.items, decidedIds).contentHash !== input.sourceHash) {
+        questions.push({ reason: 'ANALISE_ALTERADA' });
+      } else {
+        const resolution = resolveStructureCommands({ items: review.items, decidedIds, commands: input.commands });
+        questions.push(...resolution.questions);
+        const byId = new Map(review.items.map((i) => [i.id, i]));
+        const decisions = resolution.decisions.filter((decision) => {
+          const item = byId.get(decision.itemId)!;
+          if (decision.action !== 'ADOPT') return true;
+          if (item.userAdded) {
+            questions.push({ itemId: item.id, reason: 'ITEM_INFORMADO_A_CONFIRMAR' });
+            return false;
+          }
+          const eventDate = decision.eventDate ?? item.eventDate;
+          if (
+            item.blockedReasons.length ||
+            (item.kind === 'EVIDENCE' && !item.sources.length) ||
+            (item.kind === 'TIMELINE' && !z.string().date().safeParse(eventDate).success)
+          ) {
+            questions.push({ itemId: item.id, reason: 'ITEM_BLOQUEADO' });
+            return false;
+          }
+          return true;
+        });
+        const normalize = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase();
+        const added = resolution.added.filter((a) => {
+          const found = input.request !== undefined && normalize(input.request).includes(normalize(a.frase));
+          if (!found) questions.push({ reason: 'FRASE_NAO_ENCONTRADA', texto: a.texto });
+          return found;
+        });
+        let fresh = freshUserItems(id, review.items, z.array(addedItem).max(50).parse(added));
+        if ((saved.added?.length ?? 0) + fresh.length > EVIDENCE_REVIEW_ADDED_LIMIT) {
+          questions.push({ reason: 'LIMITE_DE_ITENS' });
+          fresh = [];
+        }
+        if (fresh.length) saved.added = [...(saved.added ?? []), ...fresh];
+        await this.applyDecisions(db, owner, id, review, saved, decisions);
+        applied = fresh.length + decisions.length;
+        if (applied) saved.revision++;
+      }
+      const record: StructureAdjustmentRecord = {
+        executionId: input.executionId,
+        applied,
+        questions,
+        caseSummary: input.caseSummary,
+        recordedAt: new Date().toISOString(),
+      };
+      keepAdjustment(saved, input.commandId, record, evidenceHash(input));
+      await writeReview(db, owner, row.id, saved);
+      return record;
     });
   }
 }

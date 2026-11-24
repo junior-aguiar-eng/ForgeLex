@@ -214,7 +214,7 @@ async function run(
   };
   const taskOptions: CaseTaskOptions = {
     guidedWorkflow: true,
-    ...(candidate ? { workflowVersion: 13 as const } : {}),
+    ...(candidate ? { workflowVersion: 16 as const } : {}),
     tools: options.search ? [searchTool(options.search)] : [],
     context: {
       load: async () => packet,
@@ -297,14 +297,14 @@ async function run(
   if (id === 'A07') {
     expect(step.kind).toBe('checkpoint');
     // A checkpoint selects its original profile even when the option for new executions changes.
-    task = new AgenticCaseTask({ ...taskOptions, workflowVersion: candidate ? undefined : 13 });
+    task = new AgenticCaseTask({ ...taskOptions, workflowVersion: candidate ? undefined : 16 });
   }
   for (let index = 0; step.kind === 'checkpoint' && index < 20; index++) {
     step = await task.step(binding, step.state, signal);
     await probe;
   }
   expect(step.kind).not.toBe('checkpoint');
-  if (candidate) expect(step.state.version).toBe(13);
+  if (candidate) expect(step.state.version).toBe(16);
   else {
     const version = options.deskEdit || sources.some((item) => item.kind === 'DRAFT') ? 12 : 11;
     expect(step.state.contractHash).toBe(baselineContracts[version]);

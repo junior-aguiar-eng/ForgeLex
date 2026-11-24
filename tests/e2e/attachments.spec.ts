@@ -342,3 +342,48 @@ test('tema clássico: com um caso vinculado, o anexo não oferece "Salvar no cas
     0,
   );
 });
+
+// E4: anexo grande é dividido em trechos; cada trecho é um pedido com cabeçalho próprio, enviados em ordem. O servidor
+// recusa o trecho que já foi analisado (409) e o envio segue com os demais.
+test('anexo grande: o aviso diz quantas partes, cada parte sai como um pedido e a já analisada é pulada', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page);
+  const paragraphs = Array.from({ length: 90 }, (_, i) => `Parágrafo ${i + 1}. ${'texto sintético '.repeat(60)}`);
+  const long = paragraphs.join('\n\n');
+  await attach(page).setInputFiles({ name: 'processo.txt', mimeType: 'text/plain', buffer: Buffer.from(long) });
+  await expect(list(page).getByText('processo.txt', { exact: true })).toBeVisible();
+  await expect(page.getByText(/Este anexo será analisado em \d+ partes\./)).toBeVisible();
+  const notice = await page.getByText(/Este anexo será analisado em \d+ partes\./).innerText();
+  const total = Number(/em (\d+) partes/.exec(notice)![1]);
+  expect(total).toBeGreaterThan(1);
+
+  const message = 'Dissecar este processo.';
+  await page.getByLabel('O que você precisa fazer?', { exact: true }).fill(message);
+  const sent: any[] = [];
+  await page.route('**/api/agentic/executions', async (route) => {
+    sent.push(route.request().postDataJSON());
+    // 1º trecho aceito, 2º já analisado (409, o envio segue), 3º falha de verdade (o envio para e o usuário é avisado).
+    if (sent.length === 1) return route.fulfill({ json: { id: 'execucao-1', status: 'QUEUED' } });
+    if (sent.length === 2)
+      return route.fulfill({ status: 409, json: { error: 'ALREADY_ANALYZED', message: 'Já analisado.' } });
+    return route.fulfill({ status: 503, json: { error: 'SYNTHETIC_STOP' } });
+  });
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  await expect.poll(() => sent.length).toBe(3);
+  const codes = new Set<string>();
+  sent.forEach((body, index) => {
+    expect(body.objective).toBe(message);
+    expect(body.context.text.length).toBeLessThan(100_000);
+    const header = /Anexo "processo\.txt" \(texto extraído; parte (\d+) de (\d+), documento ([a-f0-9]{12})\):/.exec(
+      body.context.text,
+    );
+    expect(header, body.context.text.slice(0, 200)).toBeTruthy();
+    expect(Number(header![1])).toBe(index + 1);
+    expect(Number(header![2])).toBe(total);
+    codes.add(header![3]!);
+  });
+  // Todos os trechos do mesmo anexo levam o mesmo código de documento.
+  expect(codes.size).toBe(1);
+});
