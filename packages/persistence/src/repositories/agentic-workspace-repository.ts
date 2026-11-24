@@ -355,7 +355,11 @@ export class AgenticWorkspaceRepository {
   async listMatterConversations(
     owner: AgenticOwner,
     matterId: string,
-    { limit = 50, offset = 0 }: { limit?: number; offset?: number } = {},
+    {
+      limit = 50,
+      offset = 0,
+      includeHidden = false,
+    }: { limit?: number; offset?: number; includeHidden?: boolean } = {},
   ) {
     AgenticOwnerSchema.parse(owner);
     const page = z.object({ limit: z.number().int().min(1).max(100), offset: z.number().int().min(0) }).parse({
@@ -370,7 +374,7 @@ export class AgenticWorkspaceRepository {
           eq(s.agenticConversations.tenantId, owner.tenantId),
           eq(s.agenticConversations.userId, owner.userId),
           eq(s.agenticConversations.matterId, matterId),
-          isNull(s.agenticConversations.historyHiddenAt),
+          ...(includeHidden ? [] : [isNull(s.agenticConversations.historyHiddenAt)]),
         ),
       )
       .orderBy(desc(s.agenticConversations.createdAt), desc(s.agenticConversations.id))

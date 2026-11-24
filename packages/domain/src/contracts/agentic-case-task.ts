@@ -6,6 +6,7 @@ import { TaskEvidenceMatrixSchema } from './task-evidence.js';
 import { ApprovedItemSnapshotSchema } from './approved-case-context.js';
 import { GuidanceSnapshotSchema } from './desk-guidance.js';
 import { StructureAdjustmentSchema, StructureUseSchema } from './structure-commands.js';
+import { DocumentProfileSchema } from './document-profile.js';
 const id = z.string().trim().min(1).max(200);
 const text = z.string().trim().min(1).max(16000);
 export const AgenticTaskActionSchema = z.enum([
@@ -180,6 +181,8 @@ export const AgenticTaskDeliverySchema = z.strictObject({
   structureAdjustment: StructureAdjustmentSchema.optional(),
   // create_document with the case structure: items the user has not checked yet that the piece leans on.
   structureUse: StructureUseSchema.optional(),
+  // analyze_evidence (contract v15): document type and parties found in the analysed text, quotes checked by the server.
+  documentProfile: DocumentProfileSchema.optional(),
 });
 export type AgenticTaskDelivery = z.infer<typeof AgenticTaskDeliverySchema>;
 export interface TaskBinding {

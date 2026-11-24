@@ -134,15 +134,18 @@ it('structureUse com id fora da fonte, ou de item confirmado, derruba o trabalho
   }
 });
 
-it('com analyze_evidence ou adjust_structure escolhidos a versão não é 14', async () => {
-  for (const actionId of ['analyze_evidence', 'adjust_structure'])
-    expect(
-      (
-        await fixture({ actionId, orchestrator: { ...plan, action: actionId } })
-          .step()
-          .catch((e) => e)
-      ).state?.version,
-    ).not.toBe(14);
+it('analyze_evidence escolhido roda no v15 e adjust_structure no v13; nenhum dos dois cai no v14', async () => {
+  const analysis = await fixture({
+    actionId: 'analyze_evidence',
+    orchestrator: { ...plan, action: 'analyze_evidence' },
+  })
+    .step()
+    .catch((e) => e);
+  expect(analysis.state?.version).toBe(15);
+  const adjust = await fixture({ actionId: 'adjust_structure', orchestrator: { ...plan, action: 'adjust_structure' } })
+    .step()
+    .catch((e) => e);
+  expect(adjust.state?.version ?? 13).not.toBe(14);
 });
 
 it('sem guidedWorkflow a fonte é ignorada e a versão é a de hoje', async () => {

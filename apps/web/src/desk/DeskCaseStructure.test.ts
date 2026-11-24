@@ -94,4 +94,38 @@ describe('DeskCaseStructureView', () => {
     expect(html).not.toMatch(/>F\d+</);
     expect(html).toContain('O autor pagou o aluguel.');
   });
+
+  it('E4: lista os documentos do caso e marca de onde veio cada item', () => {
+    const html = render(
+      ready({
+        documents: [
+          {
+            title: 'Petição inicial',
+            pieceType: 'Petição inicial',
+            parties: ['Maria (autor)', 'João (réu)'],
+            analyzedAt: '2026-11-22T10:00:00.000Z',
+            parts: { count: 3, pages: 100 },
+          },
+          { title: 'contrato', pieceTypeUncertain: true, parties: [], analyzedAt: '2026-11-23T10:00:00.000Z' },
+        ],
+        sections: [
+          {
+            title: 'Questões',
+            entries: [
+              { kind: 'item', text: 'Houve atraso?', citations: [], origin: 'Petição inicial, páginas 1 a 40' },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(html).toContain('Documentos do caso');
+    expect(html).toContain('Partes: Maria (autor); João (réu)');
+    expect(html).toContain('Lido em 3 partes (100 páginas)');
+    expect(html).toContain('peça não identificada com segurança');
+    expect(html).toContain('Petição inicial, páginas 1 a 40');
+  });
+
+  it('E4: sem documentos a seção não aparece', () => {
+    expect(render(ready())).not.toContain('Documentos do caso');
+  });
 });

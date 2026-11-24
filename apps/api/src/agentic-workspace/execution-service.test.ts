@@ -15,7 +15,7 @@ import {
   MatterRepository,
 } from '@forgelex/persistence';
 import { LedgerService, type InferenceBudgetService } from '@forgelex/billing-ledger';
-import { createGuidanceSnapshot } from '@forgelex/domain';
+import { buildAttachmentHeader, createGuidanceSnapshot } from '@forgelex/domain';
 import { ExecutionService } from './execution-service.js';
 import { ExecutionWorker } from './execution-worker.js';
 import { initialGuidance } from '@forgelex/legal-workflows';
@@ -143,6 +143,53 @@ it('o mesmo relato no mesmo caso não dispara a análise automática outra vez',
   await f.service.cancelExecution(owner, first.id, 'cancel-first');
   const retry = await start('dup-5', matter.id);
   expect(await f.service.getExecution(owner, retry.id)).toMatchObject({ actionId: 'analyze_evidence' });
+});
+
+it('anexo com texto, num caso, dispara a análise; o mesmo texto já analisado é recusado e o falho volta a valer (E4)', async () => {
+  const f = await fixture();
+  const repo = new MatterRepository(f.db);
+  const matter = await repo.createMatter({ ...owner, createdBy: owner.userId, title: 'Caso do PDF' });
+  const other = await repo.createMatter({ ...owner, createdBy: owner.userId, title: 'Outro caso' });
+  const part = (index: number, body: string) =>
+    `${buildAttachmentHeader({
+      name: 'processo.pdf',
+      ocr: false,
+      part: { index, total: 3, pageFrom: index * 10 - 9, pageTo: index * 10, documentCode: 'a1b2c3d4e5f6' },
+    })}
+${body}`;
+  const start = (key: string, matterId: string, text: string, objective = 'Analise este documento.') =>
+    f.service.startExecution(owner, key, {
+      objective,
+      matterId,
+      context: { text, origin: 'USER' as const, documents: [] },
+    });
+  // Objetivo curto: só o anexo dispara. Trechos diferentes com o mesmo pedido são análises diferentes.
+  const first = await start('pdf-1', matter.id, part(1, 'Página 1\nPrimeiro trecho do processo.'));
+  expect(await f.service.getExecution(owner, first.id)).toMatchObject({ actionId: 'analyze_evidence' });
+  const second = await start('pdf-2', matter.id, part(2, 'Página 11\nSegundo trecho do processo.'));
+  expect(await f.service.getExecution(owner, second.id)).toMatchObject({ actionId: 'analyze_evidence' });
+  // O mesmo trecho no mesmo caso é recusado, sem criar trabalho; em outro caso, não.
+  await expect(start('pdf-3', matter.id, part(1, 'Página 1\nPrimeiro trecho do processo.'))).rejects.toThrow(
+    'ALREADY_ANALYZED',
+  );
+  const elsewhere = await start('pdf-4', other.id, part(1, 'Página 1\nPrimeiro trecho do processo.'));
+  expect(await f.service.getExecution(owner, elsewhere.id)).toMatchObject({ actionId: 'analyze_evidence' });
+  // Trabalho cancelado não conta como feito: o trecho volta a ser aceito.
+  await f.service.cancelExecution(owner, first.id, 'cancel-pdf-1');
+  const retry = await start('pdf-5', matter.id, part(1, 'Página 1\nPrimeiro trecho do processo.'));
+  expect(await f.service.getExecution(owner, retry.id)).toMatchObject({ actionId: 'analyze_evidence' });
+  // Ação escolhida, pergunta no fim e anexo vazio não são roteados nem recusados.
+  const chosen = await f.service.startExecution(owner, 'pdf-6', {
+    objective: 'Revise.',
+    actionId: 'review_text',
+    matterId: matter.id,
+    context: { text: part(2, 'Página 11\nSegundo trecho do processo.'), origin: 'USER' as const, documents: [] },
+  });
+  expect(await f.service.getExecution(owner, chosen.id)).toMatchObject({ actionId: 'review_text' });
+  const question = await start('pdf-7', matter.id, part(3, 'Página 21\nTerceiro.'), 'O que diz o processo?');
+  expect((await f.service.getExecution(owner, question.id)).actionId).toBeNull();
+  const empty = await start('pdf-8', matter.id, buildAttachmentHeader({ name: 'vazio.pdf', ocr: false }) + '\n  ');
+  expect((await f.service.getExecution(owner, empty.id)).actionId).toBeNull();
 });
 
 it('expõe contexto e histórico públicos para recuperar o trabalho sem checkpoint privado', async () => {

@@ -176,4 +176,25 @@ describe('structureContextSource (E3)', () => {
       'STRUCTURE_SOURCE_CONFLICT',
     );
   });
+
+  it('E4: as linhas de documento entram na fonte, antes dos itens, e a fonte lida continua válida', () => {
+    const docs = ['Documento 1: Petição inicial; partes: Maria (autor)', 'Documento 2: contrato; lido em 3 partes'];
+    const source = structureContextSource('case:m', [item(idA, 'FACT')], new Map(), 'Resumo.', docs)!;
+    const body = JSON.parse(source.text);
+    expect(body.documents).toEqual(docs);
+    expect(Object.keys(body)).toEqual(['summary', 'documents', 'items']);
+    expect([...readStructureContext([source])!.keys()]).toEqual([idA]);
+  });
+
+  it('E4: o corte por tamanho mantém as linhas de documento e o resumo', () => {
+    const list = Array.from({ length: 160 }, (_, i) =>
+      item(i.toString(16).padStart(64, '0'), 'FACT', `Fato sintético número ${i}. ${'x'.repeat(700)}`),
+    );
+    const source = structureContextSource('case:m', list, new Map(), 'Resumo.', ['Documento 1: processo'])!;
+    const body = JSON.parse(source.text);
+    expect(source.text.length).toBeLessThanOrEqual(100000);
+    expect(body.documents).toEqual(['Documento 1: processo']);
+    expect(body.summary).toBe('Resumo.');
+    expect(body.omitted).toBeGreaterThan(0);
+  });
 });

@@ -209,6 +209,97 @@ linha da orientação sem nova rota; qual o limite de caracteres de cada parte d
 **Fatias sugeridas.** (1) Fonte + contrato v14 + auditoria de `structureUse`. (2) Aviso "baseada em itens a confirmar" nas fontes da peça.
 (3) Linha de leitura na orientação guiada.
 
+## Desenho do E4 (23/11/2026)
+
+**Pedido do Boni.** O cliente envia o PDF; os agentes o dissecam (tipo da peça, partes, datas, fatos, provas) e isso vira contexto do caso. O
+PDF não fica salvo, mas tudo o que saiu dele pertence ao caso e fica. Uma análise por documento, e a estrutura do caso aparece sempre
+como um conjunto só, somando tudo, sem dispersão.
+
+**Ponto de partida (verificado em `main` em 23/11/2026).**
+- O PDF é lido no navegador (OCR opcional) e só o texto segue, somado ao **contexto escrito** do pedido como blocos
+  `Anexo "nome" (texto extraído):` (`attachmentContext`). O arquivo não é enviado nem guardado (DEC-12).
+- A regra do E1b (`routePastedAccount`) olha só o **objetivo** (600 caracteres ou mais, sem pergunta). Um PDF com pedido curto não dispara
+  a análise.
+- A estrutura do caso é a análise de fatos e provas mais recente (`findCurrentStructure`). Outra análise a substitui; o que persiste da
+  anterior é só o que o usuário confirmou. A análise não devolve tipo da peça nem partes; datas já vêm na cronologia.
+- Os ids dos itens da revisão incluem o id da entrega, então são únicos entre análises diferentes.
+- Conversas escondidas do histórico ficam fora da busca da estrutura.
+
+**Decisões do Boni.** (1) Uma análise por documento. (2) A estrutura do caso é a soma de todas as análises, mantendo sempre o contexto.
+(3) Soma na leitura: cada análise mantém a sua revisão, confirmações e correções; sem tabela nova nem migração.
+
+**Desenho.**
+1. **Disparo.** Em Automático, num caso, sem conversa anterior nem peça aberta: o pedido vai para `analyze_evidence` quando tem anexo com
+   texto extraído (bloco `Anexo "…"` no contexto escrito, sem piso de tamanho) ou quando vale a regra de hoje. Pedido que termina em
+   "?" segue livre. A unidade "documento" é o pedido com seus anexos, ou cada trecho de um PDF longo (item 8): uma análise, cobrada como análise. A deduplicação do E1b
+   passa a comparar o texto completo (objetivo e contexto), e uma nova análise do mesmo texto no caso substitui a anterior na soma.
+2. **Identificação do documento (contrato v15).** A análise passa a devolver `documentProfile`: `pieceType` (rótulo curto, ex.: "Petição
+   inicial"), `pieceTypeCertainty` (`IDENTIFICADA` ou `INCERTA`) e `parties` (nome e papel, até 10), cada parte com a citação literal que o
+   servidor confere contra a fonte, como já faz com a matriz de provas. O campo é opcional na entrega. v1 a v14 e as fixtures `pre-*` ficam
+   intactos. Sem texto de peça processual (relato, e-mail), `pieceType` pode vir vazio.
+3. **Soma na leitura.** `findCaseStructure` devolve todas as análises vivas do caso (concluídas, `analyze_evidence`), da mais antiga para a
+   mais nova, no máximo 60, ignorando a de mesmo texto substituída por outra mais nova. A rota `GET /api/agentic/matters/:id/structure`
+   mantém `structure` (a mais recente, para quem já lê) e acrescenta `structures`, a lista ordenada. `findCurrentStructure` continua
+   existindo.
+4. **Aba Estrutura.** Uma só visão: as seções de sempre (Questões, Afirmações, Cronologia, Contradições…) somam os itens de todas as
+   análises, numerados em sequência (F1…Fn, P1…Pn) pela ordem de chegada, cada item com uma marca discreta da origem ("Documento 2"; para PDF dividido, "Contrato, páginas 21 a 40"). No
+   alto, "Documentos do caso" lista cada documento, e um PDF dividido conta como um só (com o total de páginas), com tipo da peça, partes
+   (os da primeira parte que os identificou) e data da análise. Sem abas por documento. O resumo mostrado é
+   o mais recente entre as análises.
+5. **Ajuste pela conversa (E2) sobre a soma.** A lista que o agente recebe passa a ter os itens de todas as análises, com os mesmos rótulos
+   da aba. O servidor resolve cada comando para a análise dona do item e aplica uma análise por vez, cada uma na sua transação e
+   idempotente por comando; falha numa vira pergunta ao usuário, não derruba as outras. ACRESCENTAR entra na análise mais recente.
+6. **Redação (E3) sobre a soma.** A fonte `structure-context` reúne os itens de todas as análises (confirmados primeiro, depois a
+   confirmar), uma linha por documento com tipo da peça e partes, e o resumo mais recente; o mesmo teto de tamanho e a mesma omissão
+   declarada.
+8. **Divisão em trechos (PDF longo).** Hoje os anexos de um envio aceitam até 80.000 caracteres juntos (cerca de 30 a 40 páginas), e um
+   processo não cabe. A divisão é feita no navegador, porque o texto só existe lá (DEC-12), nos limites de página que a leitura já
+   marca ("Página N"): um anexo que passa do tamanho de uma análise vira trechos consecutivos de páginas inteiras, até 40.000 caracteres
+   cada (valor inicial; o construtor confere contra o limite de 128.000 bytes do pedido comercial). Cada trecho é um envio próprio, em
+   conversa nova do caso, com o mesmo pedido do usuário e um cabeçalho no contexto escrito: `Anexo "nome" (texto extraído), parte i de n,
+   páginas a–b, documento <código curto do texto inteiro>`. O código agrupa os trechos de um mesmo PDF em um só documento na aba.
+   - **Custo à vista:** o compositor diz, em uma linha de texto, "Este PDF será analisado em N partes" e mostra o valor máximo total
+     (N vezes o valor por trabalho); o saldo insuficiente para todas as partes bloqueia o envio, com mensagem. A autorização atual vale
+     para cada envio. Sem botão novo.
+   - **Ordem e andamento:** os trechos são enviados em ordem de página, um depois do outro, e a ordem de criação é a ordem na soma. O
+     usuário acompanha a primeira conversa; as demais aparecem no histórico, como qualquer trabalho.
+   - **Retomada sem repetir:** se um trecho falha, o usuário reenvia o mesmo PDF e só os trechos que ainda não têm análise viva são
+     enviados, porque a deduplicação (item 1) olha o texto de cada trecho. Nada é cobrado duas vezes pelo mesmo trecho.
+   - **Tetos:** até 12 trechos por envio (cerca de 480.000 caracteres); acima disso o compositor pede para dividir em dois envios. O
+     limite de 300 páginas e de 15 MB por PDF não muda.
+   - **Limite declarado:** cada trecho é analisado sem ver os outros; uma afirmação que cruza dois trechos pode não aparecer. A aba diz,
+     em "Documentos do caso", que o PDF foi lido em N partes.
+9. **O que fica no caso.** O arquivo do PDF nunca é guardado; o texto extraído vive no contexto da conversa da análise, e o que o usuário
+   confirma entra nos fatos e provas do caso como hoje. **Chamada minha:** a estrutura passa a contar as conversas de análise do caso
+   mesmo escondidas do histórico, porque a análise é contexto do caso e não deve sumir quando o usuário limpa o histórico. O caso apagado
+   leva tudo, como hoje.
+
+**Metas.** PDF anexado vira contexto estruturado sem o usuário pedir; vários documentos somam em uma estrutura só; o usuário vê que
+documentos o caso já tem; a redação e o ajuste usam o conjunto.
+**Fora de escopo.** Guardar o PDF ou salvá-lo como documento do caso; ler a estrutura visual do PDF (tabelas, páginas) além do texto
+extraído; OCR (U6); análise de dois anexos diferentes no mesmo trecho (cada anexo é dividido por conta própria); fundir contradições entre documentos (elas aparecem, o agente não
+as resolve); abas ou telas por documento.
+**Anti-metas.** Estrutura que perde um documento anterior sem o usuário saber; item sem origem visível; análise duplicada do mesmo texto
+somada duas vezes; qualquer botão ou controle novo.
+
+**Abordagens consideradas.** (A) Soma na leitura, a escolhida: sem migração, cada item segue ligado ao documento, reaproveita E1 a E3.
+(B) Estrutura do caso guardada à parte: leitura simples, mas persistência nova com migração e confirmações em dois lugares que podem
+divergir. (C) O agente funde tudo a cada documento: esconde contradições e reescreve o que já estava confirmado.
+
+**Chamadas minhas (para o Boni conferir).** Unidade = envio com seus anexos, ou cada trecho de um PDF longo; sem piso de tamanho para disparar; no máximo
+60 análises na soma; trechos de 40.000 caracteres e até 12 por envio; resumo mais recente; ACRESCENTAR na análise mais recente; conversas escondidas contam para a estrutura; `pieceType`
+livre em vez de catálogo fechado.
+
+**Fica para quem constrói.** Se os trechos vão em fila no navegador ou se o servidor aceita vários inícios em sequência sem estourar o
+limite de trabalhos simultâneos; o tamanho exato do trecho; como o cabeçalho do trecho é lido pelo servidor sem poder ser forjado para
+agrupar documentos alheios. Como o v15 se relaciona com a versão de base da análise (v10 a v12); onde a web guarda a origem de cada item
+sem nova rota; como o servidor repete o mesmo ajuste em várias análises sem duplicar o registro de comandos; formato exato do rótulo de
+origem.
+
+**Fatias sugeridas.** (1) Disparo pelo anexo e deduplicação pelo texto completo. (2) `documentProfile` no v15. (3) `findCaseStructure`, rota
+e aba com a soma e "Documentos do caso". (4) Divisão em trechos no compositor (cabeçalho, custo à vista, envio em ordem, retomada).
+(5) Ajuste pela conversa sobre a soma. (6) Redação sobre a soma.
+
 ## Limites
 
 Só textos sintéticos nos testes. Sem a aba, nada de dado real é estruturado. Regras de privacidade e consentimento de IA do
@@ -264,3 +355,26 @@ só os `A_CONFIRMAR`. Nos pontos a conferir da minuta aparece "Baseada em itens 
 - **Custo de leitura:** cada redação com caso procura a análise vigente (até 1000 conversas do caso), como a aba Estrutura.
 - **Edição de trecho (`review_text` e seleção na peça):** só recebe a estrutura se a execução for escolhida sem ação explícita.
 
+**E4 entregue (24/11/2026, branch `claude/e4-pdf-direto`):** o anexo com texto, num caso e em Automático, dispara a análise de fatos e provas (a
+regra do E1b deixa de exigir 600 caracteres no objetivo). O mesmo texto já analisado no caso é recusado com `ALREADY_ANALYZED` (409), sem
+cobrança; análise falha ou cancelada não conta. O contrato **v15** (v1 a v14 e `pre-*` intactos) faz a análise devolver `documentProfile`
+(tipo da peça, certeza e partes, cada parte com a citação literal que o servidor confere; divergência vira limitação, não erro). A
+estrutura do caso passou a ser a **soma das análises vivas** (`findCaseStructure`: até 60, a mais nova de cada texto, conversas escondidas
+incluídas): a rota `GET /api/agentic/matters/:id/structure` devolve `structure` (a mais recente) e `structures` (a lista), e a aba soma as
+seções, numera F e P em sequência, marca a origem de cada item e lista "Documentos do caso" (um PDF dividido conta como um). O ajuste pela
+conversa (E2) e a redação (E3) trabalham com a soma: cada comando vai para a análise dona do item, ACRESCENTAR para a mais recente, e a fonte
+da redação traz uma linha por documento. **PDF longo:** o navegador divide o texto nos limites "Página N" em trechos de até 40.000 caracteres
+(até 12 por envio); cada trecho é um pedido com cabeçalho `parte i de n, páginas a–b, documento <código>`, enviados em ordem. O compositor diz
+"Este PDF será analisado em N partes" com o custo máximo total e bloqueia o envio quando o saldo não cobre todas. Reenviar o mesmo PDF só
+analisa os trechos que faltam.
+
+**Limites e pendências do E4:**
+- **Não verificado com o modelo real:** o redator e o analista só rodaram com agente simulado; a identificação da peça e das partes em PDF de verdade
+  não foi exercitada, nem a leitura de um processo inteiro.
+- **Trecho sem ver os outros:** cada trecho é analisado sozinho; uma afirmação que cruza dois trechos pode não aparecer. A aba diz que o PDF foi lido em N partes.
+- **Contradição entre documentos** aparece nos itens de cada um; o agente não a resolve.
+- **Custo de leitura:** a soma lê até 1000 conversas do caso e uma revisão por análise (sequencialmente, por causa do banco de conexão única).
+- **Mudança durante a execução:** conferir um item enquanto a minuta ou o ajuste roda derruba o trabalho por conflito de contexto.
+- **Ajuste com falha no meio:** se uma análise antiga falha por erro que não é de conflito depois de outra já ter sido aplicada, o reenvio do mesmo trabalho pede para refazer.
+- **Pedido novo:** um anexo grande só é enviado em pedido novo (não em conversa já aberta nem na orientação guiada).
+- **Trechos em sequência pelo navegador:** se o usuário fechar a aba no meio do envio, os trechos restantes não saem; reenviar o PDF completa.

@@ -35,6 +35,7 @@ import type { ClosedPilot } from './closed-pilot.js';
 import type { CommercialRuntime } from './commercial-runtime.js';
 import { EditorialCommercialCommand } from './editorial-commercial-runtime.js';
 import { findCurrentStructure } from './current-structure.js';
+import { findCaseStructure } from './case-structure.js';
 import { reportAgenticFailure, throttledReporter } from './failure-log.js';
 import { GuidanceService, type GuidanceServiceOptions } from './guidance-service.js';
 import { registerGuidanceRoutes } from './guidance-routes.js';
@@ -287,6 +288,7 @@ export function registerAgenticWorkspace(
                   'IDEMPOTENCY_CONFLICT',
                   'CONTEXT_CONFLICT',
                   'MATTER_REQUIRED',
+                  'ALREADY_ANALYZED',
                   'APPROVED_CONTEXT_CHANGED',
                   'APPROVED_FACT_REQUIRED',
                   'TASK_CONTEXT_LIMIT',
@@ -330,7 +332,9 @@ export function registerAgenticWorkspace(
                 ? 'O texto passa de 100.000 caracteres, cerca de 30 páginas. Envie um trecho menor. Nada foi cobrado.'
                 : code === 'MATTER_REQUIRED'
                   ? 'Escolha o caso cuja estrutura será ajustada.'
-                  : 'Não foi possível concluir esta operação. Consulte o estado do trabalho.',
+                  : code === 'ALREADY_ANALYZED'
+                    ? 'Este texto já foi analisado neste caso. Nada foi cobrado.'
+                    : 'Não foi possível concluir esta operação. Consulte o estado do trabalho.',
         });
       }
     };
@@ -727,7 +731,13 @@ export function registerAgenticWorkspace(
           owner(req),
           matterId,
         );
-        return { structure };
+        // E4: a estrutura é a soma das análises vivas do caso; `structure` segue sendo a mais recente.
+        const structures = await findCaseStructure(
+          { store: required().store, native: caseTask.native, manages },
+          owner(req),
+          matterId,
+        );
+        return { structure, structures };
       }),
     );
   if (caseTask)

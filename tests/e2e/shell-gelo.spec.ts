@@ -483,6 +483,72 @@ test('aba Estrutura: caso sem análise orienta pela conversa; com análise mostr
   expect(axe.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });
 
+// E4: a estrutura é a soma das análises do caso. Aqui a rota devolve duas análises (um PDF lido em duas partes); a aba
+// mostra um conjunto só, com os documentos do caso e a origem de cada item. Rotas de leitura simuladas.
+test('aba Estrutura (E4): soma das análises do caso, com "Documentos do caso" e a origem de cada item', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const { piece } = await openSavedPiece(page);
+  const tabs = piece.getByRole('tablist', { name: 'Partes da peça' });
+  const analysis = (n: number, profile?: Record<string, unknown>) => ({
+    id: `delivery:soma-${n}`,
+    delivery: {
+      action: 'analyze_evidence',
+      status: 'COMPLETED',
+      humanReviewRequired: true,
+      legalAssessment: 'Leitura sintética.',
+      issues: [{ id: `q${n}`, statement: `Questão da parte ${n}?`, sourceIds: [`s${n}`] }],
+      claims: [],
+      requirements: [],
+      findings: [],
+      sources: [{ id: `s${n}`, kind: 'DOCUMENT', documentId: `d${n}`, versionId: `v${n}` }],
+      ...(profile ? { documentProfile: profile } : {}),
+    },
+  });
+  const deliveries = [
+    analysis(1, { pieceTypeCertainty: 'INCERTA', parties: [] }),
+    analysis(2, {
+      pieceType: 'Petição inicial',
+      pieceTypeCertainty: 'IDENTIFICADA',
+      parties: [{ name: 'Maria', role: 'autor', quoteStatus: 'MATCHED' }],
+    }),
+  ];
+  const item = (n: number, from: number, to: number) => ({
+    executionId: `e${n}`,
+    deliveryId: deliveries[n - 1]!.id,
+    updatedAt: `2026-11-2${n}T12:00:00.000Z`,
+    documentKey: 'a1b2c3d4e5f6',
+    attachment: { name: 'processo.pdf', part: { index: n, total: 2, pageFrom: from, pageTo: to } },
+  });
+  await page.route(/\/api\/agentic\/matters\/[^/]+\/structure$/, (route) =>
+    route.fulfill({ json: { structure: item(2, 41, 80), structures: [item(1, 1, 40), item(2, 41, 80)] } }),
+  );
+  for (const delivery of deliveries)
+    await page.route(new RegExp(`/api/agentic/deliveries/${encodeURIComponent(delivery.id)}$`), (route) =>
+      route.fulfill({ json: delivery }),
+    );
+  await page.reload();
+  const reopened = page.getByRole('region', { name: 'Mesa da peça' });
+  await reopened
+    .getByRole('tablist', { name: 'Partes da peça' })
+    .getByRole('tab', { name: 'Estrutura', exact: true })
+    .click();
+  const ready = reopened.getByRole('tabpanel', { name: 'Estrutura' });
+  await expect(ready.getByRole('heading', { name: 'Documentos do caso' })).toBeVisible();
+  await expect(ready.getByText('Partes: Maria (autor)')).toBeVisible();
+  await expect(ready.getByText('Lido em 2 partes (80 páginas)')).toBeVisible();
+  await expect(ready.getByText('Questão da parte 1?')).toBeVisible();
+  await expect(ready.getByText('Questão da parte 2?')).toBeVisible();
+  await expect(ready.getByText('Petição inicial, páginas 1 a 40')).toBeVisible();
+  await expect(ready.getByText('Petição inicial, páginas 41 a 80')).toBeVisible();
+  await expect(ready.getByText('[1] Documento do caso')).toBeVisible();
+  await expect(ready.getByText('[2] Documento do caso')).toBeVisible();
+  await expect(ready.getByRole('button')).toHaveCount(0);
+  const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+  expect(axe.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
 // E2: a aba numera fatos e provas (F1, P1), mostra o selo do que o usuário acrescentou, o resumo e o que mudou; com a aba
 // aberta, o pedido sai como ajuste da estrutura, numa conversa nova. Rotas de leitura simuladas; a API tem testes próprios.
 test('aba Estrutura (E2): rótulos, selo, resumo e marcas; o pedido feito com a aba aberta é um ajuste da estrutura', async ({
