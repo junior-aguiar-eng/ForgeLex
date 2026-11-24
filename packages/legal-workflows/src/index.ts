@@ -9,6 +9,7 @@ export * from './legal-work-contracts.js';
 export * from './contracts/legal-workflow.js';
 export * from './runtime/legal-contract-workflow.js';
 export * from './agentic-case-task/case-task.js';
+export { withBoundedOutputLimit } from '@forgelex/legal-agents';
 export { EVIDENCE_TASK_ACTION } from '@forgelex/legal-agents';
 export { bindDeskSkills, manifestToCatalog, parseSkillManifest } from '@forgelex/legal-agents';
 export { FinalEditorialProposalSchema, FinalEditorialContextSchema } from '@forgelex/legal-agents';

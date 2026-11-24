@@ -149,6 +149,30 @@ function fixture(
   };
 }
 describe('orquestração jurídica interna com especialistas', () => {
+  it('rejeita ação diferente da vinculada mesmo que o plano proponha esclarecimento', async () => {
+    const f = fixture(
+      {
+        ...basicPlan,
+        action: 'research_question',
+        gaps: [
+          {
+            key: 'deadline',
+            kind: 'MISSING',
+            material: true,
+            deliveryImpact: 'BLOCKING',
+            prompt: 'Qual a data de intimação?',
+            reason: 'Falta o marco inicial.',
+            sourceIds: ['user:1'],
+            options: [],
+          },
+        ],
+      } as any,
+      { workflowVersion: 12 },
+    );
+    await expect(f.finish()).rejects.toThrow('ACTION_CONFLICT');
+    expect(f.roles).toEqual(['legal-orchestrator']);
+    expect(f.deliveries).toHaveLength(0);
+  });
   it('v12 aceita patch curto e materializa a peça longa com a seção restante intacta', async () => {
     const draftId = randomUUID(),
       versionId = randomUUID(),

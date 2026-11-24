@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { AgentEvent, AgentTool } from '@forgelex/agent-core';
-import { searchCaseLawTool, saveFinalDraftTool } from '@forgelex/legal-tools';
+import { searchCaseLawTool, saveFinalDraftTool, getAuthorityTool, verifyAuthorityTool } from '@forgelex/legal-tools';
 import { OpenAIAgentProvider } from './openai-agent-provider.js';
 import { convertZodToOpenAIToolSchema } from './schema-converter.js';
 
@@ -37,6 +37,63 @@ function runItem(name: string, item: Record<string, unknown>): unknown {
 }
 
 describe('OpenAIAgentProvider (OpenAI Agents SDK)', () => {
+  it.each([getAuthorityTool, verifyAuthorityTool])('uses strict wire schema and preserves the optional date for $name', async (tool) => {
+    const execute = vi.fn(async () => ({
+      success: true as const,
+      data: { status: 'NOT_FOUND' as const, checkedAt: '2026-11-17T12:00:00.000Z' },
+    }));
+    const valid = { court: 'STJ', processNumber: 'SYNTHETIC-01' };
+    const run = vi.fn(async (agent, _prompt, options) => {
+      const [sdkTool] = agent.tools;
+      expect(sdkTool).toMatchObject({
+        strict: true,
+        parameters: {
+          additionalProperties: false,
+          required: ['court', 'processNumber', 'judgmentDate'],
+          properties: { judgmentDate: { anyOf: [{ type: 'string' }, { type: 'null' }] } },
+        },
+      });
+      const context = { context: options.context };
+      await sdkTool.invoke(context, JSON.stringify({ ...valid, judgmentDate: null }), { toolCall: { callId: 'ok' } });
+      await sdkTool.invoke(context, JSON.stringify({ ...valid, judgmentDate: null, extra: 1 }), { toolCall: { callId: 'extra' } });
+      await sdkTool.invoke(context, JSON.stringify({ court: 'STJ', judgmentDate: null }), { toolCall: { callId: 'missing' } });
+      await sdkTool.invoke(context, JSON.stringify({ ...valid, judgmentDate: '2026-02-01' }), { toolCall: { callId: 'date' } });
+      return fakeStream([], { finalOutput: 'OK' });
+    });
+    const provider = new OpenAIAgentProvider({ apiKey: 'synthetic', strictAuthorityLookup: true, run });
+    for await (const _ of provider.run({
+      sessionId: 'strict-authority', tenantId: 'synthetic', userId: 'test', prompt: 'Verificar fonte sintética.',
+      tools: [{ ...tool, execute }], abortSignal: new AbortController().signal,
+    })) { /* Consume the simulated SDK stream. */ }
+    expect(run).toHaveBeenCalledOnce();
+    expect(execute.mock.calls.map((args) => args[0])).toEqual([valid, { ...valid, judgmentDate: '2026-02-01' }]);
+  });
+  it('opts in to strict mode for the closed native source-list schema only', async () => {
+    const base = {
+      description: 'Exemplo sintético',
+      impactLevel: 'L0_OBSERVATION' as const,
+      outputSchema: z.array(z.string()),
+      execute: async () => ({ success: true, data: [] }),
+    };
+    const sourceList = { ...base, name: 'task.get_sources', inputSchema: z.strictObject({}) };
+    const optional = { ...base, name: 'task.submit', inputSchema: z.strictObject({ note: z.string().optional() }) };
+    const runner = vi.fn(async (_agent, _prompt, _options) => fakeStream([], { finalOutput: 'OK' }));
+    const provider = new OpenAIAgentProvider({ apiKey: 'synthetic', strictSourceList: true, run: runner });
+    const events = provider.run({
+      sessionId: 'strict-test',
+      tenantId: 'tenant',
+      userId: 'user',
+      prompt: 'Teste sintético',
+      tools: [sourceList, optional],
+      abortSignal: new AbortController().signal,
+    });
+    for await (const _ of events) { /* Observe the SDK's tools after conversion. */ }
+    const [agent] = runner.mock.calls[0];
+    expect(agent.tools[0]).toMatchObject({ strict: true, parameters: { type: 'object', additionalProperties: false } });
+    expect(agent.tools[1]).toMatchObject({ strict: false });
+    expect(sourceList.inputSchema.safeParse({ extra: true }).success).toBe(false);
+    expect(optional.inputSchema.safeParse({}).success).toBe(true);
+  });
   it('deve falhar fechado quando nenhuma credencial é configurada', () => {
     expect(() => new OpenAIAgentProvider({ apiKey: '' })).toThrow('PROVIDER_NOT_CONFIGURED');
   });

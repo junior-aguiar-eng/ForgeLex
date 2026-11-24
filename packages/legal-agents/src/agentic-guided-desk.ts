@@ -2,7 +2,8 @@ import { z } from 'zod';
 import { DecisionValueSchema } from '@forgelex/domain';
 import type { CaseTaskRole } from './agentic-case-contracts.js';
 import { DeliveryTaskPlanSchema } from './agentic-delivery.js';
-import { DESK_TASK_POLICY, deskTaskProfile } from './agentic-desk.js';
+import { DESK_TASK_POLICY, deskTaskProfile, LEGACY_DESK_EDIT_INSTRUCTIONS } from './agentic-desk.js';
+import { CASE_TASK_INSTRUCTIONS, REVISED_RESEARCH_INSTRUCTIONS } from './instructions/case-task.js';
 
 export const GuidedDeskPlanSchema = DeliveryTaskPlanSchema.extend({
   guidanceProposals: z
@@ -46,18 +47,44 @@ export function guidedDeskTaskProfile(role: CaseTaskRole) {
 }
 
 export const SCOPED_DESK_EDIT_POLICY = { ...GUIDED_DESK_TASK_POLICY, version: '1.13.0' } as const;
+const scopedDrafterInstructions =
+  ' Em EDIT prevalece este contrato: devolva editProposal com target igual ao alvo de editScope e changes limitados à seção e ao intervalo escolhidos. Copie before literalmente, use offsets UTF-16 absolutos e preserve espaços e quebras. after vazio significa exclusão. Não devolva document em EDIT. CREATE continua usando document.';
 export function scopedDeskEditProfile(role: CaseTaskRole) {
   const prior = guidedDeskTaskProfile(role);
   const instructions =
     role === 'legal-orchestrator'
       ? ' A seleção editScope autoriza apenas uma alteração de texto no trecho escolhido. Use EDIT para pedidos de alteração na mesma peça. Sem trecho selecionado, o servidor pedirá uma seleção antes de gravar. Use review_text para pedidos de revisão.'
       : role === 'legal-drafter'
-        ? ' Em EDIT prevalece este contrato: devolva editProposal com target igual ao alvo de editScope e changes limitados à seção e ao intervalo escolhidos. Copie before literalmente, use offsets UTF-16 absolutos e preserve espaços e quebras. after vazio significa exclusão. Não devolva document em EDIT. CREATE continua usando document.'
+        ? scopedDrafterInstructions
         : '';
   return {
     ...prior,
     version: '1.13.0',
     policyVersion: SCOPED_DESK_EDIT_POLICY.version,
     instructions: prior.instructions + instructions,
+  };
+}
+
+// 1.17.0 (was 1.14.0): that identity was taken by the structure adjustment contract (v13) while this front was open.
+export const REVISED_DESK_PROMPT_POLICY = { ...SCOPED_DESK_EDIT_POLICY, version: '1.17.0' } as const;
+
+export function revisedDeskPromptProfile(role: CaseTaskRole) {
+  const prior = scopedDeskEditProfile(role);
+  const research = REVISED_RESEARCH_INSTRUCTIONS[role];
+  let instructions = research
+    ? prior.instructions.replace(CASE_TASK_INSTRUCTIONS[role].join(' '), research)
+    : prior.instructions;
+  if (role === 'legal-drafter')
+    instructions = instructions
+      .replace(' Protocolo da mesa v10: ' + LEGACY_DESK_EDIT_INSTRUCTIONS, '')
+      .replace(
+        scopedDrafterInstructions,
+        ' Em EDIT, use a versão DRAFT selecionada e trabalhe exclusivamente sobre editScope. Retorne editProposal com target igual ao alvo de editScope e changes limitados à seção e ao intervalo autorizados. Copie before literalmente, use offsets UTF-16 absolutos e preserve literalmente o conteúdo externo, inclusive espaços e quebras. after vazio significa exclusão. Não gere document em EDIT. Sem editScope, registre a impossibilidade de editar sem seleção. Em CREATE, retorne document.',
+      );
+  return {
+    ...prior,
+    version: REVISED_DESK_PROMPT_POLICY.version,
+    policyVersion: REVISED_DESK_PROMPT_POLICY.version,
+    instructions,
   };
 }

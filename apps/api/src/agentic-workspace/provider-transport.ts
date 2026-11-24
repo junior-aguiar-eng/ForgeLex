@@ -48,6 +48,12 @@ export function responseUsage(body: string, model: string) {
     const cached = r.usage?.input_tokens_details?.cached_tokens ?? 0;
     if (!Number.isSafeInteger(cached) || cached < 0 || cached > usage.inputTokens)
       throw new Error('PILOT_RESPONSE_INVALID');
+    const reasoningTokens = r.usage?.output_tokens_details?.reasoning_tokens ?? usage.reasoningTokens;
+    if (
+      reasoningTokens !== undefined &&
+      (!Number.isSafeInteger(reasoningTokens) || reasoningTokens < 0 || reasoningTokens > usage.outputTokens)
+    )
+      throw new Error('PILOT_RESPONSE_INVALID');
     const failureCode =
       event.type === 'response.incomplete'
         ? r.incomplete_details?.reason === 'max_output_tokens'
@@ -56,7 +62,7 @@ export function responseUsage(body: string, model: string) {
         : event.type === 'response.failed'
           ? 'COMMERCIAL_RESPONSE_FAILED'
           : undefined;
-    return { ...usage, cachedInputTokens: cached, failureCode };
+    return { ...usage, cachedInputTokens: cached, reasoningTokens, failureCode };
   }
   throw new Error('PILOT_RESPONSE_INVALID');
 }
@@ -73,6 +79,8 @@ export function sdkCompatibleSse(text: string) {
         return line;
       }
       const detail = event.response?.usage?.input_tokens_details;
+      if (detail?.cache_write_tokens !== undefined && detail.cache_write_tokens !== 0)
+        throw new Error('PILOT_RESPONSE_INVALID');
       if (detail?.cache_write_tokens_details && typeof detail.cache_write_tokens_details === 'object') {
         if (Object.values(detail.cache_write_tokens_details).some((v) => v !== 0))
           throw new Error('PILOT_RESPONSE_INVALID');
