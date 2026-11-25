@@ -94,12 +94,34 @@ const authServer = http.createServer((request, response) => {
     [token, ...nativeTokens.values()].some((t) => request.headers.authorization === `Bearer ${t}`)
   )
     return send(response, 200, identity);
+  // Como o Auth hospedado: a lista de autorizações aceita a sessão do site,
+  // mas recusa tokens de cliente OAuth.
+  if (request.method === 'GET' && url.pathname === '/auth/v1/user/oauth/grants') {
+    if (request.headers.authorization === `Bearer ${token}`) return send(response, 200, oauthGrants);
+    if ([...nativeTokens.values()].some((t) => request.headers.authorization === `Bearer ${t}`))
+      return send(response, 403, { msg: 'OAuth client access tokens are not allowed to access this endpoint' });
+  }
+  // forgelex_api.oauth_grant (ops/gcp/production/supabase-oauth-grant-lookup.sql), só com a chave secreta.
   if (
-    request.method === 'GET' &&
-    url.pathname === '/auth/v1/user/oauth/grants' &&
-    [token, ...nativeTokens.values()].some((t) => request.headers.authorization === `Bearer ${t}`)
-  )
-    return send(response, 200, oauthGrants);
+    request.method === 'POST' &&
+    url.pathname === '/rest/v1/rpc/oauth_grant' &&
+    request.headers.apikey === 'fixture-secret-local-only' &&
+    request.headers['content-profile'] === 'forgelex_api'
+  ) {
+    let raw = '';
+    request.on('data', (chunk) => (raw += chunk));
+    request.on('end', () => {
+      try {
+        const input = JSON.parse(raw);
+        const grant =
+          input.p_user_id === identity.id ? oauthGrants.find((g) => g.client.id === input.p_client_id) : undefined;
+        send(response, 200, grant ? grant.granted_at : null);
+      } catch {
+        send(response, 400, { code: 'PGRST102' });
+      }
+    });
+    return;
+  }
   if (request.method === 'POST' && url.pathname === '/auth/v1/logout') return send(response, 204, {});
   return send(response, 404, { error: 'not_found' });
 });

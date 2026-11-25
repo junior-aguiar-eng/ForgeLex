@@ -38,6 +38,8 @@ export interface SupabaseIdentity {
 export interface SupabaseIdentityVerifierOptions {
   baseUrl: string;
   publishableKey: string;
+  /** Chave secreta do servidor: consulta a autorização OAuth vigente (forgelex_api.oauth_grant; ops/gcp/production/supabase-oauth-grant-lookup.sql). */
+  secretKey?: string;
   timeoutMs?: number;
   fetchImpl?: typeof fetch;
 }
@@ -84,12 +86,14 @@ function readSupabaseIdentity(value: unknown): SupabaseIdentity | null {
 export class SupabaseIdentityVerifier {
   private readonly baseUrl: string;
   private readonly publishableKey: string;
+  private readonly secretKey: string | undefined;
   private readonly timeoutMs: number;
   private readonly fetchImpl: typeof fetch;
 
   public constructor(options: SupabaseIdentityVerifierOptions) {
     this.baseUrl = options.baseUrl.replace(/\/$/, '');
     this.publishableKey = options.publishableKey;
+    this.secretKey = options.secretKey?.trim() || undefined;
     this.timeoutMs = options.timeoutMs ?? 5_000;
     this.fetchImpl = options.fetchImpl ?? fetch;
   }
@@ -127,17 +131,26 @@ export class SupabaseIdentityVerifier {
       || claims.sub !== identity.id || claims.iss !== `${this.baseUrl}/auth/v1`
       || !(claims.aud === 'authenticated' || (Array.isArray(claims.aud) && claims.aud.includes('authenticated')))
       || typeof claims.exp !== 'number' || claims.exp <= Date.now() / 1000) return null;
+    // O Auth recusa tokens de cliente OAuth em /user/oauth/grants. A consulta
+    // usa a chave do servidor, sempre para o sujeito e o cliente já verificados.
+    if (!this.secretKey) return null;
     try {
-      const response = await this.fetchImpl(`${this.baseUrl}/auth/v1/user/oauth/grants`, {
-        headers: { apikey: this.publishableKey, Authorization: `Bearer ${token}` },
+      const response = await this.fetchImpl(`${this.baseUrl}/rest/v1/rpc/oauth_grant`, {
+        method: 'POST',
+        headers: {
+          apikey: this.secretKey,
+          Authorization: `Bearer ${this.secretKey}`,
+          'Content-Type': 'application/json',
+          // Schema isolado: o único exposto na Data API, sem tabelas.
+          'Content-Profile': 'forgelex_api',
+        },
+        body: JSON.stringify({ p_user_id: identity.id, p_client_id: claims.client_id }),
         signal: AbortSignal.timeout(this.timeoutMs),
       });
       if (!response.ok) return null;
-      const grants: unknown = await response.json();
-      const grant = Array.isArray(grants) ? grants.find((grant) => isRecord(grant) && isRecord(grant.client) && grant.client.id === claims.client_id) : undefined;
-      if (!grant) return null;
-      const grantedAt = typeof grant.granted_at === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(grant.granted_at) && Number.isFinite(Date.parse(grant.granted_at)) ? grant.granted_at : undefined;
-      return {clientId:claims.client_id,...(grantedAt?{grantedAt}:{})};
+      const grantedAt: unknown = await response.json();
+      if (typeof grantedAt !== 'string' || !/^\d{4}-\d{2}-\d{2}T/.test(grantedAt) || !Number.isFinite(Date.parse(grantedAt))) return null;
+      return { clientId: claims.client_id, grantedAt };
     } catch { return null; }
   }
 }
@@ -456,7 +469,7 @@ export function createSupabaseIdentityVerifier(
   const baseUrl = environment.FORGELEX_SUPABASE_URL?.trim();
   const publishableKey = environment.FORGELEX_SUPABASE_PUBLISHABLE_KEY?.trim();
   if (!baseUrl || !publishableKey) return undefined;
-  return new SupabaseIdentityVerifier({ baseUrl, publishableKey });
+  return new SupabaseIdentityVerifier({ baseUrl, publishableKey, secretKey: environment.FORGELEX_SUPABASE_SECRET_KEY });
 }
 
 export function resolveAllowedOrigins(environment: Record<string, string | undefined>): string[] {

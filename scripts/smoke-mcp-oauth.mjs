@@ -164,7 +164,7 @@ try {
   const tokens = exchange.json();
   const underlying = vault.open(tokens.access_token, 'access');
   assert(underlying && !exchange.body.includes(underlying), 'native access token never returned');
-  const oauthIdentity = new SupabaseIdentityVerifier({ baseUrl: base, publishableKey: publicKey });
+  const oauthIdentity = new SupabaseIdentityVerifier({ baseUrl: base, publishableKey: publicKey, secretKey: secret });
   const identity = await oauthIdentity.verify(underlying);
   assert(
     identity && (await oauthIdentity.verifyOAuthGrant(underlying, identity)) === a.internal.id,
