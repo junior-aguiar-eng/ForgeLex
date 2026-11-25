@@ -8,13 +8,25 @@ repete SHAs nem flags, para não divergir: em 07/11/2026 ele ainda descrevia o e
 comercial como desativado, quando o `PENDENCIAS.md` já registrava a ativação de 06/11.
 Recibos por publicação ficam em [operations/agentic-workspace/](operations/agentic-workspace/).
 
-Para retomar o trabalho, começar por [PENDENCIAS.md](../PENDENCIAS.md) e
-[CONTINUIDADE.md](../CONTINUIDADE.md). Prompts, adendos e relatórios de fases anteriores
-estão em [historico/](historico/README.md); imagens de referência de interface em
+Para retomar o trabalho, começar por:
+
+1. [PENDENCIAS.md](../PENDENCIAS.md): estado em `main`, o que não foi publicado e pendências humanas e externas.
+2. [Plano unificado](superpowers/plans/2026-11-11-forgelex-plano-unificado.md): único plano vigente; a seção 1A traz a
+   ordem de retomada e a seção 2, as decisões de Boni (inclusive a trava de produto, DEC-15).
+3. [Registro único de execução](architecture/2026-11-10-mesa-guiada-execucao.md): HEAD, comandos, resultados e limites
+   de cada etapa.
+4. [Estrutura do caso](architecture/2026-11-19-estrutura-do-caso.md): desenho e estado das fatias E1 a E4.
+5. [Publicação e migrations em produção](../ops/gcp/production/README.md) e
+   [recibos de publicação](operations/deploy-receipts/).
+
+[CONTINUIDADE.md](../CONTINUIDADE.md) é histórico por data. Prompts, adendos, relatórios, planos executados e as
+pendências anteriores a 16/11 estão em [historico/](historico/README.md); imagens de referência de interface em
 [product/referencias-visuais/](product/referencias-visuais/).
 
 Governança: [Boni é o único avaliador e aprovador humano](../AGENTS.md).
 Exigências anteriores de revisão por outra pessoa não são gates vigentes.
+
+## Marco STJ e estabilização (histórico até 10/10/2026)
 
 O produto ForgeLex limitado ao STJ está `COMPLETED`. REST, MCP remoto, billing
 pré-pago e operação pública foram validados; as Fases 9 a 13 permanecem
@@ -37,7 +49,7 @@ durante promoção permanece prevista para o próximo deploy HTTP.
 Comprovações humanas, dependências externas e manutenção estão no backlog vigente.
 
 - [Estado canônico e evidências cumulativas](../STATUS_VALIDACAO.md)
-- [Plano mestre de conclusão progressiva](../Plano%20de%20conclus%C3%A3o%20progressiva%20do%20F.md)
+- [Plano mestre de conclusão progressiva (Fases 0 a 14, histórico)](../Plano%20de%20conclus%C3%A3o%20progressiva%20do%20F.md)
 - [Decisão estratégica de escopo STJ](operations/phase14/strategic-freeze.md)
 - [Evidência saneada da cobrança controlada](operations/phase14/controlled-charge-evidence.md)
 - [Baseline da estabilização](operations/stabilization/2026-09-25-baseline.md)

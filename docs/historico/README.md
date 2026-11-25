@@ -16,6 +16,7 @@ O estado atual do projeto está em [PENDENCIAS.md](../../PENDENCIAS.md).
 | [ADENDO_PROMPT_PARIDADE_PROVIDERS_FORGELEX.md](ADENDO_PROMPT_PARIDADE_PROVIDERS_FORGELEX.md), [RELATORIO_PARIDADE_PROVIDERS_FORGELEX.md](RELATORIO_PARIDADE_PROVIDERS_FORGELEX.md) | Paridade operacional dos Agent Providers: adendo e relatório (o relatório é de 16/09), ambos registros históricos |
 | [relatorio-engenharia-exordial.md](relatorio-engenharia-exordial.md) | Relatório de engenharia do produto Exordial Jurisprudência, referência histórica |
 | [REVISAO_PLATAFORMA_AGENTICA_2026-10-30.md](REVISAO_PLATAFORMA_AGENTICA_2026-10-30.md) | Revisão da plataforma agêntica de 30/10, com a situação dos achados em 07/11 |
+| [pendencias-ate-2026-11-16.md](pendencias-ate-2026-11-16.md) | Seções de `PENDENCIAS.md` de 03/11 a 14/11 (publicações, MCP no Claude, campanha v9, correções encerradas), separadas em 25/11 |
 
 O plano mestre “Plano de conclusão progressiva do ForgeLex”, o `STATUS_VALIDACAO.md`
 e o `CONTINUIDADE.md` continuam na raiz por terem muitas referências cruzadas.
@@ -23,7 +24,8 @@ e o `CONTINUIDADE.md` continuam na raiz por terem muitas referências cruzadas.
 ## Planos de execução
 
 A pasta [`planos/`](planos/) guarda os 53 planos de execução que ficavam em `docs/superpowers/plans/`, movidos
-em 11/11/2026 por decisão de Boni (DEC-9). Muitos têm caixas de seleção abertas porque a lista nunca foi marcada,
+em 11/11/2026 por decisão de Boni (DEC-9), e os três planos da Estrutura do caso (E2, E3 e E4), arquivados em 25/11/2026
+depois de executados. Muitos têm caixas de seleção abertas porque a lista nunca foi marcada,
 então o estado de cada um não se lê pelas caixas: o estado atual está em [PENDENCIAS.md](../../PENDENCIAS.md). Os
 planos não abrem tarefas novas. Os desenhos de apoio continuam em `docs/superpowers/specs/` e as referências em
 `docs/superpowers/references/`.
