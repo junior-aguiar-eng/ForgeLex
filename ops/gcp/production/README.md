@@ -284,6 +284,13 @@ externo; `/oauth/token` cifra acesso e refresh. O PKCE externo é independente
 do PKCE interno secreto. A API exige conta ativa e grant vigente em cada uso,
 sem conceder escopos de casos, rascunhos, billing ou administração de chaves.
 
+A cada chamada ao MCP, a API confirma a autorização vigente e sua data pela
+função `forgelex_api.oauth_grant` (`supabase-oauth-grant-lookup.sql`), com a
+chave secreta do servidor. Desde 25/11/2026 o Auth recusa tokens de cliente
+OAuth em `/auth/v1/user/oauth/grants`. A Data API deve expor **somente** o
+schema `forgelex_api`, que não contém tabelas; `anon` e `authenticated` não
+têm uso do schema nem execução da função.
+
 Após build local, `scripts/smoke-mcp-oauth.mjs` verifica o Supabase hospedado.
 Informe `FORGELEX_SMOKE_SUPABASE_URL`, `FORGELEX_SMOKE_SUPABASE_PUBLIC` e
 `FORGELEX_SMOKE_SUPABASE_SECRET` somente no ambiente temporário do processo.
