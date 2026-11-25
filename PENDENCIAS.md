@@ -1,5 +1,30 @@
 # Pendências atuais do ForgeLex
 
+## Publicado em produção em 25/11/2026: `9ccb9e7`
+
+**Aprovação.** Boni autorizou a publicação em 25/11/2026, depois de ler o resultado do `deploy-from-main.ps1 -DryRun`
+(sem impedimentos; CI de `main` verde em `9ccb9e7`; sem migration entre `6fe4f75` e `9ccb9e7`). Publicado pelo roteiro
+oficial, com fim às 23:45:41 UTC: build `91643cad-d0a3-408e-914f-cfaff315e449`, digest `sha256:25dd5c1a…`. As revisões
+`forgelex-api-prod-9ccb9e7-91643cad` e `forgelex-closure-hml-private-9ccb9e7-91643cad` recebem 100% do tráfego; o script
+conferiu que só a imagem e `FORGELEX_SOURCE_SHA` mudaram. Tema `classico`, demais flags iguais às do build anterior.
+Recibo, revisões anteriores e comandos de reversão:
+[recibo](docs/operations/deploy-receipts/2026-11-25-2345Z-9ccb9e7-publicado.md). Inclui todo o código de 17/11 a 25/11
+(item 18 da seção 1A do plano unificado) e a correção do conector abaixo.
+
+**Verificação feita.** Depois da troca: `/readyz` 200; `/mcp` sem token em 401 com `resource_metadata`; registro OAuth em
+201. Boni reconectou o conector no Claude, e `forgelex.connection_status` respondeu `authenticated: true` com
+`oauth_access_token` às 23:51:46 UTC. **Não verificado:** a seção 8 do checklist (uso do site autenticado por Boni) não
+foi feita nesta publicação.
+
+**Incidente do conector (25/11/2026).** O projeto Supabase de produção estava pausado (`INACTIVE`), e o registro OAuth
+respondia 503. Com autorização de Boni, o projeto foi reativado. Em seguida, o Auth do Supabase passou a recusar tokens de
+cliente OAuth em `GET /auth/v1/user/oauth/grants` (403), e todo `/mcp` respondia 401. Correção no #213: a API consulta a
+autorização vigente pela função `forgelex_api.oauth_grant`
+([`supabase-oauth-grant-lookup.sql`](ops/gcp/production/supabase-oauth-grant-lookup.sql), já aplicada), só com a chave
+secreta. Boni configurou a Data API para expor **somente** o schema `forgelex_api`, sem tabelas: a chave pública recebe
+401 na função e 406 em `public`. Se o projeto estiver no plano gratuito, nova pausa por inatividade derruba o login do
+site e o conector.
+
 ## Estado em 18/11/2026 (`main` em `d2c2d69`)
 
 `main` tem o #196 (U7 parte 1: gerenciar casos na Mesa no tema gelo e `PATCH /api/v2/matters/:matterId`), que **não está
