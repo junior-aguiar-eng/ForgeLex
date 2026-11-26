@@ -1,12 +1,33 @@
 # Pendências atuais do ForgeLex
 
-## Estado em 25/11/2026 (`main` em `bc30408`)
+<a id="estado-publicado-atual"></a>
 
-**Produção:** o último estado publicado registrado é `6fe4f75`, desde 16/11/2026 (seção seguinte). Não há recibo em
-`docs/operations/deploy-receipts/` nem registro de publicação posterior; tudo o que entrou em `main` de 17/11 a 25/11
-está **integrado e não publicado**. Nenhuma migration de esquema nova desde 16/11 (o journal de produção segue em 57).
+## Estado publicado atual — 25/11/2026: SHA `9ccb9e7`
 
-**Em `main`, não publicado** (detalhes no [registro único de execução](docs/architecture/2026-11-10-mesa-guiada-execucao.md)):
+**Aprovação.** Boni autorizou a publicação em 25/11/2026, depois de ler o resultado do `deploy-from-main.ps1 -DryRun`
+(sem impedimentos; CI de `main` verde em `9ccb9e7`; sem migration entre `6fe4f75` e `9ccb9e7`). Publicado pelo roteiro
+oficial, com fim às 23:45:41 UTC: build `91643cad-d0a3-408e-914f-cfaff315e449`, digest `sha256:25dd5c1a…`. As revisões
+`forgelex-api-prod-9ccb9e7-91643cad` e `forgelex-closure-hml-private-9ccb9e7-91643cad` recebem 100% do tráfego; o script
+conferiu que só a imagem e `FORGELEX_SOURCE_SHA` mudaram. Tema `classico`, demais flags iguais às do build anterior.
+Recibo, revisões anteriores e comandos de reversão:
+[recibo](docs/operations/deploy-receipts/2026-11-25-2345Z-9ccb9e7-publicado.md). Inclui todo o código de 17/11 a 25/11
+(lista abaixo; item 18 da seção 1A do plano unificado) e a correção do conector. O journal de migrations segue em 57.
+
+**Verificação feita.** Depois da troca: `/readyz` 200; `/mcp` sem token em 401 com `resource_metadata`; registro OAuth em
+201. Boni reconectou o conector no Claude, e `forgelex.connection_status` respondeu `authenticated: true` com
+`oauth_access_token` às 23:51:46 UTC. **Não verificado:** a seção 8 do checklist (uso do site autenticado por Boni) não
+foi feita nesta publicação.
+
+**Incidente do conector (25/11/2026).** O projeto Supabase de produção estava pausado (`INACTIVE`), e o registro OAuth
+respondia 503. Com autorização de Boni, o projeto foi reativado. Em seguida, o Auth do Supabase passou a recusar tokens de
+cliente OAuth em `GET /auth/v1/user/oauth/grants` (403), e todo `/mcp` respondia 401. Correção no #213: a API consulta a
+autorização vigente pela função `forgelex_api.oauth_grant`
+([`supabase-oauth-grant-lookup.sql`](ops/gcp/production/supabase-oauth-grant-lookup.sql), já aplicada), só com a chave
+secreta. Boni configurou a Data API para expor **somente** o schema `forgelex_api`, sem tabelas: a chave pública recebe
+401 na função e 406 em `public`. Se o projeto estiver no plano gratuito, nova pausa por inatividade derruba o login do
+site e o conector.
+
+**Publicado em `9ccb9e7`** (de 17/11 a 25/11; detalhes no [registro único de execução](docs/architecture/2026-11-10-mesa-guiada-execucao.md)):
 
 - **Frente V (tema gelo):** V0 a V5A e a preparação da V6, atrás de `VITE_FORGELEX_PUBLIC_MODEL` e da flag do tema; produção
   continua no tema clássico. Aceite visual A19 dado por Boni em 17/11.
@@ -24,17 +45,16 @@ está **integrado e não publicado**. Nenhuma migration de esquema nova desde 16
   mitigada com porta aleatória no job).
 - **Documentação:** ativação editorial e execução comercial datadas (#207); roteiro do ensaio da chave inválida do provedor
   (#211, [roteiro](docs/operations/stabilization/2026-11-24-e3-ensaio-chave-provedor-roteiro.md)).
+- **Conector MCP:** autorização OAuth consultada pela função `forgelex_api.oauth_grant` (#213, incidente acima).
 
-**Antes da próxima publicação:** conferir o CI verde do último push de `main`, rodar `deploy-from-main.ps1 -DryRun` (primeiro
-uso real da ferramenta) e decidir quais flags novas entram. Plano e ordem de retomada:
+Nenhuma flag nova foi ligada nesta publicação: gelo, Estrutura do caso com o modelo real e perfil `1.17.0` seguem como
+pendências da 1A. Plano e ordem de retomada:
 [seção 1A do plano unificado](docs/superpowers/plans/2026-11-11-forgelex-plano-unificado.md#1a-pendências-abertas-da-mais-antiga-para-a-mais-recente-25112026).
 
 Seções anteriores a 16/11/2026 (publicações de 03/11 a 14/11, MCP no Claude, campanha v9, correções encerradas) estão em
 [docs/historico/pendencias-ate-2026-11-16.md](docs/historico/pendencias-ate-2026-11-16.md).
 
-<a id="estado-publicado-atual"></a>
-
-## Estado publicado atual — 16/11/2026: SHA `6fe4f75` (Daybreak, registro corrigido)
+## Publicação anterior — 16/11/2026: SHA `6fe4f75` (Daybreak, registro corrigido)
 
 Boni autorizou commit, push e deploy. Os PRs #153–#158 (um por subsistema) e os de acompanhamento da revisão
 (#159–#162, #164, #165) foram integrados em `main` (último: #165, SSE, em 15/11/2026 05:20 UTC; `main` em `bbda500`).
@@ -46,7 +66,7 @@ Junto entrou o #163 (`research memo` por apps conectados via OAuth, só dentro d
 migrations `persistence-0042`, `persistence-0043` e `billing-ledger-0011-refund-recovery` aplicadas às 13:17:20–21 por um
 Job temporário, que depois foi apagado (journal **54 → 57**; **nenhum dado afetado**: 0 entregas de webhook, 0 corpos de
 resposta gravados, 0 pedidos de reembolso); `af13b1c` (inclui o #168) publicado das 15:11 às 15:13 e `6fe4f75` (inclui o
-#169) das 18:13 às 18:15. A revisão atual é `forgelex-api-prod-6fe4f75-92e59198`, com 100% do tráfego e
+#169) das 18:13 às 18:15. A revisão era `forgelex-api-prod-6fe4f75-92e59198`, com 100% do tráfego e
 `FORGELEX_SOURCE_SHA=6fe4f75…`. Registro completo, com horários e fontes:
 [docs/operations/daybreak/2026-11-16-execucao-migrations-e-publicacao.md](docs/operations/daybreak/2026-11-16-execucao-migrations-e-publicacao.md).
 

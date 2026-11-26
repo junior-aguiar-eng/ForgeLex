@@ -31,8 +31,8 @@
 
 | Item                   | Situação em 25/11/2026 |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Base Git               | `main` em `bc30408` (#211). Desde 18/11 entraram U1, U3, U7 partes 2 a 4, a trava de produto (19/11), a Estrutura do caso E1 a E4 (#202–#204, #208–#210), a Frente A versionada (#205) e as correções #206 e #207. Nenhuma PR aberta. |
-| Publicação             | `6fe4f75` em produção desde 16/11 (Daybreak S1–S7, migrations 0042, 0043 e `billing-ledger-0011`, busca STJ #168/#169). Sem publicação registrada depois disso: todo o código de 17/11 a 25/11 está em `main` e não publicado. Nenhuma migration de esquema nova. |
+| Base Git               | `main` em `809012a` (#214). Desde 18/11 entraram U1, U3, U7 partes 2 a 4, a trava de produto (19/11), a Estrutura do caso E1 a E4 (#202–#204, #208–#210), a Frente A versionada (#205), as correções #206 e #207, a correção do conector (#213) e o recibo da publicação (#214). |
+| Publicação             | `9ccb9e7` em produção desde 25/11 (23:45 UTC, [recibo](../../operations/deploy-receipts/2026-11-25-2345Z-9ccb9e7-publicado.md)): todo o código de 17/11 a 25/11 e a correção do conector MCP (#213), sem migration de esquema nova e sem flag nova ligada. A publicação anterior foi `6fe4f75`, de 16/11 (Daybreak S1–S7, migrations 0042, 0043 e `billing-ledger-0011`, busca STJ #168/#169). |
 | Mesa em produção       | Casca, anexos PDF/TXT/MD e chips de matéria ligados no build. Orientação guiada, `mesa-v3` e salvamento recuperável (migração `0041`, 14/11) ligados no serviço.                          |
 | Salvamento recuperável | Ligado em produção desde 14/11 (`forgelex-api-prod-draftsave-cd94c2c`). Falta o ensaio autenticado do passo 5 em produção.                                                               |
 | Política comercial     | Reserva de R$ 11,50, teto diário de R$ 20,00 e mensal de R$ 100,00.                                                                                                                     |
@@ -59,7 +59,7 @@ ou decisão dele (nada abaixo se publica sem a autorização dele, seção 0).
 | 7   | M3, 12–14/11    | Manifesto servido em produção; súmulas do TSE, 1.355 citações sem tribunal, processos e teses; 44 avisos; contradições de teor                     | Boni e código |
 | 8   | S0–S7, 14/11    | ~~Conferir as caixas contra o registro~~ — **feita em 19/11** (seção S.6): 38 marcadas, 5 abertas com motivo; S8 segue com Boni | Código, depois Boni |
 | 9   | CI, 15–18/11    | Três falhas intermitentes do `e2e-product`: **diagnosticadas em 19/11** — `database is locked` corrigida (causa provada); `matter-lifecycle.spec.ts:48` com mecanismo provado e teste corrigido (gatilho no CI não provado); porta 55432 sem causa provada, com mitigação aplicada em `e2e-product` (porta aleatória; decisão de Boni de 19/11). Resta só observar se reaparecem | Boni  |
-| 10  | Daybreak, 16/11 | “Não verificado”: seção 8 do checklist, saída do script de publicação, primeiro uso real das ferramentas de publicação e de migrations (`-DryRun`) | Boni  |
+| 10  | Daybreak, 16/11 | “Não verificado”: seção 8 do checklist e primeiro uso real da ferramenta de migrations. O `deploy-from-main.ps1` (`-DryRun` e publicação, com recibo) teve o primeiro uso real em 25/11; a seção 8 também não foi feita nessa publicação | Boni  |
 | 11  | U5, U6          | Identificação pela leitura do PDF (hipótese de U3); qualidade do OCR em documentos autorizados                                                    | Código e Boni |
 | 12  | U7, 18/11       | ~~Documentos do caso, PDF como anexo, “Dados do caso”, redirecionamento~~ — **feitos em 19/11, no gelo**; “Dados do caso” eliminado pela trava de produto no mesmo dia. Aceite visual refeito sem “Dados do caso” (20/11); aguarda o veredito de Boni. O clássico some na V7 | Boni |
 | 13  | V5A, V6, V7     | Textos legais, `tests/public-*`, passada final e aceite, ligar o gelo, limpeza                                                                    | Código e Boni |
@@ -67,10 +67,10 @@ ou decisão dele (nada abaixo se publica sem a autorização dele, seção 0).
 | 15  | CI, 19/11       | ~~`shell-gelo.spec.ts:278` intermitente~~ — **causa provada e corrigida em 19/11**: a Visão mostrava os passos antes de os dados chegarem e o botão “Abrir a jurisprudência” trocava de estilo (com `transition` de 160 ms) quando chegavam; o axe lia a cor no meio da troca. Agora a tela mostra um esqueleto até saber o resultado | Código |
 | 16  | Estrutura, 20–24/11 | Estrutura do caso E1 a E4 integrada só com agente simulado: exercitar com o modelo real (relato colado, PDF longo em trechos, ajuste pela conversa, redação apoiada na estrutura) e decidir os limites listados no desenho (frase do usuário só nos acrescentados, confirmação de item acrescentado, cobrança de ajuste que vira só pergunta, conversa nova por correção) | Boni, depois código |
 | 17  | A3, 24/11       | Frente A: avaliação jurídica das fases pagas, execuções pagas de cache e schemas e decisão de adoção do perfil `1.17.0` (`workflowVersion: 16`) | Boni  |
-| 18  | Publicação, 25/11 | Publicar o acumulado de 17/11 a 25/11 (sem migration): primeiro `deploy-from-main.ps1 -DryRun`, depois decidir quais flags novas ligam (gelo continua desligado até a V6) | Boni  |
+| 18  | Publicação, 25/11 | ~~Publicar o acumulado de 17/11 a 25/11~~ — **publicado em 25/11** (`9ccb9e7`, com autorização de Boni após o `-DryRun`; nenhuma flag nova ligada; gelo desligado até a V6) | Boni  |
+| 19  | Supabase, 25/11 | O projeto de produção estava pausado e foi reativado; se for plano gratuito, nova pausa por inatividade derruba o login e o conector. Decidir plano ou rotina que evite a pausa | Boni  |
 
-Sequência de trabalho a partir de 25/11/2026 (proposta, a confirmar por Boni): 18 (publicar o acumulado, pois sete
-dias de código integrado ainda não chegaram ao cliente), depois 16 (Estrutura do caso com o modelo real, no HML isolado ou
+Sequência de trabalho a partir de 25/11/2026 (proposta, a confirmar por Boni): com o 18 feito, seguir para 16 (Estrutura do caso com o modelo real, no HML isolado ou
 na própria conta de Boni), depois 13 (V5A/V6/V7) e 7 (manifesto e catálogo). Os itens “Boni” ficam à espera dele e não
 bloqueiam os de código.
 

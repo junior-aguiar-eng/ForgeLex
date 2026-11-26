@@ -58,10 +58,17 @@ describe('Supabase authentication', () => {
     const payload = { sub: 'supabase-user-1', iss: 'https://project.supabase.co/auth/v1', aud: 'authenticated', exp: Math.floor(Date.now() / 1000) + 300, client_id: 'client-1', session_id: 'session-1' };
     const token = jwt(payload);
     const identityVerifier = new SupabaseIdentityVerifier({
-      baseUrl: 'https://project.supabase.co', publishableKey: 'publishable',
-      fetchImpl: async (url) => new Response(JSON.stringify(String(url).endsWith('/user/oauth/grants')
-        ? revoked ? [] : [{ client: { id: 'client-1' }, scopes: ['email'], granted_at: '2026-10-05T10:00:00.000Z' }]
-        : { id: payload.sub, email: 'pessoa@exemplo.com', email_confirmed_at: 'confirmed' }), { status: 200 }),
+      baseUrl: 'https://project.supabase.co', publishableKey: 'publishable', secretKey: 'server-secret',
+      fetchImpl: async (url, init) => {
+        if (String(url).endsWith('/rest/v1/rpc/oauth_grant')) {
+          // A consulta de autorização nunca usa o token do cliente OAuth.
+          expect(init?.method).toBe('POST');
+          expect(init?.headers).toMatchObject({ apikey: 'server-secret', Authorization: 'Bearer server-secret', 'Content-Profile': 'forgelex_api' });
+          expect(JSON.parse(String(init?.body))).toEqual({ p_user_id: payload.sub, p_client_id: 'client-1' });
+          return new Response(JSON.stringify(revoked ? null : '2026-10-05T10:00:00.000Z'), { status: 200 });
+        }
+        return new Response(JSON.stringify({ id: payload.sub, email: 'pessoa@exemplo.com', email_confirmed_at: 'confirmed' }), { status: 200 });
+      },
     });
     const repository = { findBySupabaseUserId: async () => activeAccount } as unknown as AccountRepository;
     const vault = new OAuthTokenVault(Buffer.alloc(32, 7).toString('base64'), 'https://nexojuris.ia.br/mcp');
@@ -71,6 +78,22 @@ describe('Supabase authentication', () => {
     expect(await verifier.verify(sealed)).toMatchObject({ authMethod: 'oauth_access_token', scopes: ['mcp', 'research:read'], oauthClientId: 'client-1', oauthGrantedAt: '2026-10-05T10:00:00.000Z' });
     revoked = true;
     expect(await verifier.verify(sealed)).toBeNull();
+  });
+
+  it('recusa token OAuth quando a consulta de autorização não está configurada ou falha', async () => {
+    const payload = { sub: 'supabase-user-1', iss: 'https://project.supabase.co/auth/v1', aud: 'authenticated', exp: Math.floor(Date.now() / 1000) + 300, client_id: 'client-1', session_id: 'session-1' };
+    const user = () => new Response(JSON.stringify({ id: payload.sub, email: 'pessoa@exemplo.com', email_confirmed_at: 'confirmed' }), { status: 200 });
+    const repository = { findBySupabaseUserId: async () => activeAccount } as unknown as AccountRepository;
+    const vault = new OAuthTokenVault(Buffer.alloc(32, 7).toString('base64'), 'https://nexojuris.ia.br/mcp');
+    const sealed = vault.seal(jwt(payload), 'access', Date.now() + 300000);
+    const rpcCalls: string[] = [];
+    const withoutSecret = new SupabaseIdentityVerifier({ baseUrl: 'https://project.supabase.co', publishableKey: 'publishable', fetchImpl: async (url) => { if (String(url).includes('/rpc/')) rpcCalls.push(String(url)); return user(); } });
+    expect(await new SupabaseTokenVerifier(withoutSecret, repository, vault).verify(sealed)).toBeNull();
+    expect(rpcCalls).toEqual([]);
+    for (const failure of [new Response('{"message":"denied"}', { status: 401 }), new Response('"não é data"', { status: 200 })]) {
+      const failing = new SupabaseIdentityVerifier({ baseUrl: 'https://project.supabase.co', publishableKey: 'publishable', secretKey: 'server-secret', fetchImpl: async (url) => String(url).includes('/rpc/') ? failure : user() });
+      expect(await new SupabaseTokenVerifier(failing, repository, vault).verify(sealed)).toBeNull();
+    }
   });
 
   it('recusa token OAuth com issuer, audience, sujeito ou validade divergentes', async () => {
