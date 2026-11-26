@@ -2674,5 +2674,14 @@ no Windows: o fixture `desk-piece.txt` sai em CRLF no checkout).
 
 **Não verificado / limites:** modelo real (só agente simulado); exclusão definitiva de ponta a ponta (o ambiente de teste
 responde "indisponível"); conversa solta em Recentes não tem exclusão definitiva própria (só esconder, como antes);
-**sem painel de acesso da IA por caso no gelo** (o "Usar este caso na IA" vivia na tela Casos): as ferramentas MCP de
-caso não ganham novas permissões no gelo até Boni decidir a forma mínima; as de jurisprudência não dependem disso.
+sem painel de acesso da IA por caso no gelo.
+
+**Acesso da IA conectada (decisão de Boni, 26/11):** a conexão aprovada no login da IA vale para os casos ativos da
+conta, sem painel. Antes de cada ferramenta de caso no conector (`case.*`, `draft.*`, `analise.*` e o memorando), o
+servidor põe em dia a permissão daquela conexão em cada caso ativo: todo o material atual e envio de peças novas
+(`CaseAiAccessRepository.syncAutomatic`). Caso vazio também entra (a seleção pode ser vazia). Revogação na mesma conexão
+é respeitada; desconectar a IA corta tudo (a conexão nova começa do zero); o que o usuário já tinha dado na conexão é
+mantido. Efeito de segurança aceito por Boni: qualquer IA que ele conectar por OAuth lê todos os casos ativos e pode
+mandar peças, que esperam revisão. Testes: `case-ai-access.spec.ts` reescrita para a regra (5/5: leitura automática e
+gratuita, uma permissão por conexão, sessão do site e token desconhecido barrados, revogação que não volta, caso
+arquivado fora e caso novo dentro); unitários de persistência, servidor e conector 491/491.

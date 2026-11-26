@@ -35,12 +35,9 @@ export const CaseAiSelectionSchema = z
     thesisIds: ids,
     authorityIds: ids,
   })
-  .strict()
-  .refine(
-    (s) =>
-      s.documents.length + s.factIds.length + s.evidenceIds.length + s.thesisIds.length + s.authorityIds.length > 0,
-    'Selecione ao menos um item.',
-  );
+  // Regra do mínimo (26/11/2026): a permissão automática vale também para caso ainda sem documentos, fatos, provas,
+  // teses ou fontes (o caso da Pasta nasce só com conversas e peças); a IA conectada vê o caso e pode mandar peças.
+  .strict();
 export type CaseAiSelection = z.infer<typeof CaseAiSelectionSchema>;
 export const CaseAiGrantSchema = z
   .object({
