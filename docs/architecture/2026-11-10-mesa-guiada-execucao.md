@@ -2648,3 +2648,31 @@ Para reproduzir os orçamentos offline, definir `FORGELEX_A3_EXPERIMENT_BUDGET=1
 
 **Renumeração da versão dos prompts revisados (24/11/2026).** Ao integrar a Frente A com `main`, a versão 13 do workflow (prompts revisados, perfil `1.14.0`) passou a ser a **16** e o perfil passou a `1.17.0`: a versão 13 e o perfil `1.14.0` já tinham sido tomados pelo ajuste da estrutura do caso (E2), e as versões 14 e 15 pela estrutura na redação (E3) e pela identificação do documento (E4). O comportamento dos prompts revisados não mudou; os registros acima mantêm os nomes da época das medições ("versão 13", `1.14.0`). A seleção continua sendo `workflowVersion: 16`, e o ajuste da estrutura segue na 13.
 
+
+## MIN — Mesa mínima no gelo e Pasta de casos (26/11/2026)
+
+**Decisão de Boni (26/11/2026):** regra do mínimo, registrada no `AGENTS.md`: o produto é uma conversa (anexar e pedir);
+fora dela, só o obrigatório por lei ou pagamento. Boni cobrou a tela Casos ainda em produção: a trava de 19/11 só tinha
+valido no gelo, e o clássico seguia publicado. Caminho escolhido por ele: ir ao gelo (V6), sem remendar o clássico.
+
+**Base:** `main` em `58590de`. Commits na branch `claude/sharp-bhaskara-4768df`: `0833107` (regra), `e4dba52` (Mesa mínima
+e Pasta), `96e438e` (histórico do caso e correção comercial), `8a610e0` (testes).
+
+**Entregue (só no gelo; o clássico não mudou):**
+- Lateral: Nova conversa, Pasta, Recentes, Conectar IA, Conta, saldo e Sair. Casos, Visão geral, Jurisprudência,
+  Andamento, Rascunhos e Revisão saíram; os caminhos antigos abrem a Mesa.
+- Pedido: texto, anexo e Enviar. Peça: texto, Salvar e Exportar; salvar sem caso cria o caso por trás.
+- Pasta: até 20 casos (limite só na tela), criar, abrir, renomear, excluir de vez com confirmação.
+- Conversa nova num caso recebe o histórico das outras conversas do caso (`case-history:`), como resultado de IA.
+- Servidor: relato colado e anexo num caso não viram mais análise de fatos e provas sozinhos (E1b/E4 retirados).
+- **Correção de defeito anterior:** no modo comercial, a conferência do contexto antes de cada chamada recarregava sem as
+  fontes montadas pelo servidor e falhava (`CONTEXT_CONFLICT`); atingia a estrutura do caso na redação (E3/E4).
+
+**Verificação (local, 26/11):** unitários web 549/549 e servidor 406/406; navegador: gelo 18/18 e anexos-gelo 1/1;
+clássico: anexos 11/11, fluxo comercial 4/4, casca 31/31, Mesa principal 39/40 (`editorial-review.spec.ts:41` falha só
+no Windows: o fixture `desk-piece.txt` sai em CRLF no checkout).
+
+**Não verificado / limites:** modelo real (só agente simulado); exclusão definitiva de ponta a ponta (o ambiente de teste
+responde "indisponível"); conversa solta em Recentes não tem exclusão definitiva própria (só esconder, como antes);
+**sem painel de acesso da IA por caso no gelo** (o "Usar este caso na IA" vivia na tela Casos): as ferramentas MCP de
+caso não ganham novas permissões no gelo até Boni decidir a forma mínima; as de jurisprudência não dependem disso.
