@@ -24,6 +24,17 @@ import { ExecutionService, StartExecutionSchema } from './execution-service.js';
 import { digest } from './execution-store.js';
 import { createCommercialOpenAIRuntime, COMMERCIAL_MODEL } from './commercial-provider.js';
 import type { NativeCaseTaskOptions } from './case-task-driver.js';
+import { CASE_HISTORY_SOURCE_PREFIX } from './case-history-source.js';
+import { STRUCTURE_CONTEXT_SOURCE_PREFIX, STRUCTURE_ITEMS_SOURCE_PREFIX, type TaskSource } from '@forgelex/domain';
+
+const SERVER_ASSEMBLED_PREFIXES = [
+  STRUCTURE_CONTEXT_SOURCE_PREFIX,
+  STRUCTURE_ITEMS_SOURCE_PREFIX,
+  CASE_HISTORY_SOURCE_PREFIX,
+];
+/** Fonte que o servidor monta e entrega à execução, fora do contexto gravado pelo usuário. */
+export const isServerAssembledSource = (source: Pick<TaskSource, 'kind' | 'id'>) =>
+  source.kind === 'PREVIOUS_DELIVERY' && SERVER_ASSEMBLED_PREFIXES.some((prefix) => source.id.startsWith(prefix));
 
 export const CommercialConfirmationSchema = z.object({
   confirmed: z.literal(true),
@@ -170,6 +181,10 @@ export async function createCommercialRuntime(
     const job = await service.store.getJob(owner, executionId);
     // Cooperative cancel: refuse before dispatch, so the call is voided (never uncertain) and nothing new is billed.
     if (job.cancelRequestedAt) throw new Error('EXECUTION_CANCEL_REQUESTED');
+    // Fontes montadas pelo próprio servidor para esta execução (estrutura do caso, histórico do caso) não existem na
+    // recarga do contexto do usuário: ficam fora da comparação e da lista de entregas anteriores. Sem isso, toda
+    // execução comercial com uma delas falhava com CONTEXT_CONFLICT (E3/E4 e o histórico da Pasta).
+    const userSources = packet?.sources.filter((s) => !isServerAssembledSource(s));
     const binding: TaskBinding = {
       ...owner,
       executionId,
@@ -177,14 +192,14 @@ export async function createCommercialRuntime(
       contextRevision: execution!.contextRevision,
       matterId: execution!.matterId ?? undefined,
       objective: job.objective,
-      previousDeliveryIds: packet?.sources.filter((s) => s.kind === 'PREVIOUS_DELIVERY').map((s) => s.id),
+      previousDeliveryIds: userSources?.filter((s) => s.kind === 'PREVIOUS_DELIVERY').map((s) => s.id),
     };
     const live = await native.load(binding);
     if (
       packet &&
       (live.contextId !== packet.contextId ||
         live.contextRevision !== packet.contextRevision ||
-        JSON.stringify(live.sources) !== JSON.stringify(packet.sources) ||
+        JSON.stringify(live.sources) !== JSON.stringify(userSources) ||
         JSON.stringify(live.answers) !== JSON.stringify(packet.answers) ||
         JSON.stringify(live.deskEdit) !== JSON.stringify(packet.deskEdit) ||
         JSON.stringify(live.guidance) !== JSON.stringify(packet.guidance) ||
