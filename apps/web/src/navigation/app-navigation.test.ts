@@ -7,9 +7,9 @@ const labels = (items: ReadonlyArray<{ label: string }>) => items.map((item) => 
 describe('iceNavigation (V2, protótipo de 09/11)', () => {
   const all = iceNavigation({ deskEnabled: true, casesEnabled: true });
 
-  it('Trabalho (Mesa, Jurisprudência) e Conta e recursos: os casos vivem na Mesa, sem item próprio', () => {
-    expect(labels(all.work)).toEqual(['Mesa', 'Jurisprudência']);
-    expect(labels(all.resources)).toEqual(['Visão geral', 'Andamento processual', 'Conectar IA', 'Conta']);
+  it('regra do mínimo: com a Mesa, a lateral só tem as conversas, Conectar IA e Conta', () => {
+    expect(labels(all.work)).toEqual([]);
+    expect(labels(all.resources)).toEqual(['Conectar IA', 'Conta']);
   });
 
   it('sem a Mesa os casos precisam do próprio item; sem casos não há Mesa nem Casos, e a Jurisprudência fica', () => {
@@ -29,7 +29,9 @@ describe('iceNavigation (V2, protótipo de 09/11)', () => {
   it('cada item tem ícone (usado só no trilho), e o do andamento e o da jurisprudência são diferentes', () => {
     const items = [...all.work, ...all.resources];
     expect(items.every((item) => item.icon.length > 0)).toBe(true);
-    const icon = (tab: string) => items.find((item) => item.tab === tab)!.icon;
+    const fallback = iceNavigation({ deskEnabled: false, casesEnabled: false });
+    const old = [...fallback.work, ...fallback.resources];
+    const icon = (tab: string) => old.find((item) => item.tab === tab)!.icon;
     expect(icon('datajud')).not.toBe(icon('research'));
   });
 });

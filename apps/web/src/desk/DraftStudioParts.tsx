@@ -208,51 +208,6 @@ export function CreateCaseControls({
   );
 }
 
-/**
- * Criar caso a partir da peça aberta (aba Fontes no tema gelo). O nome é sugerido pelo título da peça e editável; o caso
- * nasce só com o nome, e a peça passa a usá-lo. O formulário fica aberto: esta é a ação da aba, não um recolhimento.
- */
-export function CreateCaseFromPiece({
-  name,
-  busy,
-  onName,
-  onCreate,
-}: {
-  name: string;
-  busy: boolean;
-  onName: (value: string) => void;
-  onCreate: () => void;
-}) {
-  return (
-    <form
-      aria-label="Criar caso"
-      className="space-y-2"
-      onSubmit={(event) => {
-        event.preventDefault();
-        onCreate();
-      }}
-    >
-      <label className="block text-sm font-medium text-ink-soft">
-        Nome do caso
-        <input
-          className="mt-1 min-h-11 w-full max-w-md rounded-[var(--fl-radius-control)] border border-line-control bg-surface px-3 text-sm font-normal text-ink"
-          value={name}
-          maxLength={120}
-          disabled={busy}
-          onChange={(event) => onName(event.target.value)}
-        />
-      </label>
-      <button
-        type="submit"
-        disabled={busy || !name.trim()}
-        className="min-h-11 rounded-[var(--fl-radius-control)] bg-accent px-4 text-sm font-semibold text-surface hover:bg-accent-strong disabled:opacity-50"
-      >
-        Criar caso a partir desta conversa
-      </button>
-    </form>
-  );
-}
-
 /** Histórico de versões da peça com as conferências da versão aberta no histórico. */
 export function VersionHistory({
   versions,

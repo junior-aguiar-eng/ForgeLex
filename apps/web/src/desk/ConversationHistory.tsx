@@ -1,3 +1,4 @@
+import type React from 'react';
 import { useEffect, useState, type MutableRefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { CanvasDialog } from '../screens/draft-review/DraftCanvas';
@@ -90,15 +91,21 @@ export function ConversationHistoryView({
   container,
   onNew,
   onOpen,
+  folder,
 }: {
   history: ConversationHistory;
+  /** Pasta de casos (gelo), acima de "Recentes". */
+  folder?: (items: RecentItem[], onOpen: (next: string) => void) => React.ReactNode;
   /** Fora do piloto fechado. */
   enabled: boolean;
   container?: HTMLElement | null;
   onNew: () => void;
   onOpen: (next: string) => void;
 }) {
-  const props = history.listProps(onOpen);
+  const props = {
+    ...history.listProps(onOpen),
+    ...(folder ? { folder: folder(history.listProps(onOpen).items, onOpen) } : {}),
+  };
   return (
     <>
       {enabled && container && createPortal(<RecentConversations {...props} expanded />, container)}

@@ -18,9 +18,7 @@ import { tabForPath, updateDocumentTitle } from '../navigation/routes';
 import { useAuth } from '../auth/AuthContext';
 import { DeskShell } from '../desk/DeskShell';
 import { useDeskHistorySlot } from '../components/ice/desk-history-slot';
-import { DeskCaseSlotProvider } from '../desk/desk-case-slot';
 import { DeskShortcuts, reviewTextRequest } from '../desk/DeskShortcuts';
-import { DeskEmptyGuide } from '../desk/DeskEmptyGuide';
 import { DESK_SHELL_ENABLED } from '../config/site-capabilities';
 import { DeskMobileTabs, DeskToolbar } from '../desk/DeskToolbar';
 import { DeskQueueDialog, DeskSourcesDialog } from '../desk/DeskDialogs';
@@ -44,8 +42,6 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
   const [columnContainer, setHistoryContainer] = useState<HTMLElement | null>(null);
   // No tema gelo a lista de conversas vive na lateral do app; no clássico, na coluna da própria Mesa.
   const historySlot = useDeskHistorySlot();
-  // Tema gelo: o seletor de caso fica no cabeçalho da Mesa (o estado continua no pedido, que o renderiza aqui).
-  const [caseSlot, setCaseSlot] = useState<HTMLElement | null>(null);
   const historyContainer = historySlot.inSidebar ? historySlot.element : columnContainer;
   const [historyCollapsed, setHistoryCollapsed] = useState(false);
   const activePiece = attached && piece && matchesDeskPiece(selection, piece) ? piece : null;
@@ -194,7 +190,7 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
     />
   );
   return (
-    <DeskCaseSlotProvider element={caseSlot}>
+    <>
       <DeskShell
         historyRef={setHistoryContainer}
         historyCollapsed={historyCollapsed}
@@ -205,7 +201,7 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
           <DeskToolbar
             historyCollapsed={historyCollapsed}
             historyInSidebar={historySlot.inSidebar}
-            caseSlotRef={historySlot.inSidebar ? setCaseSlot : undefined}
+            minimal={historySlot.inSidebar}
             onToggleHistory={() => setHistoryCollapsed((value) => !value)}
             onOpenQueue={() => {
               setQueueError('');
@@ -244,16 +240,8 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
             request={request}
             emptyState={
               // Com a peça aberta, os atalhos repetem a barra de cima e só alongariam a conversa além da altura da peça.
-              DESK_SHELL_ENABLED && !activePiece ? (
-                historySlot.inSidebar ? (
-                  <div className="space-y-6">
-                    {shortcuts}
-                    <DeskEmptyGuide onExample={(text) => setRequest((old) => ({ id: (old?.id ?? 0) + 1, text }))} />
-                  </div>
-                ) : (
-                  shortcuts
-                )
-              ) : undefined
+              // Gelo (regra do mínimo): sem atalhos, exemplos nem explicações; só a caixa de pedido.
+              DESK_SHELL_ENABLED && !activePiece && !historySlot.inSidebar ? shortcuts : undefined
             }
           />
         }
@@ -286,6 +274,6 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
           </>
         }
       />
-    </DeskCaseSlotProvider>
+    </>
   );
 }

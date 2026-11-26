@@ -722,6 +722,7 @@ describe('conversas recentes', () => {
       title: expect.any(String),
       status: 'QUEUED',
       updatedAt: expect.any(String),
+      matterId: expect.toBeOneOf([null, expect.any(String)]),
     });
     const restricted = await list('Bearer research-only');
     expect(restricted.items.map((i: { executionId: string }) => i.executionId)).not.toContain(withCase.id);

@@ -1,8 +1,5 @@
 import { DraftCanvas, type PieceTab } from './draft-review/DraftCanvas';
 import { activeTheme } from '../theme/active-theme';
-import { DeskCaseSources } from '../research/DeskCaseSources';
-import { DeskCaseDocuments } from '../desk/DeskCaseDocuments';
-import { DeskCaseStructure } from '../desk/DeskCaseStructure';
 import { pieceStructureTabActive } from '../agentic-workspace/structure-request';
 import { caseNameFrom } from '../desk/case-name';
 import { EditorialReviewPanel } from '../agentic-workspace/EditorialReviewPanel';
@@ -38,9 +35,9 @@ import {
   type Matter,
   type SavedAuthority,
 } from '../desk/draft-studio-model';
-import { ApprovalDialog, CreateCaseControls, CreateCaseFromPiece, PieceNotices, ReviewBody, ReviewDialog, VersionHistory } from '../desk/DraftStudioParts';
+import { ApprovalDialog, CreateCaseControls, PieceNotices, ReviewDialog, VersionHistory } from '../desk/DraftStudioParts';
 
-export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedVersionId?: string; onPieceChange?: (piece: DeskPiece | null) => void; onCaseSources?: () => void; requestedReview?: DeskDocumentSelection; deskEditorialEnabled?: boolean; structureRefreshKey?: string }> = ({ requestedLocation, selectedVersionId, onPieceChange, onCaseSources, requestedReview, deskEditorialEnabled = false, structureRefreshKey }) => {
+export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedVersionId?: string; onPieceChange?: (piece: DeskPiece | null) => void; onCaseSources?: () => void; requestedReview?: DeskDocumentSelection; deskEditorialEnabled?: boolean; structureRefreshKey?: string }> = ({ requestedLocation, selectedVersionId, onPieceChange, onCaseSources, requestedReview, deskEditorialEnabled = false}) => {
   const emptySections = () => [{title:'Texto da peça',content:'',linkedFactIds:[],linkedEvidenceIds:[],linkedAuthorityIds:[],linkedThesisIds:[]}];
   const [importedDelivery, setImportedDelivery] = useState<Delivery>();
   const submittedLocalSnapshot = useRef<string>();
@@ -92,7 +89,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
   const ice = activeTheme() === 'gelo';
   const [pieceTab, setPieceTab] = useState<PieceTab>('texto');
   // A aba Estrutura avisa quando há estrutura carregada: só então o pedido vira ajuste (E2).
-  const [structureReady, setStructureReady] = useState(false);
+  const structureReady = false;
   const lastRequestedReview = useRef<DeskDocumentSelection>();
   const [historyVersion, setHistoryVersion] = useState('');
   const [historyRuns, setHistoryRuns] = useState<DraftReviewRun[]>([]);
@@ -773,65 +770,13 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
       {editorialPanel}
     </>
   );
-  // Fontes numa peça sem caso: o nome sugerido para o caso vem do título da peça, e o cliente pode mudá-lo.
-  const suggestedCaseName = useRef(false);
-  useEffect(() => {
-    if (!ice || pieceTab !== 'fontes' || selectedMatterId) {
-      suggestedCaseName.current = false;
-      return;
-    }
-    if (suggestedCaseName.current) return;
-    suggestedCaseName.current = true;
-    if (!newWorkCase) setNewWorkCase(caseNameFrom(draftTitle));
-  }, [ice, pieceTab, selectedMatterId, newWorkCase, draftTitle]);
-  // Voltar ao texto quando a aba aberta perde o que a sustenta (outro caso, peça sem versão salva).
-  useEffect(() => {
-    if (!ice) return;
-    if (pieceTab === 'revisao' && !activeVersion) setPieceTab('texto');
-    if ((pieceTab === 'documentos' || pieceTab === 'estrutura') && !selectedMatterId) setPieceTab('texto');
-  }, [ice, pieceTab, selectedMatterId, activeVersion]);
-  const pieceTabs = ice ? {
-    selected: pieceTab,
-    onSelect: (tab: PieceTab) => { setPieceTab(tab); if (tab === 'revisao' && selectedDraftId) openVersionReview(); },
-    enabled: {
-      texto: true,
-      estrutura: Boolean(selectedMatterId),
-      fontes: true,
-      documentos: Boolean(selectedMatterId),
-      revisao: Boolean(selectedMatterId && selectedDraftId && activeVersion),
-    },
-    panels: {
-      estrutura: selectedMatterId ? <DeskCaseStructure key={selectedMatterId} matterId={selectedMatterId} refreshKey={structureRefreshKey} onReadyChange={setStructureReady} /> : null,
-      fontes: selectedMatterId ? <DeskCaseSources key={selectedMatterId} matterId={selectedMatterId} /> : (
-        <section aria-label="Peça sem caso" className="space-y-3">
-          <h2 className="font-editorial text-[17px] font-semibold text-ink">Esta peça não está ligada a um caso</h2>
-          <p className="text-sm text-muted">
-            Sem caso, não há questões, cobertura de fontes nem análise de aderência. Ao criar o caso, ele nasce só com o nome;
-            o resto o ForgeLex organiza pela conversa.
-          </p>
-          <CreateCaseFromPiece name={newWorkCase} busy={busy} onName={setNewWorkCase} onCreate={() => void createCase()} />
-        </section>
-      ),
-      documentos: selectedMatterId ? (
-        <DeskCaseDocuments
-          key={selectedMatterId}
-          matterId={selectedMatterId}
-          onOpen={(documentId) => setReadingDocument({ matterId: selectedMatterId, documentId })}
-        />
-      ) : null,
-      revisao: (
-        <div className="space-y-4">
-          {reviewProps && <ReviewBody {...reviewProps} />}
-          {editorialPanel}
-        </div>
-      ),
-    },
-  } : undefined;
+  // Regra do mínimo (AGENTS.md, 26/11): no gelo a peça é só o texto, com Salvar e Exportar; sem abas, caso nem revisão.
+  const pieceTabs = undefined;
 
-  const createCase = async () => {
+  const createCase = async (title = newWorkCase.trim()) => {
     setBusy(true);
     try {
-      const m = await requestApi<Matter>('/api/v2/matters', { method: 'POST', body: JSON.stringify({ title: newWorkCase.trim() }) }, { sessionOnly: true });
+      const m = await requestApi<Matter>('/api/v2/matters', { method: 'POST', body: JSON.stringify({ title }) }, { sessionOnly: true });
       setMatters(old => [...old, m]);
       await selectMatter(m.id);
       setNewWorkCase('');
@@ -840,6 +785,22 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
     } finally {
       setBusy(false);
     }
+  };
+
+  // Gelo: salvar uma peça sem caso cria, sem perguntar, o caso que o servidor exige (nome tirado do título) e salva nele.
+  const saveAfterCase = useRef(false);
+  useEffect(() => {
+    if (!saveAfterCase.current || !selectedMatterId || busy || loadingSelection) return;
+    saveAfterCase.current = false;
+    void saveDraft();
+  }, [selectedMatterId, busy, loadingSelection]); // eslint-disable-line react-hooks/exhaustive-deps
+  const save = () => {
+    if (ice && !selectedMatterId) {
+      saveAfterCase.current = true;
+      void createCase(caseNameFrom(draftTitle) || 'Peça');
+      return;
+    }
+    void saveDraft();
   };
 
   return <>
@@ -873,7 +834,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
       }}
       onMatter={id=>void selectMatter(id)} onDraft={id=>id ? void selectDraft(id) : void selectMatter(selectedMatterId)}
       onArchive={() => void archiveOpenDraft()}
-      onSave={()=>void saveDraft()} onExport={format=>void exportOpenPiece(format)} onCaseSources={onCaseSources} reviewActions={reviewActions} tabs={pieceTabs}
+      onSave={save} minimal={ice} onExport={format=>void exportOpenPiece(format)} onCaseSources={onCaseSources} reviewActions={reviewActions} tabs={pieceTabs}
       caseControls={<CreateCaseControls name={newWorkCase} busy={busy} onName={setNewWorkCase} onCreate={() => void createCase()} />}
       extras={<PieceNotices undo={undoDraft} busy={busy} differentVersion={Boolean(selectionHasDifferentVersion)} actionDisabled={busy || loadingSelection} importedWithoutMatter={Boolean(importedDelivery && !selectedMatterId)} onUndo={() => void restoreArchivedDraft()} onDismissUndo={() => setUndoDraft(undefined)} onUseOpenVersion={() => publishDeskPiece(deskScope(), { matterId: selectedMatterId, draftId: selectedDraftId, versionId: editingVersion.current })} />}
       history={<VersionHistory versions={details?.versions} loading={historyLoading} runs={historyRuns} onOpen={(versionId) => void openHistory(versionId)} />}

@@ -198,6 +198,7 @@ export function DraftCanvas({
   extras,
   caseControls,
   onArchive,
+  minimal = false,
 }: {
   title: string;
   sections: Section[];
@@ -232,6 +233,8 @@ export function DraftCanvas({
   history: ReactNode;
   extras?: ReactNode;
   caseControls?: ReactNode;
+  /** Gelo (regra do mínimo): só o texto, Salvar e Exportar; sem caso, lista de peças, excluir nem histórico. */
+  minimal?: boolean;
   /** Exclui a peça aberta: ela sai da lista, nada é apagado e o aviso oferece "Desfazer". */
   onArchive?: () => void;
 }) {
@@ -255,85 +258,90 @@ export function DraftCanvas({
           </button>
         )}
         {reviewActions}
-        <details className="relative mr-auto">
-          <summary className="flex min-h-9 cursor-pointer list-none items-center gap-2 rounded-lg px-2 hover:bg-stone-100">
-            {draftId ? 'Peça aberta' : 'Abrir peça'}
-            <ChevronDown size={14} />
-          </summary>
-          <div className="absolute left-0 top-11 z-20 w-64 space-y-3 rounded-xl border border-stone-200 bg-white p-4 shadow-lg">
-            <label className="block text-xs text-stone-600">
-              Caso
-              <select
-                aria-label="Caso da peça"
-                value={matterId}
-                disabled={busy}
-                onChange={(e) => onMatter(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-stone-200 p-2"
-              >
-                <option value="">Escolha um caso</option>
-                {matters.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {caseControls}
-            {matterId && (
+        {minimal && <span className="mr-auto" />}
+        {!minimal && (
+          <details className="relative mr-auto">
+            <summary className="flex min-h-9 cursor-pointer list-none items-center gap-2 rounded-lg px-2 hover:bg-stone-100">
+              {draftId ? 'Peça aberta' : 'Abrir peça'}
+              <ChevronDown size={14} />
+            </summary>
+            <div className="absolute left-0 top-11 z-20 w-64 space-y-3 rounded-xl border border-stone-200 bg-white p-4 shadow-lg">
               <label className="block text-xs text-stone-600">
-                Peça
+                Caso
                 <select
-                  aria-label="Peça do caso"
-                  value={draftId}
+                  aria-label="Caso da peça"
+                  value={matterId}
                   disabled={busy}
-                  onChange={(e) => onDraft(e.target.value)}
+                  onChange={(e) => onMatter(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-stone-200 p-2"
                 >
-                  <option value="">Nova peça</option>
-                  {drafts.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.title}
+                  <option value="">Escolha um caso</option>
+                  {matters.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.title}
                     </option>
                   ))}
                 </select>
               </label>
-            )}
-            {matterId && draftId && onArchive && (
-              <div>
-                <button
-                  type="button"
-                  disabled={busy || dirty}
-                  onClick={onArchive}
-                  className="min-h-9 rounded-lg px-2 text-sm font-medium text-cognac-800 hover:bg-cognac-50 disabled:opacity-40"
-                >
-                  Excluir peça
-                </button>
-                {dirty && <p className="text-xs text-stone-600">Salve ou descarte a edição antes de excluir.</p>}
-              </div>
-            )}
-          </div>
-        </details>
+              {caseControls}
+              {matterId && (
+                <label className="block text-xs text-stone-600">
+                  Peça
+                  <select
+                    aria-label="Peça do caso"
+                    value={draftId}
+                    disabled={busy}
+                    onChange={(e) => onDraft(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-stone-200 p-2"
+                  >
+                    <option value="">Nova peça</option>
+                    {drafts.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {matterId && draftId && onArchive && (
+                <div>
+                  <button
+                    type="button"
+                    disabled={busy || dirty}
+                    onClick={onArchive}
+                    className="min-h-9 rounded-lg px-2 text-sm font-medium text-cognac-800 hover:bg-cognac-50 disabled:opacity-40"
+                  >
+                    Excluir peça
+                  </button>
+                  {dirty && <p className="text-xs text-stone-600">Salve ou descarte a edição antes de excluir.</p>}
+                </div>
+              )}
+            </div>
+          </details>
+        )}
         <span role="status" className="mr-1 hidden text-xs text-stone-600 sm:inline">
           {busy ? 'Atualizando…' : dirty ? 'Edição não salva' : draftId ? 'Salvo' : 'Edição local'}
         </span>
         <button
           type="button"
           onClick={onSave}
-          disabled={busy || !matterId}
+          disabled={busy || (!matterId && !minimal)}
           className="rounded-lg px-3 py-2 font-medium text-cognac-800 hover:bg-cognac-50 disabled:opacity-40"
         >
           Salvar
         </button>
-        <button
-          type="button"
-          onClick={() => setHistoryOpen(!historyOpen)}
-          disabled={!draftId}
-          className="rounded-lg p-2 text-stone-600 hover:bg-stone-100 disabled:opacity-40"
-          aria-label="Histórico da peça"
-          title="Histórico"
-        >
-          <History size={18} />
-        </button>
+        {!minimal && (
+          <button
+            type="button"
+            onClick={() => setHistoryOpen(!historyOpen)}
+            disabled={!draftId}
+            className="rounded-lg p-2 text-stone-600 hover:bg-stone-100 disabled:opacity-40"
+            aria-label="Histórico da peça"
+            title="Histórico"
+          >
+            <History size={18} />
+          </button>
+        )}
         <details className="relative">
           <summary
             aria-label="Exportar peça"

@@ -1,3 +1,4 @@
+import type React from 'react';
 import { RotateCcw, Trash2 } from 'lucide-react';
 
 export interface RecentItem {
@@ -5,6 +6,8 @@ export interface RecentItem {
   title: string;
   status: string;
   updatedAt: string;
+  /** Caso da conversa; sem caso, ela aparece em "Recentes". */
+  matterId?: string | null;
 }
 
 const STATE: Record<string, string> = {
@@ -77,6 +80,7 @@ export function RecentConversations({
   trash = false,
   onTrashToggle,
   busy = false,
+  folder,
 }: {
   items: RecentItem[];
   currentId: string | null;
@@ -87,13 +91,17 @@ export function RecentConversations({
   trash?: boolean;
   onTrashToggle?: () => void;
   busy?: boolean;
+  /** Pasta de casos (gelo): fica acima de "Recentes", que então mostra só as conversas fora de casos. */
+  folder?: React.ReactNode;
 }) {
+  if (folder && !trash) items = items.filter((item) => !item.matterId);
   return (
     <nav aria-label="Conversas recentes" className="min-w-0">
       <div className={expanded ? 'space-y-3' : 'hidden space-y-3 lg:block'}>
         <button type="button" disabled={busy} className="btn-secondary min-h-11 w-full" onClick={onNew}>
           Nova conversa
         </button>
+        {!trash && folder}
         <p className="px-3 text-xs font-semibold uppercase tracking-wide text-stone-600">
           {trash ? 'Excluídas do histórico' : 'Recentes'}
         </p>

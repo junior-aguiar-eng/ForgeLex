@@ -12,6 +12,7 @@ import {
 export function DeskToolbar({
   historyCollapsed,
   historyInSidebar = false,
+  minimal = false,
   caseSlotRef,
   onToggleHistory,
   onOpenQueue,
@@ -24,7 +25,9 @@ export function DeskToolbar({
   historyCollapsed: boolean;
   /** Tema gelo: as conversas ficam na lateral do app, que tem o próprio botão de recolher. */
   historyInSidebar?: boolean;
-  /** Tema gelo: onde o seletor de caso aparece no cabeçalho. */
+  /** Gelo (regra do mínimo): sem pendências de revisão nem pesquisa à parte; tudo é pedido na conversa. */
+  minimal?: boolean;
+  /** Onde o seletor de caso aparece no cabeçalho (não usado no gelo). */
   caseSlotRef?: (element: HTMLElement | null) => void;
   onToggleHistory: () => void;
   onOpenQueue: () => void;
@@ -51,24 +54,28 @@ export function DeskToolbar({
       )}
       {caseSlotRef && <div ref={caseSlotRef} className="min-w-0 py-1" />}
       <span className="mr-auto" />
-      <button
-        type="button"
-        aria-label="Pendências de revisão"
-        title="Pendências de revisão"
-        className="grid size-8 place-items-center rounded-lg text-stone-600 hover:bg-stone-100"
-        onClick={onOpenQueue}
-      >
-        <ListChecks size={16} aria-hidden="true" />
-      </button>
-      <button
-        type="button"
-        aria-label="Pesquisa e fontes"
-        title="Pesquisa e fontes"
-        onClick={onOpenResearch}
-        className="grid size-8 place-items-center rounded-lg text-stone-600 hover:bg-stone-100"
-      >
-        <Search size={16} aria-hidden="true" />
-      </button>
+      {!minimal && (
+        <>
+          <button
+            type="button"
+            aria-label="Pendências de revisão"
+            title="Pendências de revisão"
+            className="grid size-8 place-items-center rounded-lg text-stone-600 hover:bg-stone-100"
+            onClick={onOpenQueue}
+          >
+            <ListChecks size={16} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            aria-label="Pesquisa e fontes"
+            title="Pesquisa e fontes"
+            onClick={onOpenResearch}
+            className="grid size-8 place-items-center rounded-lg text-stone-600 hover:bg-stone-100"
+          >
+            <Search size={16} aria-hidden="true" />
+          </button>
+        </>
+      )}
       <button
         type="button"
         aria-label={hasPiece ? 'Abrir peça' : 'Nova peça'}

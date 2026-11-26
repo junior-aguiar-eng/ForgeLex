@@ -120,7 +120,7 @@ export const IceSidebar: React.FC<{
         <div className="flex items-center justify-between gap-2">
           <button
             type="button"
-            onClick={() => select('landing')}
+            onClick={() => select(DESK_ENABLED ? 'work' : 'landing')}
             className="hidden min-h-11 items-center gap-2.5 rounded-[var(--fl-radius-control)] px-1.5 text-ink lg:inline-flex"
             aria-label="ForgeLex, ir para o início"
           >
@@ -140,20 +140,30 @@ export const IceSidebar: React.FC<{
         </div>
 
         <div className="min-h-0 flex-1 space-y-[22px] overflow-y-auto">
-          <nav aria-label="Navegação principal" className="space-y-0.5">
-            <span className={`block ${groupLabel} ${collapsed ? 'lg:sr-only' : ''}`}>Trabalho</span>
-            {navigation.work.map((item) => (
-              <ItemButton
-                key={item.tab}
-                item={item}
-                active={item.tab === active}
-                collapsed={collapsed}
-                onSelect={select}
-              />
-            ))}
-          </nav>
+          {navigation.work.length > 0 && (
+            <nav aria-label="Navegação principal" className="space-y-0.5">
+              <span className={`block ${groupLabel} ${collapsed ? 'lg:sr-only' : ''}`}>Trabalho</span>
+              {navigation.work.map((item) => (
+                <ItemButton
+                  key={item.tab}
+                  item={item}
+                  active={item.tab === active}
+                  collapsed={collapsed}
+                  onSelect={select}
+                />
+              ))}
+            </nav>
+          )}
+          {/* Regra do mínimo: com a Mesa, a conversa ocupa o alto da lateral; Conectar IA e Conta ficam abaixo, sem rótulo. */}
+          {DESK_ENABLED && active === 'work' && (
+            <div className={collapsed ? 'lg:hidden' : ''}>
+              <aside aria-label="Histórico de conversas" ref={setHistorySlot} className="min-w-0" />
+            </div>
+          )}
           <nav aria-label="Conta e recursos" className="space-y-0.5">
-            <span className={`block ${groupLabel} ${collapsed ? 'lg:sr-only' : ''}`}>Conta e recursos</span>
+            {!DESK_ENABLED && (
+              <span className={`block ${groupLabel} ${collapsed ? 'lg:sr-only' : ''}`}>Conta e recursos</span>
+            )}
             {navigation.resources.map((item) => (
               <ItemButton
                 key={item.tab}
@@ -165,7 +175,7 @@ export const IceSidebar: React.FC<{
             ))}
           </nav>
           {/* A Mesa renderiza aqui a lista de conversas. No trilho recolhido não há espaço para ela. */}
-          {active === 'work' && (
+          {!DESK_ENABLED && active === 'work' && (
             <div className={collapsed ? 'lg:hidden' : ''}>
               <aside aria-label="Histórico de conversas" ref={setHistorySlot} className="min-w-0" />
             </div>

@@ -483,13 +483,15 @@ export function registerAgenticWorkspace(
       // Same visibility as the single execution: case work needs the case scope, and the commercial
       // and pilot modes list only what they themselves manage.
       const manages = commercial?.canManageExecution ?? pilot?.canManageExecution;
-      const items = (await s.store.workspace.listRecentConversations(owner(req), 20, query.view === 'trash'))
+      const items = (await s.store.workspace.listRecentConversations(owner(req), 50, query.view === 'trash'))
         .filter((c) => (canCase || !c.matterId) && (!manages || manages(c.execution)))
         .map((c) => ({
           executionId: c.execution.id,
           title: c.objective.length > 90 ? `${c.objective.slice(0, 87)}…` : c.objective,
           status: c.execution.status,
           updatedAt: c.execution.updatedAt,
+          // A Pasta da Mesa separa as conversas de cada caso das "Recentes" (regra do mínimo, 26/11/2026).
+          matterId: c.matterId ?? null,
         }));
       return { items };
     }),
