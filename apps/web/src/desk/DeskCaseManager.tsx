@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiRequestError, requestApi } from '../api-client';
 import { useAuth } from '../auth/AuthContext';
+import { CaseAiAccessPanel } from '../screens/case-ai/CaseAiAccessPanel';
 import { LifecycleDialog, LifecycleFilter } from '../screens/matter-lifecycle/LifecycleControls';
 import {
   actionLabels,
@@ -21,7 +22,8 @@ const failureText = (failure: unknown, fallback: string) => (failure instanceof 
 
 /**
  * Gerenciar casos, dentro da Mesa (tema gelo): renomear, arquivar, mover para a lixeira, restaurar e excluir de vez
- * (esta pede o nome do caso). É o único lugar onde se cuida dos casos. O caso que a conversa ou a peça está usando agora não pode ser arquivado nem ir para a lixeira, mas pode
+ * (esta pede o nome do caso) e o acesso da IA conectada ao caso. É o único lugar onde se cuida dos casos (trava de
+ * produto, 19/11: não há tela Casos). O caso que a conversa ou a peça está usando agora não pode ser arquivado nem ir para a lixeira, mas pode
  * ser renomeado.
  */
 export function DeskCaseManager({
@@ -46,6 +48,7 @@ export function DeskCaseManager({
   const [editing, setEditing] = useState<{ id: string; title: string } | null>(null);
   const [confirming, setConfirming] = useState<{ record: ManagedCase; action: LifecycleAction } | null>(null);
   const [confirmError, setConfirmError] = useState('');
+  const [aiAccess, setAiAccess] = useState<{ id: string; title: string } | null>(null);
 
   useEffect(() => {
     const element = dialog.current;
@@ -269,6 +272,17 @@ export function DeskCaseManager({
                                 Renomear
                               </button>
                             )}
+                            {state === 'ACTIVE' && (
+                              <button
+                                type="button"
+                                disabled={busy}
+                                aria-label={`Acesso da IA: ${item.title}`}
+                                onClick={() => setAiAccess({ id: item.id, title: item.title })}
+                                className="min-h-9 rounded-[var(--fl-radius-control)] px-2 text-sm font-medium text-accent hover:bg-canvas-deep disabled:opacity-50"
+                              >
+                                Acesso da IA
+                              </button>
+                            )}
                             {actions.map((action) => (
                               <button
                                 key={action}
@@ -295,6 +309,14 @@ export function DeskCaseManager({
           </ul>
         )}
       </dialog>
+      {aiAccess && (
+        <CaseAiAccessPanel
+          key={aiAccess.id}
+          matterId={aiAccess.id}
+          matterTitle={aiAccess.title}
+          onClose={() => setAiAccess(null)}
+        />
+      )}
       {confirming && (
         <LifecycleDialog
           record={confirming.record}

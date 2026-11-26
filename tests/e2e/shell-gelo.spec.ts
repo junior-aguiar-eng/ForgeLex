@@ -959,6 +959,16 @@ test('Mesa: com a conversa em andamento o caso fica fixo, com o motivo escrito',
   await expect(row.getByRole('button', { name: 'Renomear Caso da conversa' })).toBeVisible();
   await expect(row.getByRole('button', { name: /^Arquivar/ })).toHaveCount(0);
   await expect(row.getByRole('button', { name: /^Mover para a lixeira/ })).toHaveCount(0);
+
+  // Trava de produto: o acesso da IA conectada ao caso também vive aqui, sem tela Casos.
+  await row.getByRole('button', { name: 'Acesso da IA: Caso da conversa' }).click();
+  const access = page.getByRole('dialog', { name: 'Usar este caso na IA' });
+  await expect(access).toBeVisible();
+  await expect(access).toContainText('Caso da conversa');
+  await expect(access.getByRole('heading', { name: '1. Escolha sua conexão' })).toBeVisible();
+  await access.getByRole('button', { name: 'Fechar' }).click();
+  await expect(access).toHaveCount(0);
+  await expect(manager).toBeVisible();
 });
 
 test('Mesa: estado vazio com exemplos que só preenchem o pedido e a explicação dos dois selos', async ({ page }) => {

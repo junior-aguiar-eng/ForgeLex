@@ -225,7 +225,7 @@ export function CaseAiAccessPanel({
           await navigator.clipboard.writeText(
             initialInstruction(
               matterTitle,
-              `${window.location.origin}/app/casos?caso=${encodeURIComponent(matterId)}`,
+              `${window.location.origin}/app/trabalho?matterId=${encodeURIComponent(matterId)}`,
               g,
             ),
           );
@@ -576,7 +576,7 @@ export function CaseAiAccessPanel({
                 await navigator.clipboard.writeText(
                   initialInstruction(
                     matterTitle,
-                    `${window.location.origin}/app/casos?caso=${encodeURIComponent(matterId)}`,
+                    `${window.location.origin}/app/trabalho?matterId=${encodeURIComponent(matterId)}`,
                     current,
                   ),
                 );
