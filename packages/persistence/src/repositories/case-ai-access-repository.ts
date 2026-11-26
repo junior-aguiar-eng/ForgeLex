@@ -445,12 +445,13 @@ export class CaseAiAccessRepository {
         if (current?.status === 'REVOKED' && current.oauthGrantedAt === grantedAt) continue;
         const selection = CaseAiSelectionSchema.parse(await this.fullSelection(owner, matterId));
         const same = current?.status === 'ACTIVE' && current.oauthGrantedAt === grantedAt;
-        if (
-          same &&
-          current.receivePermission.enabled &&
-          JSON.stringify(current.selection) === JSON.stringify(selection)
-        )
+        if (same && current.receivePermission.enabled) {
+          // Material novo entrando no caso não é mudança de permissão: atualiza a lista sem mudar a revisão, para não
+          // invalidar o que a IA acabou de ler (envio de peça ou de análise com a revisão lida).
+          if (JSON.stringify(current.selection) !== JSON.stringify(selection))
+            await this.refreshSelection(owner, matterId, current, selection);
           continue;
+        }
         // Mantém o que o usuário já tinha dado nesta conexão (destino de peças e recebimento de análises).
         await this.replace(owner, matterId, {
           oauthClientId: clientId,
@@ -469,6 +470,28 @@ export class CaseAiAccessRepository {
         /* Conflito de revisão ou material mudando agora: a próxima chamada da IA tenta de novo. */
       }
     }
+  }
+  /** Troca só a lista de material de uma permissão ativa, na mesma revisão (sincronização automática). */
+  private async refreshSelection(o: CaseAiOwner, matterId: string, current: CaseAiGrant, selection: CaseAiSelection) {
+    await this.db.transaction(async (tx) => {
+      const repo = new CaseAiAccessRepository(tx as unknown as ForgeLexDatabase);
+      await tx
+        .update(s.matters)
+        .set({ updatedAt: sql`${s.matters.updatedAt}` })
+        .where(and(eq(s.matters.id, matterId), eq(s.matters.tenantId, o.tenantId)));
+      await repo.loadSelection(o, matterId, selection);
+      await tx
+        .update(s.caseAiAccessGrants)
+        .set({ selectionJson: JSON.stringify(selection), updatedAt: new Date().toISOString() })
+        .where(
+          and(
+            this.scope(o, matterId),
+            eq(s.caseAiAccessGrants.id, current.id),
+            eq(s.caseAiAccessGrants.revision, current.revision),
+            eq(s.caseAiAccessGrants.status, 'ACTIVE'),
+          ),
+        );
+    });
   }
   /** Todo o material atual de um caso: a versão mais recente de cada documento ativo, fatos, provas, teses e fontes. */
   private async fullSelection(o: CaseAiOwner, matterId: string): Promise<CaseAiSelection> {

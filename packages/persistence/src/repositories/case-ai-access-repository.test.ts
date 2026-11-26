@@ -205,7 +205,8 @@ describe('Regra do mínimo: a conexão aprovada vale para os casos ativos, sem p
       });
       await f.repo.syncAutomatic(f.reader);
       const updated = await f.repo.assertActive(f.reader, f.matter.id);
-      expect(updated.revision).toBe(withDoc.revision + 1);
+      // Material novo não muda a revisão: o envio com a revisão que a IA leu continua valendo.
+      expect(updated.revision).toBe(withDoc.revision);
       expect(updated.selection.documents.map((d) => d.documentId)).toContain(added.document.id);
     } finally {
       f.client.close();
