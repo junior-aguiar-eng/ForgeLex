@@ -18,6 +18,22 @@ nem por recomendação de IA, nem por herança do projeto.
   na dúvida, simplifique. Não perguntar a Boni se pode manter uma tela antiga: removê-la é o padrão.
 - Esta trava só é alterada por nova decisão expressa de Boni.
 
+### Regra do mínimo (decisão expressa de Boni em 26/11/2026, regra de projeto)
+
+"O mínimo do mínimo. Apenas o que for obrigatório, mais nada."
+
+- **O produto é uma conversa**, como Claude, ChatGPT ou Gemini: uma caixa de pedido, um clipe para anexar, as
+  conversas anteriores ao lado e a peça aberta ao lado quando houver peça. O usuário anexa e pede; a resposta vem na
+  conversa.
+- **Não existem** casos, vínculo a caso, gerenciador de casos, painel de acesso da IA, documentos do caso, seletor de
+  modo ou de ação, chips de matéria, perguntas guiadas em etapas, abas de estrutura ou conferência, nem telas de visão
+  geral, jurisprudência, andamento, rascunhos ou revisão. Pesquisa, consulta processual e análise são pedidos na
+  conversa. Cada conversa é o próprio "caso".
+- **Fora da conversa, só o obrigatório por lei ou pagamento:** conta (saldo, recarga, segurança, encerramento) e a
+  conexão da IA do usuário por MCP. Textos legais continuam publicados.
+- **Proibido realocar.** Esconder um formulário ou ferramenta antiga dentro da Mesa não é remover. Na dúvida, remover.
+- **Proibido propor mecanismo.** Diante de um problema, propor primeiro a opção que tira algo, numa frase.
+
 ## Autoridade exclusiva de avaliação e aprovação
 
 Decisão expressa de Boni em 10/10/2026: nada no projeto deve depender de
