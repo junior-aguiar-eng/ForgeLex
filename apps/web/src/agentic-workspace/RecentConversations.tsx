@@ -38,7 +38,7 @@ function List({
       </p>
     );
   return (
-    <ul className="space-y-1">
+    <ul aria-label={trash ? 'Conversas excluídas' : 'Recentes'} className="space-y-1">
       {items.map((item) => (
         <li key={item.executionId} className="group flex min-w-0 items-start rounded-lg hover:bg-ivory-100">
           <button

@@ -2,6 +2,7 @@ import { DraftCanvas, type PieceTab } from './draft-review/DraftCanvas';
 import { activeTheme } from '../theme/active-theme';
 import { pieceStructureTabActive } from '../agentic-workspace/structure-request';
 import { caseNameFrom } from '../desk/case-name';
+import { CASES_CHANGED_EVENT } from '../desk/CaseFolder';
 import { EditorialReviewPanel } from '../agentic-workspace/EditorialReviewPanel';
 import { hasDeskPiece, selectDeskPiece, type DeskDocumentSelection } from '../agentic-workspace/desk-selection';
 import { deskLocation, readDeskLocation, writeDeskLocation } from '../navigation/desk-location';
@@ -778,6 +779,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
     try {
       const m = await requestApi<Matter>('/api/v2/matters', { method: 'POST', body: JSON.stringify({ title }) }, { sessionOnly: true });
       setMatters(old => [...old, m]);
+      window.dispatchEvent(new Event(CASES_CHANGED_EVENT));
       await selectMatter(m.id);
       setNewWorkCase('');
     } catch (e) {

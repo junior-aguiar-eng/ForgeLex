@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiRequestError, requestApi } from '../api-client';
 import type { RecentItem } from '../agentic-workspace/RecentConversations';
 
 /** Quantos casos a Pasta guarda (decisão de Boni, 26/11/2026: quantidade limitada). */
 export const CASE_FOLDER_LIMIT = 20;
+
+/** Evento disparado quando um caso é criado fora da Pasta. */
+export const CASES_CHANGED_EVENT = 'forgelex:cases-changed';
 
 export interface FolderCase {
   id: string;
@@ -45,18 +48,32 @@ export function CaseFolder({
   const [deleting, setDeleting] = useState<CaseRecord>();
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
+  const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const response = await api<{ items: CaseRecord[] }>('/api/v2/matters?view=active');
       setCases(response.items.map(({ id, title, lifecycleRevision }) => ({ id, title, lifecycleRevision })));
+      setLoaded(true);
     } catch {
       /* A pasta volta na próxima carga; a conversa segue funcionando. */
     }
   }, []);
   useEffect(() => {
     void load();
+    // Um caso criado fora da Pasta (salvar uma peça sem caso) aparece nela sem recarregar a página.
+    const reload = () => void load();
+    window.addEventListener(CASES_CHANGED_EVENT, reload);
+    return () => window.removeEventListener(CASES_CHANGED_EVENT, reload);
   }, [load]);
+  // Um caso que saiu da Pasta (excluído, inclusive numa exclusão interrompida) deixa de receber o próximo pedido.
+  // Só uma lista recém-carregada decide: o caso acabado de criar ainda não está na lista anterior.
+  const selected = useRef(activeCase);
+  selected.current = activeCase;
+  useEffect(() => {
+    const current = selected.current;
+    if (loaded && current && !cases.some((item) => item.id === current.id)) onSelectCase(undefined);
+  }, [loaded, cases]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const run = async (operation: () => Promise<void>, fallback: string) => {
     if (working) return;
@@ -64,10 +81,11 @@ export function CaseFolder({
     setError('');
     try {
       await operation();
-      await load();
     } catch (problem) {
       setError(failure(problem, fallback));
     } finally {
+      // Recarrega mesmo na falha: uma exclusão interrompida depois da lixeira já tirou o caso da lista.
+      await load();
       setWorking(false);
     }
   };
