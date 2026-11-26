@@ -28,8 +28,12 @@ de domínio, etapa D3). Registro em
 
 ## Estado atual do produto
 
-Estado de produção atualizado em 05/11/2026; as descrições de contratos e
-fluxos mais abaixo seguem a revisão de 10/10/2026. Para retomar o trabalho,
+**O estado publicado vigente (SHA, revisões, flags e migrations) está só em
+[PENDENCIAS.md](PENDENCIAS.md#estado-publicado-atual)**, e o plano vigente é o
+[plano unificado](docs/superpowers/plans/2026-11-11-forgelex-plano-unificado.md),
+com a ordem de retomada na seção 1A. Este README não repete SHAs nem flags. As
+descrições de contratos e fluxos mais abaixo seguem a revisão de 10/10/2026.
+Para retomar o trabalho,
 consulte [CONTINUIDADE.md](CONTINUIDADE.md); o backlog vigente está em
 [PENDENCIAS.md](PENDENCIAS.md).
 
@@ -47,25 +51,9 @@ essa consulta não amplia a cobertura jurisprudencial comercial do STJ.
 O agendamento de acompanhamento não comprova execuções ou estabilidade por
 sete dias; os resultados permanecem documentados por verificação.
 
-**Estado conferido em 05/11/2026:** fonte publicada `a5d9762` (PR #103),
-com os seis jobs da CI do merge aprovados. API e serviço de encerramento
-recebem 100% do tráfego nas revisões `forgelex-api-prod-a5d9762` e
-`forgelex-closure-hml-private-a5d9762`, com a mesma imagem por digest.
-Backup manual concluído e migrations 0037/0038 aplicadas; journal remoto com
-51 entradas e nenhuma pendência.
-[Recibo da publicação](docs/operations/agentic-workspace/2026-11-05-publication.md).
-
-A execução agêntica e a comercial preexistentes continuam ligadas na API.
-O código de revisão editorial e sua integração comercial estão publicados,
-mas **o editor comercial permanece desativado** nos dois serviços:
-`FORGELEX_EDITORIAL_COMMERCIAL_ENABLED=false`. Auto-migration continua
-`false`. A regra aprovada cobra a revisão concluída mesmo sem sugestões,
-quando o recurso vier a ser ativado por autorização própria.
-
-A conferência desta publicação cobriu migrations, inicialização por readiness,
-rotas públicas/MCP e respostas da rotina de encerramento. Não repetiu teste
-completo autenticado da interface, aba antiga, homologação em hosts ou chamadas
-pagas. As limitações e os avisos observados estão no recibo.
+Desde 06/11/2026 o editor comercial está ativo e, desde 19/11/2026, a Mesa
+agêntica é a única superfície do produto (trava de produto do
+[AGENTS.md](AGENTS.md)). Publicações anteriores e seus limites:
 [Evidências e limites](STATUS_VALIDACAO.md) ·
 [DataJud publicado](docs/operations/stabilization/2026-10-03-datajud-workspace-navigation.md) ·
 [Encerramento técnico](docs/operations/stabilization/2026-10-09-technical-pending-closure.md).
@@ -82,7 +70,7 @@ preserva a fotografia anterior à publicação do site e não define o estado at
   produto STJ.
 
 O estado do programa está em [STATUS_VALIDACAO.md](STATUS_VALIDACAO.md), o
-plano mestre em [Plano de conclusão progressiva do ForgeLex](Plano%20de%20conclus%C3%A3o%20progressiva%20do%20F.md) e as evidências operacionais estão
+plano mestre histórico (Fases 0 a 14) em [Plano de conclusão progressiva do ForgeLex](Plano%20de%20conclus%C3%A3o%20progressiva%20do%20F.md) e as evidências operacionais estão
 indexadas em [docs/README.md](docs/README.md).
 
 O encerramento de conta pessoal teve implementação e aceite local concluídos

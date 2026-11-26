@@ -1,6 +1,7 @@
 # ForgeLex — onde estamos e como continuar
 
-> **O estado publicado vigente está em [PENDENCIAS.md](PENDENCIAS.md)** (seção “Estado publicado atual”).
+> **O estado publicado vigente está em [PENDENCIAS.md](PENDENCIAS.md#estado-publicado-atual)** e o plano vigente, com a ordem
+> de retomada, no [plano unificado](docs/superpowers/plans/2026-11-11-forgelex-plano-unificado.md) (seção 1A).
 > As seções abaixo são histórico por data e não foram reescritas: a de 05/11, por exemplo, descreve o
 > editor comercial como desativado, o que deixou de valer com a ativação de 06/11.
 

@@ -1,6 +1,6 @@
 # ForgeLex — Plano unificado de execução
 
-**Versão 3 · 11 de novembro de 2026 · Estado atualizado em 18 de novembro de 2026**
+**Versão 3 · 11 de novembro de 2026 · Estado atualizado em 25 de novembro de 2026**
 
 > Este é o único plano vigente do ForgeLex. Ele substitui o plano v2 da Mesa guiada (10/11/2026), cujo conteúdo foi
 > incorporado aqui, e o plano de reestruturação visual e integração com o Ratione elaborado em 09/11/2026 fora do
@@ -29,21 +29,21 @@
 
 ## 1. Ponto de partida
 
-| Item                   | Situação em 18/11/2026                                                                                                                                                                  |
+| Item                   | Situação em 25/11/2026 |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Base Git               | `main` em `d2c2d69` (merge do #196, U7 parte 1). O CI desse push falhou só no `e2e-product`, por colisão da porta 55432 do Postgres no runner; reexecutado, passou.                      |
-| Publicação             | `6fe4f75` em produção desde 16/11 (Daybreak S1–S7, migrations 0042, 0043 e `billing-ledger-0011`, busca STJ #168/#169). O código posterior (V0–V6 preparação, V5A, U7 parte 1) está em `main` e não publicado. |
+| Base Git               | `main` em `809012a` (#214). Desde 18/11 entraram U1, U3, U7 partes 2 a 4, a trava de produto (19/11), a Estrutura do caso E1 a E4 (#202–#204, #208–#210), a Frente A versionada (#205), as correções #206 e #207, a correção do conector (#213) e o recibo da publicação (#214). |
+| Publicação             | `9ccb9e7` em produção desde 25/11 (23:45 UTC, [recibo](../../operations/deploy-receipts/2026-11-25-2345Z-9ccb9e7-publicado.md)): todo o código de 17/11 a 25/11 e a correção do conector MCP (#213), sem migration de esquema nova e sem flag nova ligada. A publicação anterior foi `6fe4f75`, de 16/11 (Daybreak S1–S7, migrations 0042, 0043 e `billing-ledger-0011`, busca STJ #168/#169). |
 | Mesa em produção       | Casca, anexos PDF/TXT/MD e chips de matéria ligados no build. Orientação guiada, `mesa-v3` e salvamento recuperável (migração `0041`, 14/11) ligados no serviço.                          |
 | Salvamento recuperável | Ligado em produção desde 14/11 (`forgelex-api-prod-draftsave-cd94c2c`). Falta o ensaio autenticado do passo 5 em produção.                                                               |
 | Política comercial     | Reserva de R$ 11,50, teto diário de R$ 20,00 e mensal de R$ 100,00.                                                                                                                     |
-| Verificação            | A18 aceita em 14/11; A19 aceita em 17/11. Pendentes: verificações residuais do MCP, ensaio de E3, manifesto do catálogo em produção e três falhas intermitentes de CI sem causa provada. |
+| Verificação            | A18 aceita em 14/11; A19 aceita em 17/11. Pendentes: verificações residuais do MCP, ensaio de E3 (roteiro pronto, #211), manifesto do catálogo em produção, Estrutura do caso e Frente A com o modelo real. As três falhas intermitentes de CI foram diagnosticadas em 19/11 (item 9 da 1A). |
 | Visual                 | Tema clássico vigente em produção. Gelo feito de V0 a V5A e pronto atrás de flag; V6 (ligar) aguarda passada final e publicação isolada.                                                 |
-| U7                     | Parte 1 integrada (#196): renomear, arquivar, lixeira e restaurar caso na Mesa (gelo). Decisão de 18/11: a tela “Casos” vira “Dados do caso”, não sai.                                    |
+| U7                     | Partes 1 a 4 integradas. A trava de produto de 19/11 substituiu a decisão de 18/11: no gelo não há “Dados do caso”; `/app/casos` abre a Mesa e a exclusão definitiva vive nela. A `MatterWorkspaceScreen` só sobrevive no clássico, até a V7. |
 | Domínio em uso         | `nexojuris.ia.br` em produção. D0 a D5 não iniciadas; `hml.nexojuris.ia.br` deu timeout na conferência de 12/11.                                                                         |
 
-Revisões, flags e validação da reserva constam em [PENDENCIAS.md](../../../PENDENCIAS.md#estado-publicado-atual--13112026-sha-01b46c5) e no [registro da reconciliação](../../architecture/2026-11-10-mesa-guiada-execucao.md#reconciliação-pós-deploy--12-de-novembro-de-2026).
+Revisões, flags e validação da reserva constam em [PENDENCIAS.md](../../../PENDENCIAS.md#estado-publicado-atual) e no [registro da reconciliação](../../architecture/2026-11-10-mesa-guiada-execucao.md#reconciliação-pós-deploy--12-de-novembro-de-2026).
 
-### 1A. Pendências abertas, da mais antiga para a mais recente (18/11/2026)
+### 1A. Pendências abertas, da mais antiga para a mais recente (25/11/2026)
 
 Ordem de retomada decidida por Boni em 18/11/2026. “Código” é o que a sessão executa sozinha; “Boni” exige ação, acesso
 ou decisão dele (nada abaixo se publica sem a autorização dele, seção 0).
@@ -52,22 +52,27 @@ ou decisão dele (nada abaixo se publica sem a autorização dele, seção 0).
 | --- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
 | 1   | Out/2026        | Ensaios residuais do MCP, provas comerciais e fiscais, braces e lacuna STJ (`PENDENCIAS.md`, “Pendências humanas e externas”)                      | Boni  |
 | 2   | E2, 11/11       | ~~Outros usos de API recente sem fallback~~ — **fechada em 18/11** (ver E2)                                                                         | Código |
-| 3   | E3, 12/11       | Ensaio em homologação com chave inválida: log e e-mail do alerta                                                                                  | Boni  |
+| 3   | E3, 12/11       | Ensaio em homologação com chave inválida: log e e-mail do alerta. **Roteiro pronto em 24/11 (#211)**: exige ligar o comércio só no `forgelex-api-hml-isolated` e uma política de alerta temporária ([roteiro](../../operations/stabilization/2026-11-24-e3-ensaio-chave-provedor-roteiro.md)) | Boni  |
 | 4   | U1, 12/11       | ~~Remover exemplos e dados de demonstração mortos~~ — **fechada em 19/11** (ver U1)                                                              | Código |
 | 5   | U3, 12/11       | U3 quase fechada (19/11): área proposta pelo texto, aviso de matéria sem apoio e aceite de três interações feitos. Restam os chips de área, tribunal e peça no compositor (V3/U7) e a refinação por IA | Código |
 | 6   | M1, 14/11       | Recusa de renovação do Claude (1 em 33); reserva e mensagem de saldo insuficiente em jornada autenticada                                           | Boni  |
 | 7   | M3, 12–14/11    | Manifesto servido em produção; súmulas do TSE, 1.355 citações sem tribunal, processos e teses; 44 avisos; contradições de teor                     | Boni e código |
 | 8   | S0–S7, 14/11    | ~~Conferir as caixas contra o registro~~ — **feita em 19/11** (seção S.6): 38 marcadas, 5 abertas com motivo; S8 segue com Boni | Código, depois Boni |
-| 9   | CI, 15–18/11    | Três falhas intermitentes do `e2e-product`: **diagnosticadas em 19/11** — `database is locked` corrigida (causa provada); `matter-lifecycle.spec.ts:48` com mecanismo provado e teste corrigido (gatilho no CI não provado); porta 55432 sem causa provada, com mitigação aplicada em `e2e-product` (porta aleatória; decisão de Boni de 19/11) | Código, depois Boni |
-| 10  | Daybreak, 16/11 | “Não verificado”: seção 8 do checklist, saída do script de publicação, primeiro uso real das ferramentas de publicação e de migrations (`-DryRun`) | Boni  |
+| 9   | CI, 15–18/11    | Três falhas intermitentes do `e2e-product`: **diagnosticadas em 19/11** — `database is locked` corrigida (causa provada); `matter-lifecycle.spec.ts:48` com mecanismo provado e teste corrigido (gatilho no CI não provado); porta 55432 sem causa provada, com mitigação aplicada em `e2e-product` (porta aleatória; decisão de Boni de 19/11). Resta só observar se reaparecem | Boni  |
+| 10  | Daybreak, 16/11 | “Não verificado”: seção 8 do checklist e primeiro uso real da ferramenta de migrations. O `deploy-from-main.ps1` (`-DryRun` e publicação, com recibo) teve o primeiro uso real em 25/11; a seção 8 também não foi feita nessa publicação | Boni  |
 | 11  | U5, U6          | Identificação pela leitura do PDF (hipótese de U3); qualidade do OCR em documentos autorizados                                                    | Código e Boni |
-| 12  | U7, 18/11       | ~~Documentos do caso, PDF como anexo, “Dados do caso”, redirecionamento~~ — **feitos em 19/11, no gelo** (partes 2 a 4 da U7). **Aceite visual preparado** (página de revisão com 7 telas, desktop e celular, axe sem violação); aguarda o veredito de Boni. O clássico some na V7 | Boni |
+| 12  | U7, 18/11       | ~~Documentos do caso, PDF como anexo, “Dados do caso”, redirecionamento~~ — **feitos em 19/11, no gelo**; “Dados do caso” eliminado pela trava de produto no mesmo dia. Aceite visual refeito sem “Dados do caso” (20/11); aguarda o veredito de Boni. O clássico some na V7 | Boni |
 | 13  | V5A, V6, V7     | Textos legais, `tests/public-*`, passada final e aceite, ligar o gelo, limpeza                                                                    | Código e Boni |
 | 14  | D0–D5           | Mudança de domínio (começa por registrar `forgelex.com.br`)                                                                                       | Boni, depois código |
 | 15  | CI, 19/11       | ~~`shell-gelo.spec.ts:278` intermitente~~ — **causa provada e corrigida em 19/11**: a Visão mostrava os passos antes de os dados chegarem e o botão “Abrir a jurisprudência” trocava de estilo (com `transition` de 160 ms) quando chegavam; o axe lia a cor no meio da troca. Agora a tela mostra um esqueleto até saber o resultado | Código |
+| 16  | Estrutura, 20–24/11 | Estrutura do caso E1 a E4 integrada só com agente simulado: exercitar com o modelo real (relato colado, PDF longo em trechos, ajuste pela conversa, redação apoiada na estrutura) e decidir os limites listados no desenho (frase do usuário só nos acrescentados, confirmação de item acrescentado, cobrança de ajuste que vira só pergunta, conversa nova por correção) | Boni, depois código |
+| 17  | A3, 24/11       | Frente A: avaliação jurídica das fases pagas, execuções pagas de cache e schemas e decisão de adoção do perfil `1.17.0` (`workflowVersion: 16`) | Boni  |
+| 18  | Publicação, 25/11 | ~~Publicar o acumulado de 17/11 a 25/11~~ — **publicado em 25/11** (`9ccb9e7`, com autorização de Boni após o `-DryRun`; nenhuma flag nova ligada; gelo desligado até a V6) | Boni  |
+| 19  | Supabase, 25/11 | O projeto de produção estava pausado e foi reativado; se for plano gratuito, nova pausa por inatividade derruba o login e o conector. Decidir plano ou rotina que evite a pausa | Boni  |
 
-Sequência de trabalho a partir daqui: 4 (U1), depois 5 (U3), depois 9 (diagnóstico das falhas de CI, antes de qualquer
-nova publicação), depois 8 e 12. Os itens “Boni” ficam à espera dele e não bloqueiam os de código.
+Sequência de trabalho a partir de 25/11/2026 (proposta, a confirmar por Boni): com o 18 feito, seguir para 16 (Estrutura do caso com o modelo real, no HML isolado ou
+na própria conta de Boni), depois 13 (V5A/V6/V7) e 7 (manifesto e catálogo). Os itens “Boni” ficam à espera dele e não
+bloqueiam os de código.
 
 ## 2. Decisões de Boni
 
@@ -90,7 +95,8 @@ A tabela preserva as decisões de 11/11/2026. A DEC-9 foi executada no PR #138. 
 | DEC-11 | Modo de piloto fechado (`closedPilot`, `ClosedPilotPanel`, `closed-pilot*.ts`, `task6-homologation.ts`) | **Decidido por Boni em 11/11/2026:** manter enquanto servir a testes. Fica isolado fora da Mesa nova e é reavaliado ao fim da Frente U                                                                                                                                                                                                                                           | Nada               |
 | DEC-12 | Anexos: guardar o arquivo original ou só o texto extraído                                               | **Decidido por Boni em 11/11/2026:** guardar só o texto, como na importação de PDF atual (a especificação de 03/10/2026 deixou a retenção do original para avaliação posterior)                                                                                                                                                                                                  | U5                 |
 | DEC-13 | Motor de OCR                                                                                            | **Decidido por Boni em 11/11/2026:** OCR no navegador (Tesseract.js, idioma português), sem enviar o arquivo ao servidor, preservando a promessa atual de que a extração ocorre no navegador. OCR no servidor só se a qualidade não bastar, com decisão própria sobre custo e retenção                                                                                           | U6                 |
-| DEC-14 | Tela “Casos” (`/app/casos`, `MatterWorkspaceScreen`)                                                    | **Decidido por Boni em 11/11/2026:** a tela é dispensável e sai, mas só depois de a Mesa absorver o que ela faz (criar e renomear caso, arquivar, restaurar e excluir caso e documento, importar PDF), porque o caso continua sendo o eixo da Mesa, da busca ancorada (M4) e das ferramentas MCP. Etapa U7                                                                       | U7                 |
+| DEC-14 | Tela “Casos” (`/app/casos`, `MatterWorkspaceScreen`)                                                    | **Decidido por Boni em 11/11/2026:** a tela é dispensável e sai, mas só depois de a Mesa absorver o que ela faz (criar e renomear caso, arquivar, restaurar e excluir caso e documento, importar PDF), porque o caso continua sendo o eixo da Mesa, da busca ancorada (M4) e das ferramentas MCP. Etapa U7. **Superada em 19/11/2026 pela DEC-15**                                                                     | U7                 |
+| DEC-15 | Trava de produto: Mesa agêntica única | **Decidido por Boni em 19/11/2026 (inegociável):** a Mesa é a única superfície; agentes nos bastidores; poucos botões. “Dados do caso” e a tela Casos saem do gelo; a exclusão definitiva fica dentro da Mesa. Texto integral em `AGENTS.md` | Toda fatia nova |
 
 ## 3. O que já está concluído (herdado do v2)
 
@@ -189,10 +195,11 @@ tabela. Proposta de 11/11/2026, a confirmar por Boni.
 | PR-U1 | U      | U0 a U6  | PR-E; M3.0 (PR-M1) para a U3 | PR #139 integrado. Mesa única, casca, orientação v3, ações e anexos publicados. U2–U5 têm recortes pendentes e U6 está aberta.        |
 | PR-V1 | V      | V0 a V3  | PR-M1 (M2); PR-U1 (U4)       | V0 (#181) e V1 (#183) integradas; V2 a V5 (#184 a #189) feitas no gelo; A19 aceita.                                                   |
 | PR-M2 | M      | M4 e M5  | PR-V1 (V3)                   | Pendente                                                                                                                              |
-| PR-U2 | U      | U7       | PR-V1 (V3); PR-U1 (U6)       | Em andamento: parte 1 (#196) integrada; restam documentos, PDF, “Dados do caso”, redirecionamento e exclusão. |
+| PR-U2 | U      | U7       | PR-V1 (V3); PR-U1 (U6)       | Partes 1 a 4 integradas (#196 a #201); “Dados do caso” eliminado pela trava (DEC-15). Falta o veredito do aceite visual. |
 | PR-V2 | V      | V4 a V7  | PR-M2 (M4); PR-U2 (U7)       | Pendente; V6 e D3/D4 nunca na mesma semana                                                                                            |
 | PR-R  | R      | Frente R | PR-V2 (V6); PR-M2 (M5)       | Posterior                                                                                                                             |
-| PR-A  | A      | A0 a A3  | Execução comercial integrada | A0 a A2 verificadas offline. Avaliação paga e ativação seguem autorização de Boni. |
+| PR-A  | A      | A0 a A3  | Execução comercial integrada | A0 a A2 verificadas offline; prompts revisados e perfis integrados (#205, `workflowVersion: 16`). Avaliação paga e ativação seguem autorização de Boni. |
+| PR-EC | Estrutura do caso | E1 a E4 | U7; trava de produto | Integrada em seis PRs (#202–#204, #208–#210), fora da regra de uma PR por frente. Falta a verificação com o modelo real (1A, item 16). |
 
 Cada etapa continua com seu registro, seus critérios de aceite e sua reversão; o que muda é só a unidade de PR. As
 etapas que são publicação (M1, M2 em homologação, D2 a D5, V6) seguem exigindo a autorização de Boni no momento de
@@ -233,7 +240,8 @@ de retorno.
 A conferência de E3 encontrou um Uptime Check de `/readyz` a cada 300 segundos e uma política de alerta ativa.
 
 - [x] Conferir as sondas e identificar a checagem periódica de `/readyz` no Cloud Monitoring.
-- [ ] Ensaio em homologação com chave inválida, confirmando o log e o e-mail do alerta.
+- [ ] Ensaio em homologação com chave inválida, confirmando o log e o e-mail do alerta. Roteiro de 24/11:
+  [2026-11-24-e3-ensaio-chave-provedor-roteiro.md](../../operations/stabilization/2026-11-24-e3-ensaio-chave-provedor-roteiro.md).
 - [x] Documentar em `ops/gcp/production/README.md`, na seção do alerta já existente.
 
 **Aceite.** Uma chave inválida gera alerta em até 15 minutos sem ação de cliente. **Reversão.** Remover a checagem.
@@ -264,6 +272,8 @@ Defeito: quando o usuário escreve a área em vez de escolher uma opção, a res
 
 - [x] Arquivar os planos anteriores em `docs/historico/planos/` e atualizar suas referências (#138).
 - [x] Atualizar o link do registro de execução para este plano.
+- [x] 25/11/2026: planos de execução da Estrutura do caso (E2, E3, E4) arquivados em `docs/historico/planos/`; seções de
+  `PENDENCIAS.md` anteriores a 16/11 separadas em `docs/historico/pendencias-ate-2026-11-16.md`.
 
 ### E7 — Robustez dos testes de interface
 
@@ -503,6 +513,19 @@ Depende de U4, U5, U6 e de V3 (seletor de caso e “Criar caso a partir desta co
 
 **Aceite.** Nenhuma função hoje exclusiva da tela “Casos” se perde. **Reversão.** Reverter o commit da etapa; a rota antiga
 volta enquanto a tela existir no histórico.
+
+## 6B. Frente Estrutura do caso (E1 a E4)
+
+**Pedido de Boni em 19/11/2026**, sob a trava de produto (DEC-15). Não confundir as fatias E1 a E4 desta frente com a
+Etapa E (estabilização) da seção 5. Desenho, decisões e limites: [estrutura do caso](../../architecture/2026-11-19-estrutura-do-caso.md);
+planos de execução arquivados em [docs/historico/planos](../../historico/planos/).
+
+- [x] **E1 (20/11, #202):** aba Estrutura na peça e rota `GET /api/agentic/matters/:matterId/structure`.
+- [x] **E1b (20–23/11, #203, #204):** relato colado em Automático vira `analyze_evidence`; o mesmo relato no mesmo caso não repete a análise.
+- [x] **E2 (22/11, #208):** `adjust_structure` no contrato v13: corrigir a estrutura pela conversa.
+- [x] **E3 (23/11, #209):** estrutura na redação e na orientação guiada, contrato v14.
+- [x] **E4 (24/11, #210):** PDF direto, soma das análises do caso e divisão em trechos, contrato v15.
+- [ ] Verificação com o modelo real e decisões de Boni sobre os limites (1A, item 16).
 
 ## 7. Frente V — refatoração visual
 
