@@ -59,6 +59,40 @@ pelo ForgeLex (e não pela IA do usuário).
 
 Os textos só devem mudar na mesma publicação em que o texto do site no modelo novo for ligado.
 
+## Atualização de 27/11/2026: a lacuna já está em produção
+
+Conferido com `gcloud` em 27/11/2026 no `forgelex-api-prod` (revisão `forgelex-api-prod-81d0557-f4629475`):
+`FORGELEX_COMMERCIAL_EXECUTION_ENABLED=true` e `FORGELEX_EDITORIAL_COMMERCIAL_ENABLED=true`. A Mesa comercial **já está no
+ar**, e os textos publicados não a descrevem. A frase dos termos “O ForgeLex não vende tokens nem fornece o modelo de IA do
+usuário” continua verdadeira só para o conector MCP. A regra “os textos mudam junto com o site no modelo novo” fica
+superada: a correção não depende do gelo nem da V5A.
+
+Fatos novos ou corrigidos desde 18/11:
+
+| Fato | Fonte |
+| ---- | ----- |
+| O provedor da Mesa é a OpenAI (`https://api.openai.com/v1/responses`), chamada com `store: false`. | `apps/api/src/agentic-workspace/commercial-provider.ts` |
+| O anexo segue inteiro com o pedido, até 100.000 caracteres somados ao texto; acima disso o pedido não sai. Não há mais divisão em trechos. | Item 20 (27/11) |
+| **Acesso da IA conectada (26/11):** a IA que o usuário conecta por OAuth lê automaticamente todos os casos ativos da conta e pode enviar peças, que ficam aguardando revisão. Revogar na conexão é respeitado; desconectar corta tudo. Está em produção desde a publicação de `81d0557`. | MIN, `CaseAiAccessRepository.syncAutomatic` |
+| Conversa nova num caso recebe o histórico das outras conversas do mesmo caso. | MIN |
+| Cobrança da Mesa: reserva de R$ 11,50 por trabalho, teto diário de R$ 20,00 e mensal de R$ 100,00. | Plano, seção 1 |
+
+Redação acrescentada à proposta (para Boni decidir):
+
+**Política de privacidade, seção “IA conectada”:**
+> Quando você conecta sua própria IA ao ForgeLex e autoriza o acesso, essa conexão passa a ler o conteúdo de todos os seus
+> casos ativos e pode enviar peças para a sua conta, que só valem depois da sua revisão. Casos arquivados ou excluídos ficam
+> fora. Você pode revogar o acesso de um caso na própria conexão ou desconectar a IA, o que encerra todo o acesso. O que a sua
+> IA faz com o conteúdo segue os termos do provedor dela.
+
+**Política de privacidade, seção “Mesa de trabalho e anexos”:** na redação de 18/11, trocar “[nome do provedor e
+condições: Boni confirma]” por “a OpenAI, pela API, configurada para não armazenar as respostas (`store: false`)”. O que o
+contrato da OpenAI diz sobre treino e prazo de retenção continua para Boni confirmar.
+
+**Termos de uso:** trocar “O ForgeLex não vende tokens nem fornece o modelo de IA do usuário” por “No conector, o ForgeLex
+não fornece o modelo de IA do usuário. Na Mesa de trabalho, o ForgeLex usa modelo próprio e cobra por trabalho, com reserva
+prévia de R$ 11,50 e limites diário de R$ 20,00 e mensal de R$ 100,00”, desde que esses valores sejam os exibidos na Conta.
+
 ## Aplicação (27/11/2026)
 
 Aprovado por Boni em 27/11/2026 e aplicado em `termos-de-uso.html` e `privacidade.html`, versão `2026-11-27.v1`. Na
