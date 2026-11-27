@@ -64,6 +64,23 @@ const AppContent: React.FC = () => {
     return <AuthScreen initialView="sign_in" status={status} />;
   }
 
+  const footerElement = (visibleTab !== 'work' && <footer className="mt-12 border-t border-stone-200/80 bg-white/55">
+        <div className="page-container flex flex-col gap-3 py-5 text-xs text-stone-500 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <Scale className="h-4 w-4 text-cognac-700" aria-hidden="true" />
+            <span className="font-editorial font-bold text-stone-800">ForgeLex</span>
+            <span>{ice ? '· peças jurídicas com fonte' : '· pesquisa jurídica e integração'}</span>
+          </div>
+          <nav aria-label="Documentos legais" className="flex flex-wrap gap-x-4 gap-y-1">
+            {ice && <a className="hover:text-cognac-700 hover:underline" href="/legal/termos-de-uso.html">Termos de uso</a>}
+            {ice && <a className="hover:text-cognac-700 hover:underline" href="/legal/privacidade.html">Privacidade</a>}
+            <a className="hover:text-cognac-700 hover:underline" href="/legal/encerramento-de-conta.html">Termos de encerramento</a>
+            <a className="hover:text-cognac-700 hover:underline" href="/legal/retencao-pos-encerramento.html">Política de destinação</a>
+          </nav>
+          <span>© 2026 · informação institucional</span>
+        </div>
+      </footer>);
+
   const shell = (
     <div className="flex min-h-screen min-w-0 flex-col overflow-x-clip bg-canvas">
       {/* Header */}
@@ -95,23 +112,12 @@ const AppContent: React.FC = () => {
               {visibleTab === 'api_docs' && <ApiDocsScreen />}
             </Suspense>
           </ScreenLoadBoundary>
+          {/* No gelo o rodapé fica na coluna do conteúdo: a lateral desce até o fim da página. */}
+          {ice && footerElement}
         </main>
       </div>
 
-      {visibleTab !== 'work' && <footer className="mt-12 border-t border-stone-200/80 bg-white/55">
-        <div className="page-container flex flex-col gap-3 py-5 text-xs text-stone-500 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <Scale className="h-4 w-4 text-cognac-700" aria-hidden="true" />
-            <span className="font-editorial font-bold text-stone-800">ForgeLex</span>
-            <span>· pesquisa jurídica e integração</span>
-          </div>
-          <nav aria-label="Documentos legais" className="flex flex-wrap gap-x-4 gap-y-1">
-            <a className="hover:text-cognac-700 hover:underline" href="/legal/encerramento-de-conta.html">Termos de encerramento</a>
-            <a className="hover:text-cognac-700 hover:underline" href="/legal/retencao-pos-encerramento.html">Política de destinação</a>
-          </nav>
-          <span>© 2026 · informação institucional</span>
-        </div>
-      </footer>}
+      {!ice && footerElement}
     </div>
   );
   return ice ? <DeskHistorySlotProvider>{shell}</DeskHistorySlotProvider> : shell;

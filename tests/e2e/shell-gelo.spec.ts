@@ -404,29 +404,20 @@ test('etapas do trabalho: o erro fica sempre visível, anunciado e marcado na et
   await expect(page.getByRole('status', { name: 'Andamento' })).toContainText('Não foi possível concluir o trabalho');
 });
 
-test('Conta: a coluna lateral mostra identificação, chaves (só o prefixo), atividade e encerramento', async ({
+test('Conta: a coluna lateral mostra identificação, atividade e encerramento, sem chaves de API; o preço não fala em buscas', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await login(page, 'conta@forgelex.test');
-  const created = await page.request.post(api + '/api/v2/api-keys', {
-    headers: apiHeaders,
-    data: { name: 'Integração da conta', scopes: ['research:read'] },
-  });
-  expect(created.ok()).toBe(true);
-  const { token, keyPrefix } = (await created.json()).key as { token: string; keyPrefix: string };
-  expect(token.length).toBeGreaterThan(keyPrefix.length);
   await page.goto('/app/conta');
   const aside = page.getByRole('complementary', { name: 'Resumo da conta' });
   await expect(aside).toBeVisible();
   await expect(aside.getByRole('region', { name: 'Identificação' })).toContainText('Conta pré-paga, em reais');
-  const keys = aside.getByRole('region', { name: 'Chaves de API' });
-  await expect(keys).toContainText('ativa');
-  await expect(keys.getByRole('button', { name: 'Gerenciar chaves' })).toBeVisible();
-  // O resumo mostra só o prefixo público: nunca o segredo.
-  await expect(aside).not.toContainText(token);
-  await expect(aside).toContainText(keyPrefix);
+  await expect(aside.getByRole('region', { name: 'Chaves de API' })).toHaveCount(0);
+  await expect(page.getByText('Chaves de API')).toHaveCount(0);
   await expect(aside.getByRole('region', { name: 'Atividade da conta' })).toBeVisible();
+  await expect(page.getByText(/por pesquisa de jurisprudência/)).toBeVisible();
+  await expect(page.getByText(/buscas estimadas|≈ \d+ buscas|por busca jurisprudencial/)).toHaveCount(0);
   const closure = aside.getByRole('region', { name: 'Encerramento de conta' });
   await expect(closure).toContainText('política publicada');
   await closure.getByRole('button', { name: 'Ir para Segurança' }).click();
@@ -443,14 +434,21 @@ test('Conta: a coluna lateral vai para baixo no celular e a página não passa d
   expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });
 
-test('Conectar IA: "Como fica o trabalho" diz o que é cobrado e o que é gratuito', async ({ page }) => {
+test('Conectar IA: só conectar, autorizar e revogar; a privacidade diz que a IA lê os casos ativos', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await login(page, 'conectar@forgelex.test');
   await page.goto('/app/conectar');
-  const how = page.getByRole('region', { name: 'Como fica o trabalho' });
-  await expect(how.getByRole('listitem')).toHaveCount(3);
-  await expect(how).toContainText('sua própria IA, com a sua assinatura');
-  await expect(how).toContainText('comando gratuito não gera lançamento');
+  await expect(page.getByRole('heading', { level: 1, name: 'Conectar o ForgeLex ao ChatGPT ou Claude' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Aplicativos autorizados' })).toBeVisible();
+  for (const removed of ['Testar disponibilidade', 'Ver o guia completo para advogados', 'Atualizar aplicativos'])
+    await expect(page.getByRole('button', { name: removed })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Ver o guia completo para advogados' })).toHaveCount(0);
+  await expect(page.getByText('Gerenciar pesquisas salvas')).toHaveCount(0);
+  await expect(page.getByText('Perguntas que o ForgeLex entende')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Casos' })).toHaveCount(0);
+  await expect(page.getByText('A assinatura da sua IA não paga o ForgeLex')).toBeVisible();
+  await page.getByText('Privacidade da conexão MCP').click();
+  await expect(page.getByText(/a sua IA passa a ler os seus casos ativos/)).toBeVisible();
   const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });
@@ -504,4 +502,19 @@ test('Mesa vazia: a saudação e a caixa de pedido ficam no centro da área; com
 
   await page.setViewportSize({ width: 360, height: 800 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('Conta longa: ao rolar até o fim, a lateral continua inteira na tela, com o menu da conta', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 700 });
+  await login(page, 'rolagem@forgelex.test');
+  await page.goto('/app/conta');
+  await expect(page.getByRole('heading', { level: 1, name: 'Conta e créditos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Últimos lançamentos' })).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => (window.scrollTo(0, document.documentElement.scrollHeight), window.scrollY)))
+    .toBeGreaterThan(0);
+  const aside = await sidebar(page).boundingBox();
+  expect(aside!.y).toBeLessThanOrEqual(1);
+  expect(aside!.y + aside!.height).toBeGreaterThanOrEqual(699);
+  await expect(accountButton(page)).toBeInViewport();
 });

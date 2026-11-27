@@ -1,15 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { recentAccountActivity, summarizeApiKeys } from './account-aside-model';
+import { recentAccountActivity } from './account-aside-model';
 
-const key = (over: Partial<{ id: string; name: string; keyPrefix: string; revokedAt: string | null }> = {}) => ({
-  id: 'k1',
-  name: 'Integração',
-  keyPrefix: 'fx_live_4e21',
-  scopes: ['research:read'],
-  createdAt: '2026-10-01T10:00:00Z',
-  revokedAt: null,
-  ...over,
-});
 const tx = (over: Record<string, unknown> = {}) => ({
   id: 't1',
   type: 'DEBIT',
@@ -20,40 +11,6 @@ const tx = (over: Record<string, unknown> = {}) => ({
   channel: null,
   technical: null,
   ...over,
-});
-
-describe('resumo das chaves de API', () => {
-  it('sem chaves devolve zeros e lista vazia', () => {
-    expect(summarizeApiKeys([])).toEqual({ active: 0, revoked: 0, items: [] });
-  });
-
-  it('conta ativas e revogadas e mostra só o prefixo público de cada chave', () => {
-    const summary = summarizeApiKeys([
-      key({ id: 'a' }),
-      key({ id: 'b', revokedAt: '2026-10-28T08:44:00Z', keyPrefix: 'fx_live_9b07' }),
-    ]);
-    expect(summary.active).toBe(1);
-    expect(summary.revoked).toBe(1);
-    expect(summary.items).toEqual([
-      { id: 'a', name: 'Integração', prefix: 'fx_live_4e21', active: true },
-      { id: 'b', name: 'Integração', prefix: 'fx_live_9b07', active: false },
-    ]);
-  });
-
-  it('mostra no máximo três chaves, as ativas primeiro', () => {
-    const keys = ['a', 'b', 'c', 'd'].map((id, index) =>
-      key({ id, revokedAt: index === 0 ? '2026-10-01T00:00:00Z' : null }),
-    );
-    const summary = summarizeApiKeys(keys);
-    expect(summary.items).toHaveLength(3);
-    expect(summary.items.map((item) => item.active)).toEqual([true, true, true]);
-    expect(summary.active).toBe(3);
-    expect(summary.revoked).toBe(1);
-  });
-
-  it('nunca expõe segredo nem escopo no resumo', () => {
-    expect(JSON.stringify(summarizeApiKeys([key()]))).not.toContain('research:read');
-  });
 });
 
 describe('atividade recente da conta', () => {
