@@ -18,6 +18,12 @@ test('página inicial: a Mesa no centro, jurisprudência e sua IA como temas tra
   await expect(page.locator('#sua-ia')).toBeVisible();
   const nav = page.getByRole('navigation', { name: 'Navegação pública' });
   await expect(nav.getByRole('link')).toHaveText(['Como funciona', 'Preços']);
+  // Logo novo (27/11) no cabeçalho, em tamanho de cabeçalho.
+  const logo = page.getByRole('link', { name: 'ForgeLex, página inicial' }).locator('img[src="/brand/forgelex-logo.svg"]');
+  await expect(logo).toBeVisible();
+  const logoBox = (await logo.boundingBox())!;
+  expect(logoBox.height).toBeGreaterThanOrEqual(28);
+  expect(logoBox.height).toBeLessThanOrEqual(40);
   const body = await page.locator('main').innerText();
   for (const absent of absentEverywhere) expect(body, absent).not.toContain(absent);
   const result = await new AxeBuilder({ page }).withTags(wcag).analyze();

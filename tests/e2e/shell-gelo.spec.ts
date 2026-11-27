@@ -45,6 +45,13 @@ test('a lateral tem Nova conversa, Pasta e Recentes; Conectar IA, Conta e Sair f
   await expect(page).toHaveURL(/\/app\/trabalho$/);
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'gelo');
   const aside = sidebar(page);
+  // Logo novo (27/11): o desenho aprovado, em tamanho de cabeçalho (nem miniatura, nem gigante).
+  const logo = aside.locator('img[src="/brand/forgelex-logo.svg"]');
+  await expect(logo).toBeVisible();
+  const logoBox = (await logo.boundingBox())!;
+  expect(logoBox.height).toBeGreaterThanOrEqual(26);
+  expect(logoBox.height).toBeLessThanOrEqual(36);
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', '/brand/forgelex-simbolo.svg');
   await expect(aside.getByRole('button', { name: 'Nova conversa' })).toBeVisible();
   await expect(folder(page)).toBeVisible();
   await expect(aside.getByText('Recentes', { exact: true })).toBeVisible();
@@ -475,7 +482,7 @@ test('no tema gelo o favicon e a cor da barra do navegador seguem a paleta, já 
   await page.goto('/entrar');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'gelo');
   await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#F4F7F8');
-  await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /fill='%230F5C6E'/);
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', '/brand/forgelex-simbolo.svg');
   expect(await page.locator('meta[name="theme-color"]').count()).toBe(1);
 });
 

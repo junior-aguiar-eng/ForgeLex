@@ -8,7 +8,6 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
-  Scale,
   Search,
   WalletCards,
   X,
@@ -23,6 +22,7 @@ import { consumeDeskEntry, requestDeskEntry } from '../../navigation/desk-entry'
 import { AccountMenu } from './AccountMenu';
 import { useDeskHistorySlot } from './desk-history-slot';
 import { useBalanceCents } from './use-balance';
+import { BrandLogo, BrandSymbol } from '../BrandLogo';
 
 /**
  * Lateral da casca do tema gelo (protótipo de 09/11): a marca no alto, o grupo Trabalho (Mesa, Casos, Jurisprudência),
@@ -150,10 +150,7 @@ export const IceSidebar: React.FC<{
             className="hidden min-h-11 items-center gap-2.5 rounded-[var(--fl-radius-control)] px-1.5 text-ink lg:inline-flex"
             aria-label="ForgeLex, ir para o início"
           >
-            <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[9px] bg-accent text-surface">
-              <Scale className="h-4 w-4" aria-hidden="true" />
-            </span>
-            <span className={`font-editorial text-lg font-semibold ${collapsed ? 'lg:hidden' : ''}`}>ForgeLex</span>
+            {collapsed ? <BrandSymbol size={30} /> : <BrandLogo height={30} />}
           </button>
           <button
             type="button"

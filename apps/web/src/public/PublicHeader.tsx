@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Menu, Scale, X } from 'lucide-react';
+import { BrandLogo } from '../components/BrandLogo';
 
 const navigation = [
   { label: 'Produto', href: '/produto' },
@@ -57,10 +58,16 @@ export function PublicHeader({ model = false }: { model?: boolean }) {
           className="inline-flex shrink-0 items-center gap-2.5 rounded-lg text-stone-900"
           aria-label="ForgeLex, página inicial"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-cognac-700 text-white">
-            <Scale className="h-5 w-5" aria-hidden="true" />
-          </span>
-          <span className="font-editorial text-xl font-bold">ForgeLex</span>
+          {model ? (
+            <BrandLogo height={34} />
+          ) : (
+            <>
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-cognac-700 text-white">
+                <Scale className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <span className="font-editorial text-xl font-bold">ForgeLex</span>
+            </>
+          )}
         </a>
         <nav className="ml-auto hidden items-center gap-1 xl:flex" aria-label="Navegação pública">
           {links.map((item) => (

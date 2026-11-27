@@ -98,7 +98,7 @@ describe('script de tema do index.html', () => {
   it('gelo: troca o favicon e define a cor da barra do navegador; o clássico não mexe em nenhum dos dois', () => {
     const gelo = run('gelo');
     expect(gelo.queries).toEqual(['link[rel="icon"]']);
-    expect(gelo.iconHref).toContain("fill='%230F5C6E'");
+    expect(gelo.iconHref).toBe('/brand/forgelex-simbolo.svg');
     expect(gelo.themeColors).toEqual([{ name: 'theme-color', content: '#F4F7F8' }]);
     for (const configured of ['classico', '', 'qualquer-coisa']) {
       const classic = run(configured);
@@ -126,7 +126,8 @@ describe('script de tema do index.html', () => {
     };
     expect(hex('--fl-canvas')).toBe('#F4F7F8');
     expect(hex('--fl-accent')).toBe('#0F5C6E');
-    expect(run('gelo').iconHref).toContain(`%23${hex('--fl-accent').slice(1)}`);
+    // 27/11: o favicon do gelo é o símbolo do ForgeLex, que tem as próprias cores; só a barra segue o fundo do tema.
+    expect(run('gelo').iconHref).toBe('/brand/forgelex-simbolo.svg');
     expect(run('gelo').themeColors[0]).toEqual({ name: 'theme-color', content: hex('--fl-canvas') });
   });
 
