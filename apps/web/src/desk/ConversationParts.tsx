@@ -4,12 +4,15 @@ import type { Delivery } from '../agentic-workspace/execution-model';
 
 /** Cabeçalho da Mesa: título da tela inicial ou o cabeçalho curto de uma conversa aberta. */
 export function WorkspaceHeader({
+  centered = false,
   landing,
   guided,
   hasPiece,
   busy,
   onNew,
 }: {
+  /** Gelo, Mesa vazia: saudação centrada, na largura da caixa de pedido. */
+  centered?: boolean;
   landing: boolean;
   /** Há uma orientação guiada em andamento (o título visível passa a ser só para leitor de tela). */
   guided: boolean;
@@ -22,9 +25,11 @@ export function WorkspaceHeader({
       className={
         landing && guided
           ? 'sr-only'
-          : landing
-            ? `mx-auto w-full max-w-3xl ${hasPiece ? 'pt-0' : 'pt-8'}`
-            : 'mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3'
+          : landing && centered
+            ? 'mx-auto w-full max-w-[680px] text-center'
+            : landing
+              ? `mx-auto w-full max-w-3xl ${hasPiece ? 'pt-0' : 'pt-8'}`
+              : 'mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3'
       }
     >
       {landing && guided ? (

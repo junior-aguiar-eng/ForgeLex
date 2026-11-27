@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { getBillingTransactions, listApiKeys } from '../../api-client';
+import { getBillingTransactions } from '../../api-client';
 import { useAuth } from '../../auth/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { formatBRL } from '../../format';
-import { recentAccountActivity, summarizeApiKeys, type ActivityLine } from './account-aside-model';
+import { recentAccountActivity, type ActivityLine } from './account-aside-model';
 
 /**
  * Coluna lateral da Conta (tema gelo, V5): identificação, resumo das chaves, atividade recente e encerramento. Cada
@@ -21,15 +21,10 @@ const shortDate = (value: string) => new Date(value).toLocaleDateString('pt-BR')
 export const AccountAside: React.FC = () => {
   const { account } = useAuth();
   const { setActiveTab } = useApp();
-  const [keys, setKeys] = useState<Load<ReturnType<typeof summarizeApiKeys>>>({ state: 'loading' });
   const [activity, setActivity] = useState<Load<ActivityLine[]>>({ state: 'loading' });
 
   useEffect(() => {
     let alive = true;
-    listApiKeys().then(
-      (result) => alive && setKeys({ state: 'ready', value: summarizeApiKeys(result.items) }),
-      () => alive && setKeys({ state: 'error' }),
-    );
     getBillingTransactions().then(
       (result) => alive && setActivity({ state: 'ready', value: recentAccountActivity(result.items) }),
       () => alive && setActivity({ state: 'error' }),
@@ -54,34 +49,6 @@ export const AccountAside: React.FC = () => {
           <p className="mt-2 text-sm text-muted">Dados da conta indisponíveis.</p>
         )}
         <p className="mt-1 text-xs text-subtle">Conta pré-paga, em reais.</p>
-      </section>
-
-      <section aria-labelledby="conta-chaves" className={card}>
-        <h2 id="conta-chaves" className={label}>
-          Chaves de API
-        </h2>
-        {keys.state === 'loading' && <p className="mt-2 text-sm text-muted">Carregando…</p>}
-        {keys.state === 'error' && <p className="mt-2 text-sm text-muted">Chaves indisponíveis no momento.</p>}
-        {keys.state === 'ready' &&
-          (keys.value.items.length ? (
-            <ul className="mt-2 space-y-1.5">
-              {keys.value.items.map((item) => (
-                <li key={item.id} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="min-w-0 truncate font-mono text-[13px] text-ink-soft" title={item.name}>
-                    {item.prefix}…
-                  </span>
-                  <span className={`shrink-0 text-xs font-semibold ${item.active ? 'text-ok' : 'text-subtle'}`}>
-                    {item.active ? 'ativa' : 'revogada'}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-2 text-sm text-muted">Nenhuma chave criada.</p>
-          ))}
-        <button type="button" onClick={() => setActiveTab('api_keys')} className={`mt-1 ${link}`}>
-          Gerenciar chaves
-        </button>
       </section>
 
       <section aria-labelledby="conta-atividade" className={card}>

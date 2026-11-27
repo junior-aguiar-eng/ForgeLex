@@ -1,7 +1,8 @@
 import React from 'react';
-import { Menu, Scale } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { DESK_ENABLED } from '../../config/site-capabilities';
+import { BrandLogo } from '../BrandLogo';
 
 /**
  * Barra de cima do tema gelo, só abaixo de `lg` (V2): a marca e o botão da gaveta. Na tela larga não há cabeçalho, como
@@ -18,10 +19,7 @@ export const IceHeader: React.FC<{ menuOpen: boolean; onMenuToggle: () => void }
           className="group flex min-w-0 shrink-0 items-center gap-2.5 rounded-[var(--fl-radius-control)] pr-2"
           aria-label="ForgeLex, ir para o início"
         >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--fl-radius-control)] bg-accent text-surface">
-            <Scale className="h-5 w-5" aria-hidden="true" />
-          </span>
-          <span className="font-editorial truncate text-xl font-semibold tracking-tight text-ink">ForgeLex</span>
+          <BrandLogo height={30} />
         </button>
         <button
           id="forgelex-menu-toggle"

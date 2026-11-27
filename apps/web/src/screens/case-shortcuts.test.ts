@@ -123,8 +123,8 @@ describe('tela inicial interna no modelo novo (V5A)', () => {
     const { LandingScreen } = await import('./LandingScreen');
     const home = renderToStaticMarkup(React.createElement(LandingScreen));
     const text = home.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-    expect(home).toContain('Sua IA, com jurisprudência que dá para conferir.');
-    expect(text).toContain('pesquise decisões com a fonte e o estado de verificação de cada resultado');
+    expect(home).toContain('Peças jurídicas prontas para revisar, com a jurisprudência na fonte.');
+    expect(text).toContain('com decisões do STJ e a fonte de cada uma');
     expect(text).toContain('Fonte e estado de verificação');
     for (const gone of ['Do caso à minuta', 'Revisão humana antes de efeitos externos', 'Fontes e fatos rastreáveis'])
       expect(home, gone).not.toContain(gone);
@@ -139,6 +139,6 @@ describe('tela inicial interna no modelo novo (V5A)', () => {
     const { LandingScreen } = await import('./LandingScreen');
     const home = renderToStaticMarkup(React.createElement(LandingScreen));
     expect(home).toContain('Jurisprudência dos tribunais superiores e consulta processual.');
-    expect(home).not.toContain('Sua IA, com jurisprudência');
+    expect(home).not.toContain('Peças jurídicas prontas para revisar');
   });
 });

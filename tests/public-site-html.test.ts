@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   OG_IMAGE_GELO_PATH,
   OG_IMAGE_PATH,
+  modelSitemap,
   transformPublicIndexHtml,
   transformPublicText,
 } from '../apps/web/public-site-html-plugin';
@@ -80,5 +81,17 @@ describe('index.html montado no build (V5A, parte 3)', () => {
     expect(() => transformPublicIndexHtml('<title>outro</title>', { model: true })).toThrow(
       /não contém o texto esperado/,
     );
+  });
+});
+
+describe('sitemap no modelo novo (27/11)', () => {
+  it('lista só Início, Como funciona e Preços; sem o modelo o arquivo fica igual', () => {
+    const sitemap = readFileSync('apps/web/public/sitemap.xml', 'utf8');
+    const model = modelSitemap(sitemap);
+    for (const kept of ['/</loc>', '/como-funciona</loc>', '/creditos</loc>']) expect(model).toContain(kept);
+    for (const removed of ['/produto<', '/integracoes<', '/guia<', '/consulta-processual<', '/desenvolvedores/api<'])
+      expect(model).not.toContain(removed);
+    expect(model).toMatch(/^<\?xml/);
+    expect(model.trim().endsWith('</urlset>')).toBe(true);
   });
 });

@@ -418,6 +418,8 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(body.resource).toBe('https://nexojuris.ia.br/mcp');
     expect(body.authorization_servers).toEqual([]);
     expect(body.scopes_supported).toEqual(['email', 'profile']);
+    // 27/11: o guia saiu do site; a documentação é a página pública Como funciona, aberta sem login.
+    expect(body.resource_documentation).toBe('https://nexojuris.ia.br/como-funciona');
   });
 
   it('deriva os metadados OAuth do ambiente de implantação', async () => {

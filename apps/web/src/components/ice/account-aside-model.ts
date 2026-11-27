@@ -1,4 +1,4 @@
-import type { BillingTransaction, PublicApiKey } from '../../api-client';
+import type { BillingTransaction } from '../../api-client';
 import { billingActivityLabel } from '../../screens/AccountActivityScreen';
 
 /**
@@ -12,21 +12,6 @@ export interface ApiKeyLine {
   name: string;
   prefix: string;
   active: boolean;
-}
-
-export function summarizeApiKeys(keys: Pick<PublicApiKey, 'id' | 'name' | 'keyPrefix' | 'revokedAt'>[]) {
-  const lines: ApiKeyLine[] = keys.map((key) => ({
-    id: key.id,
-    name: key.name,
-    prefix: key.keyPrefix,
-    active: !key.revokedAt,
-  }));
-  const ordered = [...lines.filter((line) => line.active), ...lines.filter((line) => !line.active)];
-  return {
-    active: lines.filter((line) => line.active).length,
-    revoked: lines.filter((line) => !line.active).length,
-    items: ordered.slice(0, LIMIT),
-  };
 }
 
 export interface ActivityLine {

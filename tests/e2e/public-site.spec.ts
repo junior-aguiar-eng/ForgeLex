@@ -41,7 +41,7 @@ test('favicon e theme-color seguem o tema: o clássico não define theme-color e
   await expect(page.locator('html')).toHaveAttribute('data-theme', ice ? 'gelo' : 'classico');
   if (ice) {
     await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#F4F7F8');
-    await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /fill='%230F5C6E'/);
+    await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', '/brand/forgelex-simbolo.svg');
   } else {
     expect(await page.locator('meta[name="theme-color"]').count()).toBe(0);
     await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /fill='%238E5D2A'/);

@@ -42,12 +42,12 @@
           preload.href = '/fonts/inter-latin-400-normal.woff2';
           preload.crossOrigin = 'anonymous';
           document.head.appendChild(preload);
-          // V6: favicon e cor da barra do navegador na paleta do gelo (acento e fundo de apps/web/src/index.css).
+          // V6: favicon (o símbolo do ForgeLex, 27/11) e cor da barra do navegador na paleta do gelo (acento e fundo de apps/web/src/index.css).
           var icon = document.querySelector && document.querySelector('link[rel="icon"]');
           if (icon) {
             icon.setAttribute(
               'href',
-              "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230F5C6E'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>",
+              '/brand/forgelex-simbolo.svg',
             );
           }
           var color = document.createElement('meta');

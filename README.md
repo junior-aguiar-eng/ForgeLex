@@ -1,6 +1,6 @@
 # FORGELEX — Plataforma Agêntica Jurídica Agnóstica V2
 
-> **Sua IA, com jurisprudência que dá para conferir.**
+> **Peças jurídicas prontas para revisar, com a jurisprudência na fonte.**
 > Conecte o ForgeLex ao ChatGPT ou ao Claude por MCP e pesquise decisões com a fonte e o estado de verificação de cada resultado. Você paga só pelo uso.
 
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-5.7%20Strict-blue.svg)](https://www.typescriptlang.org/)
