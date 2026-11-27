@@ -1,5 +1,5 @@
 import { isKnownPath, resolveVisibleTab, routeForTab, tabForPath, type AppTab } from './routes';
-import { AGENTIC_WORKSPACE_ENABLED, CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
+import { AGENTIC_WORKSPACE_ENABLED, CASE_WORKSPACE_ENABLED, PUBLIC_MODEL_ENABLED } from '../config/site-capabilities';
 
 export type PublicPage =
   'home' | 'product' | 'how' | 'integrations' | 'credits' | 'guide' | 'api_docs' | 'datajud' | 'not_found';
@@ -20,13 +20,20 @@ const publicPaths: Record<string, PublicPage> = {
   '/desenvolvedores/api': 'api_docs',
 };
 
+const MODEL_PAGES: ReadonlySet<PublicPage> = new Set(['home', 'how', 'credits']);
+
 export function resolveSiteRoute(
   pathname: string,
   casesEnabled = CASE_WORKSPACE_ENABLED,
   workEnabled = AGENTIC_WORKSPACE_ENABLED,
+  model = PUBLIC_MODEL_ENABLED,
 ): SiteRoute {
   const path = pathname.replace(/\/+$/, '') || '/';
-  if (path in publicPaths) return { kind: 'public', page: publicPaths[path] };
+  if (path in publicPaths) {
+    const page = publicPaths[path];
+    // Modelo novo (27/11): o site tem só Início, Como funciona e Preços; as outras páginas levam ao Início.
+    return { kind: 'public', page: model && !MODEL_PAGES.has(page) ? 'home' : page };
+  }
   if (path === '/entrar') return { kind: 'auth', view: 'sign_in' };
   if (path === '/cadastro') return { kind: 'auth', view: 'sign_up' };
   if (isKnownPath(path))

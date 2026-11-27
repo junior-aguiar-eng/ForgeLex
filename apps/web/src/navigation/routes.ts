@@ -76,15 +76,21 @@ export function canonicalPathname(pathname: string, theme: Theme = activeTheme()
   return canonical && canonical !== normalizePath(pathname) ? canonical : pathname;
 }
 
-/** Telas que, no gelo com a Mesa, deixaram de existir e abrem a Mesa (regra do mínimo, AGENTS.md, 26/11/2026). */
-const iceRemovedTabs: ReadonlySet<AppTab> = new Set(['matter', 'landing', 'research', 'datajud', 'draft_studio', 'dashboard']);
+/**
+ * Telas que, no gelo com a Mesa, deixaram de existir, e para onde cada uma leva (regra do mínimo, AGENTS.md, 26/11/2026).
+ * Em 27/11 saíram também Chaves de API (vai à Conta) e o guia e a API (vão a Conectar IA).
+ */
+const iceRemovedTabs: ReadonlyMap<AppTab, AppTab> = new Map<AppTab, AppTab>([
+  ['matter', 'work'], ['landing', 'work'], ['research', 'work'], ['datajud', 'work'], ['draft_studio', 'work'],
+  ['dashboard', 'work'], ['api_keys', 'credits'], ['for_lawyers_guide', 'connections'], ['api_docs', 'connections'],
+]);
 
 /**
  * Para onde a navegação vai de fato. No gelo tudo vive na Mesa: Casos, Visão geral, Jurisprudência, Andamento,
  * Rascunhos e Revisão (inclusive os links antigos) abrem a Mesa. Sem a Mesa não há para onde mandar.
  */
 export function iceCaseDestination(tab: AppTab, _hasCase: boolean, deskEnabled: boolean, theme: Theme = activeTheme()): AppTab {
-  return theme === 'gelo' && deskEnabled && iceRemovedTabs.has(tab) ? 'work' : tab;
+  return theme === 'gelo' && deskEnabled ? (iceRemovedTabs.get(tab) ?? tab) : tab;
 }
 
 export function isKnownPath(pathname: string): boolean {

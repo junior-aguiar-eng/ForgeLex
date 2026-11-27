@@ -154,8 +154,17 @@ describe('Dados do caso no tema gelo (U7)', () => {
       expect(iceCaseDestination(tab, false, true, 'gelo')).toBe('work');
       expect(iceCaseDestination(tab, false, false, 'gelo')).toBe(tab);
     }
-    for (const tab of ['work', 'credits', 'connections', 'api_keys'] as const) {
+    for (const tab of ['work', 'credits', 'connections'] as const) {
       expect(iceCaseDestination(tab, false, true, 'gelo')).toBe(tab);
+    }
+  });
+
+  it('27/11: Chaves de API leva à Conta; o guia e a API levam a Conectar IA; o clássico não muda', () => {
+    expect(iceCaseDestination('api_keys', false, true, 'gelo')).toBe('credits');
+    expect(iceCaseDestination('for_lawyers_guide', false, true, 'gelo')).toBe('connections');
+    expect(iceCaseDestination('api_docs', false, true, 'gelo')).toBe('connections');
+    for (const tab of ['api_keys', 'for_lawyers_guide', 'api_docs'] as const) {
+      expect(iceCaseDestination(tab, false, true, 'classico')).toBe(tab);
     }
   });
 

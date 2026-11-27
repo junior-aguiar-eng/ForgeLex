@@ -15,21 +15,23 @@ export const IceFrame: React.FC<{ tab: AppTab }> = ({ tab }) => {
   const connect = connectSections();
   const group = account.some((section) => section.tab === tab)
     ? { title: 'Conta e créditos', label: 'Seções da conta', sections: account }
-    : connect.some((section) => section.tab === tab)
+    : tab === 'connections'
       ? { title: 'Conectar a sua IA', label: 'Seções de Conectar IA', sections: connect }
       : undefined;
   if (!group) return null;
   return (
     <PageHeader title={group.title}>
-      <SectionTabs
-        label={group.label}
-        items={group.sections.map((section) => ({
-          key: section.tab,
-          label: section.label,
-          active: section.tab === tab,
-          onSelect: () => setActiveTab(section.tab),
-        }))}
-      />
+      {group.sections.length > 1 && (
+        <SectionTabs
+          label={group.label}
+          items={group.sections.map((section) => ({
+            key: section.tab,
+            label: section.label,
+            active: section.tab === tab,
+            onSelect: () => setActiveTab(section.tab),
+          }))}
+        />
+      )}
     </PageHeader>
   );
 };

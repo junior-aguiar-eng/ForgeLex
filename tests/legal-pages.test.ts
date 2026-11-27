@@ -54,4 +54,19 @@ describe('páginas legais públicas', () => {
     expect(html).toMatch(/quinze dias/i);
     expect(html).toContain('/legal/termos-de-uso.html');
   });
+
+  it('27/11: Mesa de trabalho com a reserva vigente, anexos só como texto e a IA conectada lendo os casos ativos', () => {
+    const terms = readFileSync(resolve(root, 'legal/termos-de-uso.html'), 'utf8').replace(/\s+/g, ' ');
+    const privacy = readFileSync(resolve(root, 'legal/privacidade.html'), 'utf8').replace(/\s+/g, ' ');
+    for (const html of [terms, privacy]) {
+      expect(html).toContain('Versão 2026-11-27.v1 · atualizada em 27 de novembro de 2026');
+      expect(html).toContain('Mesa de trabalho');
+      expect(html).toContain('só o texto extraído acompanha o pedido');
+      expect(html).toMatch(/lê o conteúdo dos seus casos ativos/);
+    }
+    expect(terms).toContain('A reserva inicial é de R$ 11,50');
+    expect(terms).not.toContain('R$ 5,00');
+    expect(terms).toContain('R$ 20,00 por dia e R$ 100,00 por mês');
+    expect(privacy).toContain('Não ativamos compartilhamento voluntário de dados para treinamento');
+  });
 });

@@ -1466,7 +1466,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       authorization_servers: mcpOAuth.authorizationServers,
       scopes_supported: ['email', 'profile'],
       bearer_methods_supported: ['header'],
-      resource_documentation: `${new URL(mcpResourceUrl).origin}/guia/mcp`,
+      resource_documentation: `${new URL(mcpResourceUrl).origin}/como-funciona`,
     };
   });
 

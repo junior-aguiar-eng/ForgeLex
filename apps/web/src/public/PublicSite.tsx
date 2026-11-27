@@ -30,6 +30,9 @@ const pages = {
 export function PublicSite({ page, model = PUBLIC_MODEL_ENABLED }: { page: PublicPage; model?: boolean }) {
   useEffect(() => {
     applyPublicMetadata(page, model);
+    // Modelo novo (27/11): os endereços das páginas que saíram abrem o Início e passam a mostrar o endereço dele.
+    if (model && page === 'home' && window.location.pathname !== '/')
+      window.history.replaceState(window.history.state, '', `/${window.location.hash}`);
     if (window.location.hash)
       requestAnimationFrame(() => document.getElementById(window.location.hash.slice(1))?.scrollIntoView());
   }, [page, model]);
@@ -44,7 +47,7 @@ export function PublicSite({ page, model = PUBLIC_MODEL_ENABLED }: { page: Publi
       >
         Pular para o conteúdo
       </a>
-      <PublicHeader />
+      <PublicHeader model={model} />
       <main id="conteudo">
         <Page model={model} />
       </main>

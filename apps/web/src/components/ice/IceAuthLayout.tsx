@@ -1,7 +1,8 @@
 import React from 'react';
-import { Scale, Search, ShieldCheck, WalletCards } from 'lucide-react';
+import { Search, ShieldCheck, WalletCards } from 'lucide-react';
 import { PRODUCT_DESCRIPTION } from '../../config/research-copy';
 import { PILLARS } from '../../public/pages/PublicSections';
+import { BrandLogo } from '../BrandLogo';
 
 const ICONS = [Search, ShieldCheck, WalletCards] as const;
 
@@ -17,10 +18,7 @@ export const IceAuthLayout: React.FC<{ children: React.ReactNode }> = ({ childre
       className="hidden min-w-0 flex-[1_1_420px] flex-col border-r border-line bg-surface px-12 pb-14 pt-12 lg:flex"
     >
       <a href="/" className="inline-flex items-center gap-2.5 text-ink" aria-label="ForgeLex, página inicial">
-        <span className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-accent text-surface">
-          <Scale className="h-[17px] w-[17px]" aria-hidden="true" />
-        </span>
-        <span className="font-editorial text-xl font-semibold">ForgeLex</span>
+        <BrandLogo height={34} />
       </a>
       <p className="mt-11 max-w-[420px] font-editorial text-4xl font-semibold leading-[1.18] text-ink">
         Fontes visíveis. Decisões sob controle humano.

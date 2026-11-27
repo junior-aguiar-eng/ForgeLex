@@ -63,9 +63,10 @@ Os textos só devem mudar na mesma publicação em que o texto do site no modelo
 
 Conferido com `gcloud` em 27/11/2026 no `forgelex-api-prod` (revisão `forgelex-api-prod-81d0557-f4629475`):
 `FORGELEX_COMMERCIAL_EXECUTION_ENABLED=true` e `FORGELEX_EDITORIAL_COMMERCIAL_ENABLED=true`. A Mesa comercial **já está no
-ar**, e os textos publicados não a descrevem. A frase dos termos “O ForgeLex não vende tokens nem fornece o modelo de IA do
-usuário” continua verdadeira só para o conector MCP. A regra “os textos mudam junto com o site no modelo novo” fica
-superada: a correção não depende do gelo nem da V5A.
+ar**. A revisão inicial considerou que os textos publicados não a descreviam; a aplicação registrada abaixo corrigiu esse
+diagnóstico: eles já descreviam o envio à OpenAI no trabalho nativo e as principais condições de processamento. O que ainda
+precisava ser explicitado era o nome “Mesa de trabalho”, a reserva atual, os anexos como texto extraído e o acesso da IA
+conectada aos casos ativos. A correção não depende do gelo nem da V5A.
 
 Fatos novos ou corrigidos desde 18/11:
 
@@ -77,7 +78,7 @@ Fatos novos ou corrigidos desde 18/11:
 | Conversa nova num caso recebe o histórico das outras conversas do mesmo caso. | MIN |
 | Cobrança da Mesa: reserva de R$ 11,50 por trabalho, teto diário de R$ 20,00 e mensal de R$ 100,00. | Plano, seção 1 |
 
-Redação acrescentada à proposta (para Boni decidir):
+Redação proposta na revisão inicial e reconciliada com a aplicação registrada abaixo:
 
 **Política de privacidade, seção “IA conectada”:**
 > Quando você conecta sua própria IA ao ForgeLex e autoriza o acesso, essa conexão passa a ler o conteúdo de todos os seus
@@ -92,3 +93,12 @@ contrato da OpenAI diz sobre treino e prazo de retenção continua para Boni con
 **Termos de uso:** trocar “O ForgeLex não vende tokens nem fornece o modelo de IA do usuário” por “No conector, o ForgeLex
 não fornece o modelo de IA do usuário. Na Mesa de trabalho, o ForgeLex usa modelo próprio e cobra por trabalho, com reserva
 prévia de R$ 11,50 e limites diário de R$ 20,00 e mensal de R$ 100,00”, desde que esses valores sejam os exibidos na Conta.
+
+## Aplicação (27/11/2026)
+
+Aprovado por Boni em 27/11/2026 e aplicado em `termos-de-uso.html` e `privacidade.html`, versão `2026-11-27.v1`. Na
+aplicação apareceu que os dois textos **já** descreviam o envio à OpenAI no “trabalho nativo”, com armazenamento de
+resposta desligado, registros de abuso por até 30 dias e sem compartilhamento voluntário para treinamento; a lacuna
+principal de 18/11 estava superestimada. O que mudou: o nome “Mesa de trabalho”, a reserva de R$ 11,50 (estava R$ 5,00;
+`COMMERCIAL_POLICY.reserveCents = 1150`), os anexos como texto extraído (até 100.000 caracteres) e a leitura dos casos
+ativos pela IA conectada (decisão de 26/11). Retenção e encerramento sem mudança.

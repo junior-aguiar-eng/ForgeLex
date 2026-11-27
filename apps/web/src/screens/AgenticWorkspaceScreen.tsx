@@ -362,6 +362,7 @@ export function AgenticWorkspaceScreen({
   const landing = !run && !id;
   // Tema gelo: o andamento vira a lista de etapas do trabalho (V3).
   const ice = activeTheme() === 'gelo';
+  const centered = ice && landing && closedPilot === false && !guidance.id && !piece;
   const paidBar = (kinds: 'start' | 'other') =>
     commercial &&
     paidCommand &&
@@ -382,7 +383,8 @@ export function AgenticWorkspaceScreen({
     <div
       data-agentic-workspace
       aria-busy={busy}
-      className="flex h-full min-h-0 min-w-0 flex-col px-4 py-3 text-stone-800"
+      // Mesa vazia no gelo: a área ocupa a altura visível (menos a barra de cima) para a caixa ficar no centro.
+      className={`flex h-full min-h-0 min-w-0 flex-col px-4 py-3 text-stone-800 ${centered ? 'min-h-[calc(100dvh-3rem)]' : ''}`}
     >
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col space-y-4">
@@ -407,7 +409,10 @@ export function AgenticWorkspaceScreen({
                 }
               : {})}
           />
+          {/* Gelo, Mesa vazia (27/11): espaços flexíveis acima e abaixo põem saudação e caixa de pedido no centro. */}
+          {centered && <div aria-hidden="true" className="flex-1" />}
           <WorkspaceHeader
+            centered={centered}
             landing={landing}
             guided={Boolean(guidance.id)}
             hasPiece={Boolean(piece)}
@@ -465,7 +470,7 @@ export function AgenticWorkspaceScreen({
           )}
           {closedPilot === false && landing && (
             <div
-              className={`mx-auto w-full max-w-3xl space-y-4 ${guidance.id ? 'min-h-0 overflow-y-auto px-1 pb-3' : ''}`}
+              className={`mx-auto w-full ${centered ? 'max-w-[680px]' : 'max-w-3xl'} space-y-4 ${guidance.id ? 'min-h-0 overflow-y-auto px-1 pb-3' : ''}`}
             >
               {guidance.id && (
                 <GuidancePanel
@@ -507,6 +512,7 @@ export function AgenticWorkspaceScreen({
               {paidBar('start')}
             </div>
           )}
+          {centered && <div aria-hidden="true" className="flex-[1.2]" />}
           {run && (
             <div className="min-h-0 flex-1 grid gap-6">
               <div className="mx-auto flex min-h-0 w-full min-w-0 max-w-3xl flex-col">

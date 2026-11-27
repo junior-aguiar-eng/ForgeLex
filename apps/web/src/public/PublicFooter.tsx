@@ -4,10 +4,32 @@ import { resolveApiOrigin } from '../api-client';
 export const FOOTER_TAGLINE =
   'Jurisprudência dos tribunais superiores e consulta processual por MCP e API, com fontes e proveniência.';
 export const FOOTER_TAGLINE_MODEL =
-  'Mesa de trabalho para elaborar e revisar peças e jurisprudência com fonte para a sua IA, por MCP e API.';
+  'Mesa de trabalho para peças jurídicas, com a jurisprudência na fonte e uso na sua IA por MCP.';
 
 export function PublicFooter({ model = false }: { model?: boolean }) {
-  const groups = [
+  const legal = {
+    title: 'Legal',
+    links: [
+      ['Termos de uso', '/legal/termos-de-uso.html'],
+      ['Política de Privacidade', '/legal/privacidade.html'],
+      ['Termos de encerramento', '/legal/encerramento-de-conta.html'],
+      ['Política de destinação', '/legal/retencao-pos-encerramento.html'],
+    ],
+  } as const;
+  // Modelo novo (27/11): só as páginas que existem nele e os documentos legais.
+  const modelGroups = [
+    {
+      title: 'Produto',
+      links: [
+        ['Início', '/'],
+        ['Como funciona', '/como-funciona'],
+        ['Preços', '/creditos'],
+        ['Conectar sua IA', '/entrar?next=%2Fapp%2Fconectar'],
+      ],
+    },
+    legal,
+  ] as const;
+  const currentGroups = [
     {
       title: 'Produto',
       links: [
@@ -45,6 +67,7 @@ export function PublicFooter({ model = false }: { model?: boolean }) {
       ],
     },
   ] as const;
+  const groups = model ? modelGroups : currentGroups;
   return (
     <footer className="border-t border-champagne-border bg-white/65">
       <div className="page-container grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-5">

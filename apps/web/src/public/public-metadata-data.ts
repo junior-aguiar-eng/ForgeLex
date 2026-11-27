@@ -75,9 +75,9 @@ export const metadata: Record<PublicPage, PageMetadata> = {
  */
 export const modelMetadata: Partial<Record<PublicPage, PageMetadata>> = {
   home: {
-    title: 'ForgeLex · Sua IA, com jurisprudência que dá para conferir',
+    title: 'ForgeLex · Peças jurídicas prontas para revisar, com a jurisprudência na fonte',
     description:
-      'Conecte o ForgeLex ao ChatGPT ou ao Claude por MCP e pesquise decisões com a fonte e o estado de verificação de cada resultado, e elabore e revise peças na Mesa de trabalho. Pagamento só pelo uso e consulta processual gratuita.',
+      'Descreva o que precisa e anexe o que tiver: a Mesa de trabalho prepara a peça para você revisar, com decisões do STJ e a fonte de cada uma. Use também no ChatGPT ou no Claude por MCP. Pagamento só pelo uso.',
     path: '/',
   },
   product: {
@@ -89,7 +89,7 @@ export const modelMetadata: Partial<Record<PublicPage, PageMetadata>> = {
   how: {
     title: 'Como funciona · ForgeLex',
     description:
-      'Descreva o que precisa na Mesa de trabalho, responda o que faltar e revise a peça com as fontes à vista; ou conecte o ChatGPT ou o Claude por MCP e pesquise com a fonte à vista.',
+      'Na Mesa de trabalho, descreva o que precisa, anexe o que tiver e revise a peça com as fontes à vista. Na sua IA, conecte o ChatGPT ou o Claude por MCP.',
     path: '/como-funciona',
   },
   integrations: {
@@ -99,9 +99,9 @@ export const modelMetadata: Partial<Record<PublicPage, PageMetadata>> = {
     path: '/integracoes',
   },
   credits: {
-    title: 'Créditos · ForgeLex',
+    title: 'Preços · ForgeLex',
     description:
-      'Você paga só pelo uso: créditos pré-pagos em reais para a pesquisa jurisprudencial válida e os trabalhos da Mesa, e custos do aplicativo de IA separados.',
+      'Você paga só pelo uso: créditos pré-pagos em reais para os trabalhos da Mesa e a pesquisa de jurisprudência, sem mensalidade; a sua IA tem custos próprios.',
     path: '/creditos',
   },
   guide: {

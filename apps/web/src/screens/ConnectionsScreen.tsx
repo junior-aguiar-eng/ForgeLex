@@ -10,6 +10,8 @@ import { AuthorizedApplications } from './connections/AuthorizedApplications';
 import { SavedResearchPermissions } from '../research/SavedResearchPermissions';
 
 export const ConnectionsScreen: React.FC = () => {
+  // Gelo (27/11): só conectar, autorizar e revogar; o guia, o teste, as pesquisas salvas e os exemplos saíram.
+  const ice = activeTheme() === 'gelo';
   const [platform, setPlatform] = useState<HostPlatform>('chatgpt');
   const [connectionStatus, setConnectionStatus] = useState<McpConnectionStatusResponse | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
@@ -39,37 +41,25 @@ export const ConnectionsScreen: React.FC = () => {
         <div>
           <p className="eyebrow">Conexão MCP</p>
           <h1 className="font-editorial text-3xl font-bold text-stone-900 sm:text-4xl">Conectar o ForgeLex ao ChatGPT ou Claude</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-7 text-stone-600">Configure o aplicativo, autorize sua conta ForgeLex e confira o acesso. As instruções abaixo mostram cada etapa; as autorizações podem ser consultadas e revogadas nesta página.</p>
+          <p className="mt-2 max-w-3xl text-sm leading-7 text-stone-600">{ice ? 'Configure a sua IA e autorize sua conta ForgeLex. As instruções abaixo mostram cada etapa; as autorizações podem ser consultadas e revogadas nesta página.' : 'Configure o aplicativo, autorize sua conta ForgeLex e confira o acesso. As instruções abaixo mostram cada etapa; as autorizações podem ser consultadas e revogadas nesta página.'}</p>
         </div>
         <span className="inline-flex w-fit items-center gap-2 rounded-full border border-stone-200 bg-stone-100 px-3 py-1.5 text-xs font-semibold text-stone-700"><ShieldCheck className="h-3.5 w-3.5 text-cognac-700" aria-hidden="true" /> Sem chaves de modelo no ForgeLex</span>
       </header>
 
-      <section className="surface-subtle flex flex-col gap-3 p-4 text-sm text-stone-600 sm:flex-row sm:items-center sm:justify-between"><p>Prefere um roteiro sem termos técnicos? Veja o guia antes de configurar o aplicativo conectado.</p><a href="/guia/mcp" className="btn-secondary shrink-0">Ver o guia completo para advogados</a></section>
+      {!ice && <section className="surface-subtle flex flex-col gap-3 p-4 text-sm text-stone-600 sm:flex-row sm:items-center sm:justify-between"><p>Prefere um roteiro sem termos técnicos? Veja o guia antes de configurar o aplicativo conectado.</p><a href="/guia/mcp" className="btn-secondary shrink-0">Ver o guia completo para advogados</a></section>}
 
       <section className="surface flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex gap-3"><LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-cognac-700" aria-hidden="true" /><div><h2 className="font-editorial text-xl font-bold text-stone-900">Créditos ForgeLex e assinatura da sua IA</h2><p className="mt-1 text-sm leading-relaxed text-stone-600">A assinatura do ChatGPT ou Claude não paga operações ForgeLex. O ForgeLex cobra somente a pesquisa jurídica faturável; comandos de abrir autoridade e verificar proveniência são gratuitos.</p></div></div>
+        <div className="flex gap-3"><LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-cognac-700" aria-hidden="true" /><div><h2 className="font-editorial text-xl font-bold text-stone-900">Créditos ForgeLex e assinatura da sua IA</h2><p className="mt-1 text-sm leading-relaxed text-stone-600">{ice ? 'A assinatura da sua IA não paga o ForgeLex: a pesquisa com fonte é cobrada por operação; abrir e conferir uma decisão é gratuito.' : 'A assinatura do ChatGPT ou Claude não paga operações ForgeLex. O ForgeLex cobra somente a pesquisa jurídica faturável; comandos de abrir autoridade e verificar proveniência são gratuitos.'}</p></div></div>
       </section>
 
-      {activeTheme() === 'gelo' && (
-        <section aria-labelledby="como-fica" className="rounded-2xl border border-line bg-surface p-5">
-          <h2 id="como-fica" className="text-[11px] font-semibold uppercase tracking-[0.1em] text-subtle">
-            Como fica o trabalho
-          </h2>
-          <ol className="mt-3 grid gap-3 text-sm text-ink-soft sm:grid-cols-3">
-            <li><span className="mr-2 font-mono text-xs text-subtle">1</span>Você conversa na sua própria IA, com a sua assinatura.</li>
-            <li><span className="mr-2 font-mono text-xs text-subtle">2</span>Ela chama as ferramentas do ForgeLex quando precisa de fonte.</li>
-            <li><span className="mr-2 font-mono text-xs text-subtle">3</span>O que for cobrado aparece na atividade da conta, por operação; comando gratuito não gera lançamento.</li>
-          </ol>
-        </section>
-      )}
 
       <nav aria-label="Plataforma para conectar" className="flex flex-wrap gap-3">{connections.map((connection) => <button key={connection.platform} aria-pressed={connection.platform === platform} onClick={() => setPlatform(connection.platform)} className={connection.platform === platform ? 'btn-primary' : 'btn-secondary'}>Mostrar instruções para {platformName(connection.platform)}</button>)}</nav>
 
       <HostInstallationGuide platform={platform} mcpUrl={selectedConnection.mcpUrl} />
       <AuthorizedApplications />
-      {CASE_WORKSPACE_ENABLED && <p className="text-sm text-stone-600">Para compartilhar material, abra o caso em <a className="underline" href="/app/casos">Casos</a> e escolha “Usar este caso na IA”. A conexão só poderá consultar os itens que você permitir; a leitura do material salvo é gratuita.</p>}
+      {!ice && CASE_WORKSPACE_ENABLED && <p className="text-sm text-stone-600">Para compartilhar material, abra o caso em <a className="underline" href="/app/casos">Casos</a> e escolha “Usar este caso na IA”. A conexão só poderá consultar os itens que você permitir; a leitura do material salvo é gratuita.</p>}
 
-      <section className="surface space-y-4 p-5" aria-labelledby="availability-heading">
+      {!ice && <section className="surface space-y-4 p-5" aria-labelledby="availability-heading">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="eyebrow">Teste gratuito</p>
@@ -80,18 +70,19 @@ export const ConnectionsScreen: React.FC = () => {
         </div>
         {statusError ? <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">{statusError}</p> : null}
         {connectionSignals.length > 0 ? <dl className="grid gap-3 md:grid-cols-3">{connectionSignals.map((signal) => <div key={signal.id} className="rounded-lg border border-stone-200 bg-stone-50 p-3"><dt className={signal.tone === 'ready' ? 'font-semibold text-emerald-800' : signal.tone === 'unavailable' ? 'font-semibold text-red-800' : 'font-semibold text-stone-700'}>{signal.label}</dt><dd className="mt-1 text-xs leading-relaxed text-stone-600">{signal.detail}</dd></div>)}</dl> : null}
-      </section>
+      </section>}
 
-      <SavedResearchPermissions />
-      <FirstUseExamples />
+      {!ice && <SavedResearchPermissions />}
+      {!ice && <FirstUseExamples />}
 
       <details className="surface p-5 text-sm leading-relaxed text-stone-600">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-stone-800">Privacidade da conexão MCP<ChevronDown className="h-4 w-4 shrink-0" aria-hidden="true" /></summary>
         <p className="mt-3">O ForgeLex recebe a chamada autenticada e os argumentos da ferramenta. Ele não acessa conversas, arquivos ou histórico do ChatGPT ou Claude.</p>
+        {ice && <p className="mt-2">Ao autorizar, a sua IA passa a ler os seus casos ativos e pode enviar peças, que só valem depois da sua revisão. Revogue aqui a qualquer momento.</p>}
         <p className="mt-2">A telemetria de ativação não inclui consulta, ementa, número processual, token, chave ou header <code>Authorization</code>.</p>
       </details>
 
-      <p className="text-center text-xs text-stone-500">Aplicativo selecionado: {platformName(platform)}. Consulte as autorizações acima e confirme a execução de uma ferramenta no aplicativo escolhido.</p>
+      {!ice && <p className="text-center text-xs text-stone-500">Aplicativo selecionado: {platformName(platform)}. Consulte as autorizações acima e confirme a execução de uma ferramenta no aplicativo escolhido.</p>}
     </div>
   </div>;
 };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { accountSections, connectSections, highlightedTab, iceNavigation } from './app-navigation';
+import { accountMenu, accountSections, connectSections, highlightedTab, iceNavigation } from './app-navigation';
 import { routeForTab } from './routes';
 
 const labels = (items: ReadonlyArray<{ label: string }>) => items.map((item) => item.label);
@@ -7,9 +7,9 @@ const labels = (items: ReadonlyArray<{ label: string }>) => items.map((item) => 
 describe('iceNavigation (V2, protótipo de 09/11)', () => {
   const all = iceNavigation({ deskEnabled: true, casesEnabled: true });
 
-  it('regra do mínimo: com a Mesa, a lateral só tem as conversas, Conectar IA e Conta', () => {
+  it('lateral A (27/11): com a Mesa, a lateral só tem as conversas; Conectar IA e Conta vão ao menu da conta', () => {
     expect(labels(all.work)).toEqual([]);
-    expect(labels(all.resources)).toEqual(['Conectar IA', 'Conta']);
+    expect(labels(all.resources)).toEqual([]);
   });
 
   it('sem a Mesa os casos precisam do próprio item; sem casos não há Mesa nem Casos, e a Jurisprudência fica', () => {
@@ -37,24 +37,17 @@ describe('iceNavigation (V2, protótipo de 09/11)', () => {
 });
 
 describe('accountSections (seções da conta)', () => {
-  it('Faturamento, Atividade, Segurança e Chaves de API, todas com rota', () => {
+  it('Faturamento, Atividade e Segurança, todas com rota (Chaves de API saiu, 27/11)', () => {
     const sections = accountSections();
-    expect(labels(sections)).toEqual(['Faturamento', 'Atividade', 'Segurança', 'Chaves de API']);
-    expect(sections.map((section) => section.tab)).toEqual([
-      'credits',
-      'account_activity',
-      'account_security',
-      'api_keys',
-    ]);
+    expect(labels(sections)).toEqual(['Faturamento', 'Atividade', 'Segurança']);
+    expect(sections.map((section) => section.tab)).toEqual(['credits', 'account_activity', 'account_security']);
     for (const section of sections) expect(() => routeForTab(section.tab, 'gelo')).not.toThrow();
   });
 });
 
 describe('connectSections (seções de Conectar IA)', () => {
-  it('Conexão, Guia de conexão e API para desenvolvedores, todas com rota', () => {
-    const sections = connectSections();
-    expect(labels(sections)).toEqual(['Conexão', 'Guia de conexão', 'API para desenvolvedores']);
-    for (const section of sections) expect(() => routeForTab(section.tab, 'gelo')).not.toThrow();
+  it('só a Conexão: o guia e a API saíram (27/11), então a tela não mostra barra de seções', () => {
+    expect(connectSections()).toEqual([]);
   });
 });
 
@@ -82,5 +75,14 @@ describe('highlightedTab', () => {
     for (const tab of ['work', 'research', 'landing', 'credits', 'datajud', 'connections'] as const) {
       expect(highlightedTab(tab)).toBe(tab);
     }
+  });
+});
+
+describe('accountMenu (menu da conta no rodapé da lateral, 27/11)', () => {
+  it('Conectar IA e Conta e créditos, cada um com a sua tela; Sair fica à parte', () => {
+    expect(accountMenu()).toEqual([
+      { tab: 'connections', label: 'Conectar IA' },
+      { tab: 'credits', label: 'Conta e créditos' },
+    ]);
   });
 });
