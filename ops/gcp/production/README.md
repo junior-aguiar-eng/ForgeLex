@@ -59,7 +59,7 @@ chave ficou inválida e só se soube quando um cliente tentou uma peça (HTTP 40
   atual: na virada de domínio (Frente D), recriá-lo no host novo antes de desligar o antigo. Os serviços só têm
   `startupProbe` em `/readyz`; não há sonda de vida. Conferir a existência com
   `gcloud monitoring uptime list-configs --project=<projeto>`.
-  **Ainda não ensaiado:** chave inválida em homologação confirmando o log e o e-mail do alerta.
+  **Não ensaiado, por decisão de Boni de 27/11/2026 (regra do mínimo):** o ensaio com chave inválida em homologação foi encerrado como desnecessário. O serviço isolado só aceita tráfego interno, e o monitor e a política seguem cobertos pelos testes automatizados.
 - **Alerta:** `provision-provider-alert.ps1` cria a política de log que avisa por e-mail em `provider.key_invalid` ou em
   `commercial_call_trace` com `failureClass=AUTHORIZATION`. Só cria; `-DryRun` mostra a política.
 - **Segredo em `latest`:** `set-provider-secret-latest.ps1` troca a versão fixa por `latest`, com revisão sem tráfego,
