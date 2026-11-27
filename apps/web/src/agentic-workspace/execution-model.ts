@@ -288,19 +288,9 @@ export function statusText(status: string, code = ''): string {
     return 'O material do caso excede o limite deste trabalho. Seu pedido foi preservado.';
   if (code === 'COMMERCIAL_INPUT_TOO_LARGE')
     return 'O texto passa de 100.000 caracteres, cerca de 30 páginas. Envie um trecho menor. Nada foi cobrado.';
-  const attachmentText: Record<string, string> = {
-    ALREADY_ANALYZED: 'Este texto já foi analisado neste caso. Nada foi cobrado.',
-    ATTACHMENT_PARTS_PARTIAL:
-      'Só parte dos trechos do anexo foi enviada. Envie o mesmo anexo de novo: só as partes que faltam serão analisadas.',
-    ATTACHMENT_PARTS_DONE: 'Todas as partes deste anexo já foram analisadas neste caso.',
-    ATTACHMENT_PARTS_COST: 'Confirme o custo para enviar o anexo em partes.',
-    ATTACHMENT_TOO_MANY_PARTS: 'Os anexos passam do limite de 12 partes por pedido. Envie em dois pedidos.',
-    ATTACHMENT_SPLIT_UNSUPPORTED: 'Este anexo é grande demais para um pedido só. Anexe um trecho menor.',
-    ATTACHMENT_NEW_REQUEST: 'Para enviar um anexo grande, comece um pedido novo.',
-    ATTACHMENT_PART_TOO_LONG:
-      'Um trecho do anexo, somado ao texto do pedido, passa de 100.000 caracteres. Reduza o texto do pedido.',
-  };
-  if (attachmentText[code]) return attachmentText[code]!;
+  if (code === 'ATTACHMENT_TOO_LARGE')
+    return 'O pedido com os anexos passa de 100.000 caracteres, cerca de 30 páginas. Anexe só as páginas que importam.';
+  if (code === 'ALREADY_ANALYZED') return 'Este texto já foi analisado neste caso. Nada foi cobrado.';
   if (code === 'COMMERCIAL_REQUEST_TOO_LARGE')
     return 'O material deste trabalho ficou maior que o limite do pedido. Envie um trecho menor.';
   if (code === 'COMMERCIAL_DAILY_LIMIT') return 'O limite diário de trabalhos foi atingido. Seu pedido foi preservado.';

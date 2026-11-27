@@ -69,7 +69,7 @@ ou decisão dele (nada abaixo se publica sem a autorização dele, seção 0).
 | 17  | A3, 24/11       | Frente A: avaliação jurídica das fases pagas, execuções pagas de cache e schemas e decisão de adoção do perfil `1.17.0` (`workflowVersion: 16`) | Boni  |
 | 18  | Publicação, 25/11 | ~~Publicar o acumulado de 17/11 a 25/11~~ — **publicado em 25/11** (`9ccb9e7`, com autorização de Boni após o `-DryRun`; nenhuma flag nova ligada; gelo desligado até a V6) | Boni  |
 | 19  | Supabase, 25/11 | O projeto de produção estava pausado e foi reativado; se for plano gratuito, nova pausa por inatividade derruba o login e o conector. Decidir plano ou rotina que evite a pausa | Boni  |
-| 20  | E4, 26/11       | **Defeito:** no modo comercial, o PDF em trechos não passa do 1º trecho. O navegador envia os trechos em seguida e a política recusa nova reserva com trabalho ativo (`COMMERCIAL_EXECUTION_ACTIVE`); o teto diário de R$ 20,00, com reserva de R$ 11,50, comporta um ou dois trechos por dia, mas o compositor anuncia o total. O teste do E4 simula a rota fora do modo comercial. Sem cobrança indevida (o trecho recusado não reserva). Correção: envio em fila e aviso de custo pelos tetos; Boni decide se os trechos de um PDF contam como um trabalho | Código, depois Boni |
+| 20  | E4, 26/11       | ~~PDF em trechos não passa do 1º trecho no modo comercial~~ — **resolvida em 27/11 pela remoção da divisão** (decisão de Boni de 27/11, regra do mínimo): o anexo segue inteiro num pedido só, até 100.000 caracteres; acima disso o pedido não sai e a conversa pede as páginas que importam. Um PDF, um pedido, uma reserva ([registro](../../architecture/2026-11-10-mesa-guiada-execucao.md#item-20--fim-da-divisão-do-anexo-em-trechos-27112026)) | Código |
 
 Sequência de trabalho a partir de 25/11/2026 (proposta, a confirmar por Boni): com o 18 feito, seguir para 16 (Estrutura do caso com o modelo real, no HML isolado ou
 na própria conta de Boni), depois 13 (V5A/V6/V7) e 7 (manifesto e catálogo). Os itens “Boni” ficam à espera dele e não
@@ -526,7 +526,7 @@ planos de execução arquivados em [docs/historico/planos](../../historico/plano
 - [x] **E1b (20–23/11, #203, #204):** relato colado em Automático vira `analyze_evidence`; o mesmo relato no mesmo caso não repete a análise.
 - [x] **E2 (22/11, #208):** `adjust_structure` no contrato v13: corrigir a estrutura pela conversa.
 - [x] **E3 (23/11, #209):** estrutura na redação e na orientação guiada, contrato v14.
-- [x] **E4 (24/11, #210):** PDF direto, soma das análises do caso e divisão em trechos, contrato v15.
+- [x] **E4 (24/11, #210):** PDF direto, soma das análises do caso e divisão em trechos, contrato v15. A divisão em trechos saiu em 27/11 (item 20 da 1A).
 - [ ] Verificação com o modelo real e decisões de Boni sobre os limites (1A, item 16). Roteiro de 26/11:
   [ensaio em produção](../../operations/stabilization/2026-11-26-estrutura-modelo-real-roteiro.md).
 - [ ] Correção do PDF em trechos no modo comercial (1A, item 20).

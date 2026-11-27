@@ -90,22 +90,13 @@ describe('projeção pública do trabalho', () => {
   });
 });
 
-describe('statusText: anexos em partes (E4)', () => {
-  it('cada código do envio em partes tem uma frase própria, sem expor o código', () => {
-    for (const code of [
-      'ALREADY_ANALYZED',
-      'ATTACHMENT_PARTS_PARTIAL',
-      'ATTACHMENT_PARTS_DONE',
-      'ATTACHMENT_PARTS_COST',
-      'ATTACHMENT_TOO_MANY_PARTS',
-      'ATTACHMENT_SPLIT_UNSUPPORTED',
-      'ATTACHMENT_NEW_REQUEST',
-      'ATTACHMENT_PART_TOO_LONG',
-    ]) {
-      const text = statusText('FAILED', code);
-      expect(text).not.toContain(code);
-      expect(text.length).toBeGreaterThan(20);
-    }
-    expect(statusText('FAILED', 'ATTACHMENT_PARTS_PARTIAL')).toContain('só as partes que faltam');
+describe('statusText: anexos', () => {
+  it('anexo grande demais pede as páginas que importam', () => {
+    expect(statusText('FAILED', 'ATTACHMENT_TOO_LARGE')).toContain('Anexe só as páginas que importam');
+  });
+  it('anexo já analisado tem frase própria, sem expor o código', () => {
+    const text = statusText('FAILED', 'ALREADY_ANALYZED');
+    expect(text).not.toContain('ALREADY_ANALYZED');
+    expect(text).toContain('Nada foi cobrado');
   });
 });

@@ -368,6 +368,10 @@ da redação traz uma linha por documento. **PDF longo:** o navegador divide o t
 "Este PDF será analisado em N partes" com o custo máximo total e bloqueia o envio quando o saldo não cobre todas. Reenviar o mesmo PDF só
 analisa os trechos que faltam.
 
+**Divisão em trechos removida (27/11/2026, item 20 do plano):** no modo comercial o envio parava no 1º trecho. Por
+decisão de Boni, o anexo segue inteiro num pedido só, até 100.000 caracteres; acima disso a conversa pede as páginas
+que importam. Os limites abaixo que falam de trechos valem só para as análises já gravadas.
+
 **Limites e pendências do E4:**
 - **Não verificado com o modelo real:** o redator e o analista só rodaram com agente simulado; a identificação da peça e das partes em PDF de verdade
   não foi exercitada, nem a leitura de um processo inteiro.

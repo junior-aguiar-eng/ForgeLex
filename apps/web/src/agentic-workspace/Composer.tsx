@@ -1,11 +1,10 @@
 import type { DeskPiece, DeskRequest } from './desk-model';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { ATTACHMENTS_ENABLED, MATTER_CHIPS_ENABLED } from '../config/site-capabilities';
 import { MatterChips, type MatterChip } from './MatterChips';
 import { AttachButton, AttachmentChips } from './AttachmentChips';
 import { attachmentContext, hasReadingAttachment } from './attachments';
-import { ATTACHMENT_MAX_PARTS, documentCodeOf, partContext, partsPlan } from './attachment-parts';
 import { useAttachments } from './use-attachments';
 import { activeTheme } from '../theme/active-theme';
 import { ApiRequestError, requestApi } from '../api-client';
@@ -52,7 +51,6 @@ export function Composer({
   request,
   onFail,
   onSubmit,
-  onSubmitMany,
   onGuide,
   guidanceId,
   guidanceState,
@@ -74,8 +72,6 @@ export function Composer({
   request?: DeskRequest;
   onFail: (error: unknown) => void;
   onSubmit: (input: StartInput, authorization?: CommercialAuthorization) => void;
-  /** E4: PDF longo dividido em trechos; cada trecho é um pedido, enviados em ordem. Sem isso, o anexo grande não é aceito. */
-  onSubmitMany?: (inputs: StartInput[], authorization?: CommercialAuthorization) => void;
   onGuide?: (input: GuidanceStart) => void;
   guidanceId?: string;
   guidanceState?: GuidanceState;
@@ -93,14 +89,6 @@ export function Composer({
   const [matterChips, setMatterChips] = useState<MatterChip[]>([]);
   const chipsOn = MATTER_CHIPS_ENABLED && Boolean(onGuide) && !minimal;
   const reading = ATTACHMENTS_ENABLED && hasReadingAttachment(attachments.items);
-  // E4: quantos pedidos os anexos viram (um só, ou um por trecho de PDF longo).
-  const plan = useMemo(() => (ATTACHMENTS_ENABLED ? partsPlan(attachments.items) : undefined), [attachments.items]);
-  const jobs = plan && plan.total > 1 ? plan.total : 1;
-  const readyAttachments = attachments.items.filter((attachment) => attachment.status === 'done' && attachment.text);
-  const partsNotice =
-    readyAttachments.length === 1
-      ? `${/\.pdf$/i.test(readyAttachments[0]!.name) ? 'Este PDF' : 'Este anexo'} será analisado`
-      : 'Estes anexos serão analisados';
   const [descriptionOpen, setDescriptionOpen] = useState(false);
   const lastGuidance = useRef<string>();
   const startFromComposer = useRef(false);
@@ -263,7 +251,7 @@ export function Composer({
       : undefined;
   const send = async () => {
     if (!goal || busy || preparing || !available || piecePending || pieceConflict || guidanceBusy || reading) return;
-    if (commercial && authorizeOnSend && (!quote || quote.availableCents < quote.maxCostCents * jobs)) return;
+    if (commercial && authorizeOnSend && (!quote || quote.availableCents < quote.maxCostCents)) return;
     if (guided && !canSendGuide) return;
     const ticket = preparation.current;
     const index = window.history.state?.forgelexIndex;
@@ -351,29 +339,10 @@ export function Composer({
       });
       const base = currentPiece?.localText ? `Peça aberta (conteúdo do usuário):\n${currentPiece.localText}` : text;
       const tooLong = (block: string) => block && contextText(base, block).length > 100_000;
-      if (plan && plan.mode === 'split') {
-        // E4: anexo grande (ou vários que juntos passam do tamanho de uma análise): um pedido por documento ou trecho.
-        if (plan.tooMany) throw new ApiRequestError('Anexos em partes demais.', 'ATTACHMENT_TOO_MANY_PARTS', 400);
-        if (!onSubmitMany) throw new ApiRequestError('Anexo grande.', 'ATTACHMENT_SPLIT_UNSUPPORTED', 400);
-        if (conversation) throw new ApiRequestError('Pedido novo.', 'ATTACHMENT_NEW_REQUEST', 400);
-        const codes = new Map<string, string>();
-        for (const { attachment } of plan.parts)
-          if (!codes.has(attachment.id)) codes.set(attachment.id, await documentCodeOf(attachment.text));
-        if (!isCurrent()) return;
-        const blocks = plan.parts.map(({ attachment, part }) =>
-          partContext(attachment, part, codes.get(attachment.id)!),
-        );
-        if (blocks.some(tooLong)) throw new ApiRequestError('Trecho longo.', 'ATTACHMENT_PART_TOO_LONG', 400);
-        onSubmitMany(
-          blocks.map((block) => build(block)),
-          authorization,
-        );
-      } else {
-        if (tooLong(attached)) {
-          throw new Error('O pedido com os anexos passa de 100.000 caracteres. Remova ou troque algum anexo.');
-        }
-        onSubmit(build(attached), authorization);
+      if (tooLong(attached)) {
+        throw new ApiRequestError('Anexo grande demais.', 'ATTACHMENT_TOO_LARGE', 400);
       }
+      onSubmit(build(attached), authorization);
       attachments.clear();
       setMatterChips([]);
     } catch (error) {
@@ -534,8 +503,7 @@ export function Composer({
                 !available ||
                 reading ||
                 !goal ||
-                (commercial && authorizeOnSend && (!quote || quote.availableCents < quote.maxCostCents * jobs)) ||
-                Boolean(plan?.tooMany)
+                (commercial && authorizeOnSend && (!quote || quote.availableCents < quote.maxCostCents))
               }
               onClick={() => void send()}
             >
@@ -549,17 +517,10 @@ export function Composer({
           {quoteFailed ? 'Preço indisponível. Recarregue a página para consultar novamente.' : 'Consultando preço…'}
         </p>
       )}
-      {plan && plan.total > 1 && (
-        <p role="status" className="px-2 text-xs leading-5 text-stone-700">
-          {plan.tooMany
-            ? `Os anexos passam de ${ATTACHMENT_MAX_PARTS} partes. Envie em dois pedidos.`
-            : `${partsNotice} em ${plan.total} partes.${commercial && quote ? ` Até ${reais(quote.maxCostCents * plan.total)} no total.` : ''}`}
-        </p>
-      )}
       {commercial && quote && (
         <p className="px-2 text-xs leading-5 text-stone-600">
           Até {reais(quote.maxCostCents)} por trabalho (o não usado é devolvido) · Saldo {reais(quote.availableCents)}
-          {quote.availableCents < quote.maxCostCents * jobs && (
+          {quote.availableCents < quote.maxCostCents && (
             <strong className="font-semibold text-stone-800"> · Saldo insuficiente</strong>
           )}{' '}
           · Processado por IA ·{' '}
