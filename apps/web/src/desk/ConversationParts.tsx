@@ -28,8 +28,8 @@ export function WorkspaceHeader({
           : landing && centered
             ? 'mx-auto w-full max-w-[680px] text-center'
             : landing
-            ? `mx-auto w-full max-w-3xl ${hasPiece ? 'pt-0' : 'pt-8'}`
-            : 'mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3'
+              ? `mx-auto w-full max-w-3xl ${hasPiece ? 'pt-0' : 'pt-8'}`
+              : 'mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3'
       }
     >
       {landing && guided ? (

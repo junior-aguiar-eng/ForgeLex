@@ -21,15 +21,17 @@ export const IceFrame: React.FC<{ tab: AppTab }> = ({ tab }) => {
   if (!group) return null;
   return (
     <PageHeader title={group.title}>
-      {group.sections.length > 1 && <SectionTabs
-        label={group.label}
-        items={group.sections.map((section) => ({
-          key: section.tab,
-          label: section.label,
-          active: section.tab === tab,
-          onSelect: () => setActiveTab(section.tab),
-        }))}
-      />}
+      {group.sections.length > 1 && (
+        <SectionTabs
+          label={group.label}
+          items={group.sections.map((section) => ({
+            key: section.tab,
+            label: section.label,
+            active: section.tab === tab,
+            onSelect: () => setActiveTab(section.tab),
+          }))}
+        />
+      )}
     </PageHeader>
   );
 };

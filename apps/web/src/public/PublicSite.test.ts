@@ -85,9 +85,26 @@ describe('site público no modelo novo, centrado na Mesa (27/11)', () => {
   });
 
   it('a Mesa é descrita pelo que está no ar, sem o que saiu e sem preço escrito', () => {
-    for (const phrase of ['Descreva e anexe', 'PDF, texto ou Markdown', 'só o texto extraído acompanha o pedido', 'Pasta'])
+    for (const phrase of [
+      'Descreva e anexe',
+      'PDF, texto ou Markdown',
+      'só o texto extraído acompanha o pedido',
+      'Pasta',
+    ])
       expect(text, phrase).toContain(phrase);
-    for (const absent of ['OCR', 'Word', '.docx', 'agentes analíticos', 'Gemini', 'vigência', 'está suspenso', 'pesquisa salva', 'API REST', 'consulta processual', 'guia'])
+    for (const absent of [
+      'OCR',
+      'Word',
+      '.docx',
+      'agentes analíticos',
+      'Gemini',
+      'vigência',
+      'está suspenso',
+      'pesquisa salva',
+      'API REST',
+      'consulta processual',
+      'guia',
+    ])
       expect(text, absent).not.toContain(absent);
     expect(text).not.toMatch(/R\$\s?\d/);
   });
@@ -114,7 +131,9 @@ describe('site público no modelo novo, centrado na Mesa (27/11)', () => {
 
   it('o rodapé apresenta a Mesa e leva só a Início, Como funciona, Preços, Conectar sua IA e os documentos legais', () => {
     const footer = textOf(html.slice(html.indexOf('<footer')));
-    expect(footer).toContain('Mesa de trabalho para peças jurídicas, com a jurisprudência na fonte e uso na sua IA por MCP.');
+    expect(footer).toContain(
+      'Mesa de trabalho para peças jurídicas, com a jurisprudência na fonte e uso na sua IA por MCP.',
+    );
     for (const label of ['Como funciona', 'Preços', 'Conectar sua IA', 'Termos de uso', 'Política de Privacidade'])
       expect(footer, label).toContain(label);
     for (const absent of ['OpenAPI', 'Guia para advogados', 'Consulta processual gratuita', 'API para desenvolvedores'])
@@ -140,7 +159,9 @@ describe('site público no modelo novo, centrado na Mesa (27/11)', () => {
 
 describe('metadados no modelo novo (V5A)', () => {
   it('cada página pública muda com o texto, menos a consulta gratuita e a não encontrada', () => {
-    expect(metadataFor('home', true).title).toBe('ForgeLex · Peças jurídicas prontas para revisar, com a jurisprudência na fonte');
+    expect(metadataFor('home', true).title).toBe(
+      'ForgeLex · Peças jurídicas prontas para revisar, com a jurisprudência na fonte',
+    );
     expect(metadataFor('home', true).description).toContain('Mesa de trabalho');
     expect(metadataFor('home', true).description).toContain('no ChatGPT ou no Claude por MCP');
     expect(metadataFor('home', true).path).toBe('/');

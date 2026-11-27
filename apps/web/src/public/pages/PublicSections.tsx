@@ -331,16 +331,16 @@ export function CrossCuttingSection() {
         <BookOpen className="h-6 w-6 text-cognac-700" aria-hidden="true" />
         <h2 className="mt-4 font-editorial text-2xl font-bold text-stone-900">Jurisprudência que dá para conferir</h2>
         <p className="mt-2 text-sm leading-6 text-stone-600">
-          As decisões que sustentam a peça vêm do STJ, com a origem e o estado de verificação à vista. Abrir e conferir uma
-          decisão é gratuito.
+          As decisões que sustentam a peça vêm do STJ, com a origem e o estado de verificação à vista. Abrir e conferir
+          uma decisão é gratuito.
         </p>
       </article>
       <article id="sua-ia" className="surface scroll-mt-24 p-6 sm:p-8">
         <MessageSquare className="h-6 w-6 text-cognac-700" aria-hidden="true" />
         <h2 className="mt-4 font-editorial text-2xl font-bold text-stone-900">Use também na sua IA</h2>
         <p className="mt-2 text-sm leading-6 text-stone-600">
-          Conecte o ChatGPT ou o Claude, por MCP, e peça a pesquisa com fonte dentro da sua própria conversa. A assinatura
-          da sua IA continua com ela; o ForgeLex cobra só o que é dele.
+          Conecte o ChatGPT ou o Claude, por MCP, e peça a pesquisa com fonte dentro da sua própria conversa. A
+          assinatura da sua IA continua com ela; o ForgeLex cobra só o que é dele.
         </p>
         <a
           href="/entrar?next=%2Fapp%2Fconectar"
@@ -533,7 +533,8 @@ export function CreditsInfo({ model = false }: { model?: boolean }) {
             href="/creditos"
             className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-cognac-800 hover:underline"
           >
-            {model ? 'Ver os preços' : 'Ver como funcionam os créditos'} <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            {model ? 'Ver os preços' : 'Ver como funcionam os créditos'}{' '}
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </a>
         </div>
       </div>

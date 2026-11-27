@@ -6,7 +6,13 @@
 export const PUBLIC_ROUTES = ['/', '/como-funciona', '/creditos', '/cadastro', '/entrar'];
 
 /** Telas autenticadas que existem no produto atual (gelo, regra do mínimo); as removidas levam à Mesa ou à Conta. */
-export const APP_ROUTES = ['/app/trabalho', '/app/conectar', '/app/conta', '/app/conta/atividade', '/app/conta/seguranca'];
+export const APP_ROUTES = [
+  '/app/trabalho',
+  '/app/conectar',
+  '/app/conta',
+  '/app/conta/atividade',
+  '/app/conta/seguranca',
+];
 
 export const VIEWPORTS = {
   desktop: { width: 1440, height: 1000 },

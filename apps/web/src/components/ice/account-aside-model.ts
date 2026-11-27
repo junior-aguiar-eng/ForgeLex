@@ -14,7 +14,6 @@ export interface ApiKeyLine {
   active: boolean;
 }
 
-
 export interface ActivityLine {
   id: string;
   label: string;

@@ -5,11 +5,7 @@ export function HowPage({ model = false }: { model?: boolean }) {
     <>
       <PageIntro
         eyebrow="Como funciona"
-        title={
-          model
-            ? 'Da pergunta à peça.'
-            : 'Conecte, pesquise e confira a fonte.'
-        }
+        title={model ? 'Da pergunta à peça.' : 'Conecte, pesquise e confira a fonte.'}
         text={
           model
             ? 'Na Mesa de trabalho você descreve o que precisa, anexa o que tiver e revisa a peça com as fontes à vista. Na sua IA, autorize o ChatGPT ou o Claude por MCP e pesquise decisões com a fonte, dentro da sua conversa.'

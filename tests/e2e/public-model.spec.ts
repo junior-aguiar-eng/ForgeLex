@@ -19,7 +19,9 @@ test('página inicial: a Mesa no centro, jurisprudência e sua IA como temas tra
   const nav = page.getByRole('navigation', { name: 'Navegação pública' });
   await expect(nav.getByRole('link')).toHaveText(['Como funciona', 'Preços']);
   // Logo novo (27/11) no cabeçalho, em tamanho de cabeçalho.
-  const logo = page.getByRole('link', { name: 'ForgeLex, página inicial' }).locator('img[src="/brand/forgelex-logo.svg"]');
+  const logo = page
+    .getByRole('link', { name: 'ForgeLex, página inicial' })
+    .locator('img[src="/brand/forgelex-logo.svg"]');
   await expect(logo).toBeVisible();
   const logoBox = (await logo.boundingBox())!;
   expect(logoBox.height).toBeGreaterThanOrEqual(28);
@@ -69,7 +71,9 @@ test('as páginas removidas levam ao Início, sem 404', async ({ page }) => {
 
 test('o HTML que o robô lê sem JavaScript já traz o título novo e a imagem de prévia', async ({ page, request }) => {
   const raw = await (await request.get('/')).text();
-  expect(raw).toContain('<title>ForgeLex · Peças jurídicas prontas para revisar, com a jurisprudência na fonte</title>');
+  expect(raw).toContain(
+    '<title>ForgeLex · Peças jurídicas prontas para revisar, com a jurisprudência na fonte</title>',
+  );
   expect(raw).toMatch(/<meta property="og:image" content="[^"]+\/og\/forgelex-modelo\.png" \/>/);
   expect(raw).toContain('name="twitter:card" content="summary_large_image"');
   expect(raw).not.toContain('Jurisprudência e consulta processual</title>');

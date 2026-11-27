@@ -184,20 +184,22 @@ export const IceSidebar: React.FC<{
               <aside aria-label="Histórico de conversas" ref={setHistorySlot} className="min-w-0" />
             </div>
           )}
-          {navigation.resources.length > 0 && <nav aria-label="Conta e recursos" className="space-y-0.5">
-            {!DESK_ENABLED && (
-              <span className={`block ${groupLabel} ${collapsed ? 'lg:sr-only' : ''}`}>Conta e recursos</span>
-            )}
-            {navigation.resources.map((item) => (
-              <ItemButton
-                key={item.tab}
-                item={item}
-                active={item.tab === active}
-                collapsed={collapsed}
-                onSelect={select}
-              />
-            ))}
-          </nav>}
+          {navigation.resources.length > 0 && (
+            <nav aria-label="Conta e recursos" className="space-y-0.5">
+              {!DESK_ENABLED && (
+                <span className={`block ${groupLabel} ${collapsed ? 'lg:sr-only' : ''}`}>Conta e recursos</span>
+              )}
+              {navigation.resources.map((item) => (
+                <ItemButton
+                  key={item.tab}
+                  item={item}
+                  active={item.tab === active}
+                  collapsed={collapsed}
+                  onSelect={select}
+                />
+              ))}
+            </nav>
+          )}
           {/* A Mesa renderiza aqui a lista de conversas. No trilho recolhido não há espaço para ela. */}
           {!DESK_ENABLED && active === 'work' && (
             <div className={collapsed ? 'lg:hidden' : ''}>
@@ -231,58 +233,60 @@ export const IceSidebar: React.FC<{
             </div>
           )
         ) : (
-        <div className="shrink-0 space-y-3">
-          {balance !== undefined && active !== 'credits' && (
-            <div className={`rounded-xl border border-line bg-surface-muted p-3.5 ${collapsed ? 'lg:hidden' : ''}`}>
-              <span className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-subtle">Saldo</span>
-              <span className="mt-1 block font-editorial text-[22px] font-semibold text-ink">{formatBRL(balance)}</span>
-              <button
-                type="button"
-                onClick={() => select('credits')}
-                className="mt-1 inline-flex min-h-10 items-center text-[13px] font-semibold text-accent hover:text-accent-strong"
-              >
-                Recarregar
-              </button>
-            </div>
-          )}
-          {account && (
-            <div className={`flex items-center gap-2 px-1.5 ${collapsed ? 'lg:flex-col lg:px-0' : ''}`}>
-              <span
-                className={`min-w-0 flex-1 truncate text-xs text-muted ${collapsed ? 'lg:sr-only' : ''}`}
-                title={account.user.displayName}
-              >
-                {account.user.displayName}
-              </span>
-              <button
-                type="button"
-                onClick={() => void signOut()}
-                className="inline-flex min-h-11 items-center gap-2 rounded-[var(--fl-radius-control)] border border-line-control px-3 text-sm font-semibold text-ink-soft hover:bg-canvas-deep"
-                aria-label="Sair da conta"
-                title={collapsed ? 'Sair da conta' : undefined}
-              >
-                <LogOut className="h-4 w-4" aria-hidden="true" />
-                <span className={collapsed ? 'lg:sr-only' : ''}>Sair</span>
-              </button>
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={() => setCollapsed(!collapsed)}
-            className="hidden min-h-11 w-full items-center justify-center gap-2 rounded-[var(--fl-radius-control)] text-xs font-medium text-subtle hover:bg-canvas-deep hover:text-ink lg:inline-flex"
-            aria-label={collapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
-            aria-expanded={!collapsed}
-            aria-controls="forgelex-sidebar"
-          >
-            {collapsed ? (
-              <PanelLeftOpen className="h-4 w-4" aria-hidden="true" />
-            ) : (
-              <>
-                <PanelLeftClose className="h-4 w-4" aria-hidden="true" />
-                <span>Recolher</span>
-              </>
+          <div className="shrink-0 space-y-3">
+            {balance !== undefined && active !== 'credits' && (
+              <div className={`rounded-xl border border-line bg-surface-muted p-3.5 ${collapsed ? 'lg:hidden' : ''}`}>
+                <span className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-subtle">Saldo</span>
+                <span className="mt-1 block font-editorial text-[22px] font-semibold text-ink">
+                  {formatBRL(balance)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => select('credits')}
+                  className="mt-1 inline-flex min-h-10 items-center text-[13px] font-semibold text-accent hover:text-accent-strong"
+                >
+                  Recarregar
+                </button>
+              </div>
             )}
-          </button>
-        </div>
+            {account && (
+              <div className={`flex items-center gap-2 px-1.5 ${collapsed ? 'lg:flex-col lg:px-0' : ''}`}>
+                <span
+                  className={`min-w-0 flex-1 truncate text-xs text-muted ${collapsed ? 'lg:sr-only' : ''}`}
+                  title={account.user.displayName}
+                >
+                  {account.user.displayName}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void signOut()}
+                  className="inline-flex min-h-11 items-center gap-2 rounded-[var(--fl-radius-control)] border border-line-control px-3 text-sm font-semibold text-ink-soft hover:bg-canvas-deep"
+                  aria-label="Sair da conta"
+                  title={collapsed ? 'Sair da conta' : undefined}
+                >
+                  <LogOut className="h-4 w-4" aria-hidden="true" />
+                  <span className={collapsed ? 'lg:sr-only' : ''}>Sair</span>
+                </button>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setCollapsed(!collapsed)}
+              className="hidden min-h-11 w-full items-center justify-center gap-2 rounded-[var(--fl-radius-control)] text-xs font-medium text-subtle hover:bg-canvas-deep hover:text-ink lg:inline-flex"
+              aria-label={collapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
+              aria-expanded={!collapsed}
+              aria-controls="forgelex-sidebar"
+            >
+              {collapsed ? (
+                <PanelLeftOpen className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <>
+                  <PanelLeftClose className="h-4 w-4" aria-hidden="true" />
+                  <span>Recolher</span>
+                </>
+              )}
+            </button>
+          </div>
         )}
       </aside>
     </>

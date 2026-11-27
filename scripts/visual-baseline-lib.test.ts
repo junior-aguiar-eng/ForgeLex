@@ -85,7 +85,13 @@ describe('roteiro de telas', () => {
     expect(APP_ROUTES).toContain('/app/trabalho');
     // 27/11: só as telas que existem no produto atual (gelo e site no modelo novo).
     expect(PUBLIC_ROUTES).toEqual(['/', '/como-funciona', '/creditos', '/cadastro', '/entrar']);
-    expect(APP_ROUTES).toEqual(['/app/trabalho', '/app/conectar', '/app/conta', '/app/conta/atividade', '/app/conta/seguranca']);
+    expect(APP_ROUTES).toEqual([
+      '/app/trabalho',
+      '/app/conectar',
+      '/app/conta',
+      '/app/conta/atividade',
+      '/app/conta/seguranca',
+    ]);
     const all = [...PUBLIC_ROUTES, ...APP_ROUTES];
     expect(new Set(all).size).toBe(all.length);
     expect(APP_ROUTES.every((route) => route.startsWith('/app'))).toBe(true);

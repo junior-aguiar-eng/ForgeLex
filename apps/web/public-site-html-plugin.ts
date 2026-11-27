@@ -63,7 +63,13 @@ export function transformPublicText(text: string, origin?: string): string {
 }
 
 /** Páginas que o site no modelo novo não tem mais (27/11): os endereços levam ao Início e saem do sitemap. */
-export const MODEL_REMOVED_PATHS = ['/produto', '/integracoes', '/guia', '/consulta-processual', '/desenvolvedores/api'];
+export const MODEL_REMOVED_PATHS = [
+  '/produto',
+  '/integracoes',
+  '/guia',
+  '/consulta-processual',
+  '/desenvolvedores/api',
+];
 
 /** O sitemap do modelo novo: só as páginas que existem nele. */
 export function modelSitemap(xml: string): string {

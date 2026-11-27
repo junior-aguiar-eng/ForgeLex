@@ -39,7 +39,9 @@ async function send(page: Page, text: string) {
 
 const accountButton = (page: Page) => sidebar(page).getByRole('button', { name: /^Conta de / });
 
-test('a lateral tem Nova conversa, Pasta e Recentes; Conectar IA, Conta e Sair ficam no menu da conta', async ({ page }) => {
+test('a lateral tem Nova conversa, Pasta e Recentes; Conectar IA, Conta e Sair ficam no menu da conta', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await login(page);
   await expect(page).toHaveURL(/\/app\/trabalho$/);
@@ -456,7 +458,9 @@ test('Conta: a coluna lateral vai para baixo no celular e a página não passa d
   expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });
 
-test('Conectar IA: só conectar, autorizar e revogar; a privacidade diz que a IA lê os casos ativos', async ({ page }) => {
+test('Conectar IA: só conectar, autorizar e revogar; a privacidade diz que a IA lê os casos ativos', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await login(page, 'conectar@forgelex.test');
   await page.goto('/app/conectar');
@@ -486,7 +490,9 @@ test('no tema gelo o favicon e a cor da barra do navegador seguem a paleta, já 
   expect(await page.locator('meta[name="theme-color"]').count()).toBe(1);
 });
 
-test('Recentes e Pasta aparecem também fora da Mesa; escolher uma conversa ou Nova conversa volta à Mesa', async ({ page }) => {
+test('Recentes e Pasta aparecem também fora da Mesa; escolher uma conversa ou Nova conversa volta à Mesa', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await login(page);
   const pedido = unique('Conversa vista da Conta');
