@@ -52,6 +52,8 @@ test('a lateral tem Nova conversa, Pasta e Recentes; Conectar IA, Conta e Sair f
   await expect(aside.getByRole('button', { name: 'Recolher menu lateral' })).toHaveCount(0);
   const account = accountButton(page);
   await expect(account).toContainText(/Saldo R\$/);
+  // Recarregar continua a um clique, ao lado do saldo, como antes do menu da conta.
+  await expect(aside.getByRole('button', { name: 'Recarregar', exact: true })).toBeVisible();
   await expect(account).toHaveAttribute('aria-expanded', 'false');
   await account.click();
   // Disclosure (não é role=menu): o painel vem depois do botão, e Tab percorre os itens na ordem.
@@ -69,6 +71,9 @@ test('a lateral tem Nova conversa, Pasta e Recentes; Conectar IA, Conta e Sair f
   await page.keyboard.press('Tab');
   await page.keyboard.press('Tab');
   await expect(panel).toHaveCount(0);
+  await aside.getByRole('button', { name: 'Recarregar', exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/conta$/);
+  await expect(aside.getByRole('button', { name: 'Recarregar', exact: true })).toHaveCount(0);
   await account.click();
   await panel.getByRole('button', { name: 'Conectar IA' }).click();
   await expect(page).toHaveURL(/\/app\/conectar$/);

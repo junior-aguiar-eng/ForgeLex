@@ -211,14 +211,26 @@ export const IceSidebar: React.FC<{
 
         {DESK_ENABLED ? (
           account && (
-            <div className="shrink-0 border-t border-line pt-3">
-              <AccountMenu
-                name={account.user.displayName}
-                balanceCents={balance}
-                active={active}
-                onSelect={select}
-                onSignOut={() => void signOut()}
-              />
+            <div className="flex shrink-0 items-center gap-1 border-t border-line pt-3">
+              <div className="min-w-0 flex-1">
+                <AccountMenu
+                  name={account.user.displayName}
+                  balanceCents={balance}
+                  active={active}
+                  onSelect={select}
+                  onSignOut={() => void signOut()}
+                />
+              </div>
+              {/* Recarregar fica a um clique, como antes do menu da conta (27/11). */}
+              {balance !== undefined && active !== 'credits' && (
+                <button
+                  type="button"
+                  onClick={() => select('credits')}
+                  className="inline-flex min-h-11 shrink-0 items-center rounded-[var(--fl-radius-control)] px-2 text-[13px] font-semibold text-accent hover:bg-canvas-deep hover:text-accent-strong"
+                >
+                  Recarregar
+                </button>
+              )}
             </div>
           )
         ) : (
