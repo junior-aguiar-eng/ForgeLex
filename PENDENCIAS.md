@@ -139,6 +139,14 @@ Em 24/10, a consulta confirmou a retirada do advisory de braces pelo upstream;
 patch, testes e gate de audit permanecem preservados. A lacuna STJ conserva a
 última evidência de 10/10, sem nova ingestão ou revalidação nesta entrega.
 
+Reconferência de 27/11/2026: o registry continua em braces 3.0.3 (sem versão
+nova) e o `pnpm audit` não acusa braces. O audit acusou outro alerta, baixo:
+`fast-xml-parser` 5.11.1 (GHSA-474x-hrwr-fgx4, CPU quadrática), dependência do
+`@google-cloud/storage` 8.2.0; o lockfile passou a resolver 5.12.1, dentro da
+faixa `^5.3.4` declarada, e o audit ficou sem alertas. O recurso STJ
+`20240229.json` foi baixado de novo (HTTP 200, 599 bytes) com o mesmo SHA-256
+`ea2537c3…7da9b46`: a lacuna segue inalterada na fonte.
+
 A ordem recomendada e os critérios de encerramento estão no
 [roteiro de comprovações](docs/operations/stabilization/2026-10-10-human-external-pending-priority.md).
 A consulta externa tem [recibo próprio](docs/operations/stabilization/2026-10-10-human-external-pending-proof.json).
