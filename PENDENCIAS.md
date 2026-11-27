@@ -126,11 +126,11 @@ decisão e execução de Boni.
 
 | Pendência                                      | Dependência para encerrar                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Ensaios residuais da coleção MCP               | Falta testar salvamento pelo Claude e coleção no Claude Desktop. Exclusão confirmada, seis vagas/sétima bloqueada, revogação e expiração do histórico não foram reproduzidas na conta real; testes automatizados permanecem evidência separada. ChatGPT teve cópia manual funcional após falha automática; painel aberto antes da permissão conserva aviso até reabertura. [Recorte confirmado](docs/operations/stabilization/2026-10-12-mcp-live-validation.md) |
+| ~~Ensaios residuais da coleção MCP~~ | **Encerrada como desnecessária por decisão de Boni de 27/11/2026** (regra do mínimo); os testes automatizados ficam como evidência. [Recorte de 12/10](docs/operations/stabilization/2026-10-12-mcp-live-validation.md) |
 | Comprovações operacionais                      | Executar, avaliar e aprovar o ensaio pelo próprio Boni; ausência de segundo revisor não constitui pendência nem bloqueio                                                                                                                                                                                                                                                                                                                                         |
 | Execução fiscal, contratos e provas comerciais | Preparação FISCAL-2026-10-10.v1 aprovada por Boni em 10/10. Restam situação/classificação municipal, conciliação dos R$ 25 e contratos efetivos; prova de venda real depende de evento real, ainda inexistente segundo Boni                                                                                                                                                                                                                                      |
-| Braces upstream                                | Advisory retirado pelo upstream em 23/10, sem nova versão corrigida (registry 3.0.3). Patch, testes e gate de audit preservados; exceção anterior não foi ampliada. [Conferência de 24/10](docs/operations/stabilization/2026-10-24-security-dependencies.md)                                                                                                                                                                                                    |
-| Lacuna oficial STJ                             | Recurso 20240229.json mantém os mesmos 599 bytes e hash da falha na linha 24, reconferido em 10/10. Depende de correção na fonte e posterior reavaliação da lacuna; conteúdo parcial não foi incorporado                                                                                                                                                                                                                                                         |
+| ~~Braces upstream~~ | **Encerrada por decisão de Boni de 27/11/2026**: advisory retirado pelo upstream em 23/10; patch, testes e gate de audit preservados (reconferência de 27/11 abaixo). [Conferência de 24/10](docs/operations/stabilization/2026-10-24-security-dependencies.md) |
+| ~~Lacuna oficial STJ~~ | **Encerrada como pendência por decisão de Boni de 27/11/2026**: depende só da fonte; a lacuna explícita e o skip continuam no código, e o recurso segue inalterado em 27/11 (abaixo) |
 
 Braces/STJ foram [reavaliados em 10/10](docs/operations/stabilization/2026-10-10-external-pending-review.md):
 51 testes dos controles existentes aprovados, audit de produção sem alertas,
@@ -138,6 +138,14 @@ audit completo então com somente braces mitigado e fonte STJ inalterada.
 Em 24/10, a consulta confirmou a retirada do advisory de braces pelo upstream;
 patch, testes e gate de audit permanecem preservados. A lacuna STJ conserva a
 última evidência de 10/10, sem nova ingestão ou revalidação nesta entrega.
+
+Reconferência de 27/11/2026: o registry continua em braces 3.0.3 (sem versão
+nova) e o `pnpm audit` não acusa braces. O audit acusou outro alerta, baixo:
+`fast-xml-parser` 5.11.1 (GHSA-474x-hrwr-fgx4, CPU quadrática), dependência do
+`@google-cloud/storage` 8.2.0; o lockfile passou a resolver 5.12.1, dentro da
+faixa `^5.3.4` declarada, e o audit ficou sem alertas. O recurso STJ
+`20240229.json` foi baixado de novo (HTTP 200, 599 bytes) com o mesmo SHA-256
+`ea2537c3…7da9b46`: a lacuna segue inalterada na fonte.
 
 A ordem recomendada e os critérios de encerramento estão no
 [roteiro de comprovações](docs/operations/stabilization/2026-10-10-human-external-pending-priority.md).
