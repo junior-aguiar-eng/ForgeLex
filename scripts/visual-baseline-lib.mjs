@@ -2,35 +2,11 @@
 // que mudam a cada execução, comparação de estilos e leitura da saída do ambiente de desenvolvimento. Sem navegador,
 // para poder ser testada.
 
-/** Telas abertas sem login. */
-export const PUBLIC_ROUTES = [
-  '/',
-  '/produto',
-  '/como-funciona',
-  '/guia',
-  '/integracoes',
-  '/creditos',
-  '/desenvolvedores/api',
-  '/consulta-processual',
-  '/cadastro',
-  '/entrar',
-];
+/** Site público no modelo novo (27/11): Início, Como funciona, Preços e as telas de entrada. */
+export const PUBLIC_ROUTES = ['/', '/como-funciona', '/creditos', '/cadastro', '/entrar'];
 
-/** Telas autenticadas que não dependem de dados criados antes. */
-export const APP_ROUTES = [
-  '/app',
-  '/app/trabalho',
-  '/app/pesquisa',
-  '/app/consulta-processual',
-  '/app/casos',
-  '/app/rascunhos',
-  '/app/revisao',
-  '/app/conectar',
-  '/app/conta',
-  '/app/conta/atividade',
-  '/app/conta/seguranca',
-  '/app/conta/chaves',
-];
+/** Telas autenticadas que existem no produto atual (gelo, regra do mínimo); as removidas levam à Mesa ou à Conta. */
+export const APP_ROUTES = ['/app/trabalho', '/app/conectar', '/app/conta', '/app/conta/atividade', '/app/conta/seguranca'];
 
 export const VIEWPORTS = {
   desktop: { width: 1440, height: 1000 },

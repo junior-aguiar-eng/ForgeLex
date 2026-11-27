@@ -2717,3 +2717,28 @@ cabeçalho de parte; acima de 100 mil não sai e mostra a frase), `attachments-g
 `shell-gelo` 18/18 e `desk-shell` 31/31. **Não verificado:** modo comercial real (sem chamada paga; o teste simula a
 rota) e PDF real de produção.
 
+
+## Ajustes do gelo antes do aceite (27/11/2026)
+
+Pedido de Boni em 27/11, depois das primeiras capturas do gelo. Desenho em
+[2026-11-27-gelo-ajustes-design.md](../superpowers/specs/2026-11-27-gelo-ajustes-design.md) e plano em
+[2026-11-27-gelo-ajustes.md](../superpowers/plans/2026-11-27-gelo-ajustes.md), na branch `claude/gelo-ajustes`. Tudo
+atrás de `VITE_FORGELEX_THEME=gelo` e `VITE_FORGELEX_PUBLIC_MODEL=true`; o clássico não muda.
+
+| O que | Como ficou |
+| --- | --- |
+| Lateral (A) | Histórico da Mesa (Nova conversa, Pasta, Recentes, Conversas excluídas) em todas as telas; rodapé com o botão da conta (nome e saldo) que abre o menu Conectar IA, Conta e créditos e Sair. Saíram o cartão de saldo, a lista Conectar IA/Conta e o Recolher. Clicar no histórico fora da Mesa volta à Mesa. |
+| Mesa vazia | Saudação e caixa de pedido no centro da área, até 680 px. |
+| Conta | Faturamento, Atividade e Segurança; saiu Chaves de API (tela, aba e cartão). Preço fala da pesquisa e diz que a Mesa mostra o custo antes de enviar. O rodapé foi para a coluna do conteúdo: a lateral não “corta” mais em páginas longas. |
+| Conectar IA | Só conectar, autorizar e revogar; saíram guia, teste de disponibilidade, pesquisas salvas, exemplos e a menção a Casos. A privacidade diz que a IA conectada lê os casos ativos. |
+| Site (modelo novo) | Início centrado na Mesa, com jurisprudência e “sua IA” como temas transversais; Como funciona e Preços. Produto, Integrações, Guia, Desenvolvedores/API e Consulta processual levam ao Início e saíram do sitemap do modelo. Título proposto para Boni decidir: “Peças jurídicas prontas para revisar, com a jurisprudência na fonte.” |
+| Textos legais | `2026-11-27.v1`: Mesa de trabalho, reserva de R$ 11,50, anexos como texto extraído e IA conectada lendo os casos ativos. |
+| Links antigos | `/app/conta/chaves` vai à Conta; `/app/guia/mcp` e `/app/desenvolvedores/api` vão a Conectar IA, com a URL reescrita. |
+
+**Verificação.** Vitest do web e dos testes públicos 536/536; Playwright: `shell-gelo` 21/21, `agentic-workspace` 25/25,
+`desk-shell` 31/31, `saved-research` 5/5, `mcp-site` 32/32, `attachments-gelo` 1/1, `public-model` 5/5, `public` 18/18.
+As duas falhas intermitentes de `shell-gelo` (“Pasta: o caso criado recebe o pedido…” e “Pasta: a conversa nova de um caso recebe o
+histórico…”) já falhavam no código de `main`; na última rodada passaram. Capturas: 33 telas (11 × 3 tamanhos), axe sem violação.
+
+**Não feito / limites.** Logo novo (adiado por Boni); imagem de prévia social ainda com o título antigo desenhado; leitor
+de tela nos eventos da Mesa; aceite visual de Boni das capturas novas; nada publicado.
