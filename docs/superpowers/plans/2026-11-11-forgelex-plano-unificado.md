@@ -36,7 +36,7 @@
 | Mesa em produção       | Casca, anexos PDF/TXT/MD e chips de matéria ligados no build. Orientação guiada, `mesa-v3` e salvamento recuperável (migração `0041`, 14/11) ligados no serviço.                          |
 | Salvamento recuperável | Ligado em produção desde 14/11 (`forgelex-api-prod-draftsave-cd94c2c`). Falta o ensaio autenticado do passo 5 em produção.                                                               |
 | Política comercial     | Reserva de R$ 11,50, teto diário de R$ 20,00 e mensal de R$ 100,00.                                                                                                                     |
-| Verificação            | A18 aceita em 14/11; A19 aceita em 17/11. Pendentes: verificações residuais do MCP, ensaio de E3 (roteiro pronto, #211), Estrutura do caso e Frente A com o modelo real. As três falhas intermitentes de CI foram diagnosticadas em 19/11 (item 9 da 1A). |
+| Verificação            | A18 aceita em 14/11; A19 aceita em 17/11. Pendentes: Estrutura do caso e Frente A com o modelo real. As três falhas intermitentes de CI foram diagnosticadas em 19/11 (item 9 da 1A). |
 | Visual                 | Tema clássico vigente em produção. Gelo feito de V0 a V5A e pronto atrás de flag; V6 (ligar) aguarda passada final e publicação isolada.                                                 |
 | U7                     | Partes 1 a 4 integradas. A trava de produto de 19/11 substituiu a decisão de 18/11: no gelo não há “Dados do caso”; `/app/casos` abre a Mesa e a exclusão definitiva vive nela. A `MatterWorkspaceScreen` só sobrevive no clássico, até a V7. |
 | Domínio em uso         | `nexojuris.ia.br` em produção. D0 a D5 não iniciadas; `hml.nexojuris.ia.br` deu timeout na conferência de 12/11.                                                                         |
@@ -52,7 +52,7 @@ ou decisão dele (nada abaixo se publica sem a autorização dele, seção 0).
 | --- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
 | 1   | Out/2026        | ~~Ensaios residuais do MCP, braces e lacuna STJ~~ — **encerrados em 27/11** por decisão de Boni (regra do mínimo), após reconferir braces e STJ e corrigir o alerta do `fast-xml-parser`. Resta só a parte fiscal e comercial: situação municipal, conciliação dos R$ 25, contratos efetivos e prova de venda real (`PENDENCIAS.md`, “Pendências humanas e externas”) | Boni  |
 | 2   | E2, 11/11       | ~~Outros usos de API recente sem fallback~~ — **fechada em 18/11** (ver E2)                                                                         | Código |
-| 3   | E3, 12/11       | Ensaio em homologação com chave inválida: log e e-mail do alerta. **Roteiro pronto em 24/11 (#211)**: exige ligar o comércio só no `forgelex-api-hml-isolated` e uma política de alerta temporária ([roteiro](../../operations/stabilization/2026-11-24-e3-ensaio-chave-provedor-roteiro.md)) | Boni  |
+| 3   | E3, 12/11       | ~~Ensaio em homologação com chave inválida: log e e-mail do alerta~~ — **encerrada em 27/11 por decisão de Boni** (regra do mínimo). A Etapa 0 mostrou que o `forgelex-api-hml-isolated` só aceita tráfego interno (`/readyz` responde 404 de fora) e que o banco `forgelex-hml-isolated-pg` estava ligado sem uso desde pelo menos 18/11; o banco foi parado (`STOPPED`, `NEVER`) | Boni  |
 | 4   | U1, 12/11       | ~~Remover exemplos e dados de demonstração mortos~~ — **fechada em 19/11** (ver U1)                                                              | Código |
 | 5   | U3, 12/11       | ~~Chips de área, tribunal e peça no compositor e refinação por IA~~ — **superada em 27/11 pela DEC-16** (regra do mínimo: não existem chips de matéria nem seletor de ação; o pedido é feito na conversa) | Código |
 | 6   | M1, 14/11       | ~~Recusa de renovação do Claude; reserva e mensagem de saldo insuficiente em jornada autenticada~~ — **fechada em 27/11**: recusa medida (2 em 245 no Claude, nenhuma desde 17/11); jornada de saldo encerrada por decisão de Boni (ver M1) | Boni  |
@@ -191,7 +191,7 @@ tabela. Proposta de 11/11/2026, a confirmar por Boni.
 
 | PR    | Frente | Etapas   | Depende de                   | Situação                                                                                                                              |
 | ----- | ------ | -------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| PR-E  | E      | E1 a E7  | —                            | Integrada no #138 e publicada em `b4c76e0`. Ensaio de alerta E3 pendente.                                                             |
+| PR-E  | E      | E1 a E7  | —                            | Integrada no #138 e publicada em `b4c76e0`. Ensaio E3 encerrado por decisão de Boni (27/11).                                                             |
 | PR-M1 | M      | M1 a M3  | PR-E                         | Fechada em 27/11: código publicado; verificações residuais de M1, M2 e M3 feitas ou encerradas por decisão de Boni (regra do mínimo); manifesto do catálogo conferido em produção. |
 | PR-D  | D      | D0 a D5  | PR-E                         | Pendente; cada virada é uma publicação                                                                                                |
 | PR-U1 | U      | U0 a U6  | PR-E; M3.0 (PR-M1) para a U3 | PR #139 integrado. Mesa única, casca, orientação v3, ações e anexos publicados. U2–U5 têm recortes pendentes e U6 está aberta.        |
@@ -242,7 +242,7 @@ de retorno.
 A conferência de E3 encontrou um Uptime Check de `/readyz` a cada 300 segundos e uma política de alerta ativa.
 
 - [x] Conferir as sondas e identificar a checagem periódica de `/readyz` no Cloud Monitoring.
-- [ ] Ensaio em homologação com chave inválida, confirmando o log e o e-mail do alerta. Roteiro de 24/11:
+- [x] ~~Ensaio em homologação com chave inválida, confirmando o log e o e-mail do alerta~~ — encerrado como desnecessário por decisão de Boni de 27/11/2026 (regra do mínimo); resultado da Etapa 0 registrado no roteiro de 24/11:
   [2026-11-24-e3-ensaio-chave-provedor-roteiro.md](../../operations/stabilization/2026-11-24-e3-ensaio-chave-provedor-roteiro.md).
 - [x] Documentar em `ops/gcp/production/README.md`, na seção do alerta já existente.
 
