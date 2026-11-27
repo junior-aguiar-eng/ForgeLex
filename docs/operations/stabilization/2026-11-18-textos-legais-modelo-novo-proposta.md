@@ -58,3 +58,12 @@ pelo ForgeLex (e não pela IA do usuário).
 4. Dizer se a Mesa terá tarifa própria e qual (A24), para a cláusula de cobrança.
 
 Os textos só devem mudar na mesma publicação em que o texto do site no modelo novo for ligado.
+
+## Aplicação (27/11/2026)
+
+Aprovado por Boni em 27/11/2026 e aplicado em `termos-de-uso.html` e `privacidade.html`, versão `2026-11-27.v1`. Na
+aplicação apareceu que os dois textos **já** descreviam o envio à OpenAI no “trabalho nativo”, com armazenamento de
+resposta desligado, registros de abuso por até 30 dias e sem compartilhamento voluntário para treinamento; a lacuna
+principal de 18/11 estava superestimada. O que mudou: o nome “Mesa de trabalho”, a reserva de R$ 11,50 (estava R$ 5,00;
+`COMMERCIAL_POLICY.reserveCents = 1150`), os anexos como texto extraído (até 100.000 caracteres) e a leitura dos casos
+ativos pela IA conectada (decisão de 26/11). Retenção e encerramento sem mudança.
