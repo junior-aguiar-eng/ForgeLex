@@ -19,6 +19,7 @@ import { CASE_WORKSPACE_ENABLED, DESK_ENABLED } from '../../config/site-capabili
 import { formatBRL } from '../../format';
 import { highlightedTab, iceNavigation, type NavIcon, type NavItem } from '../../navigation/app-navigation';
 import type { AppTab } from '../../navigation/routes';
+import { consumeDeskEntry, requestDeskEntry } from '../../navigation/desk-entry';
 import { AccountMenu } from './AccountMenu';
 import { useDeskHistorySlot } from './desk-history-slot';
 import { useBalanceCents } from './use-balance';
@@ -73,7 +74,7 @@ export const IceSidebar: React.FC<{
   activeTab: AppTab;
   mobileOpen: boolean;
   onCloseMobile: () => void;
-  onSelect: (tab: AppTab) => void;
+  onSelect: (tab: AppTab, mode?: 'push' | 'replace') => void;
 }> = ({ activeTab, mobileOpen, onCloseMobile, onSelect }) => {
   const { account, signOut } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
@@ -90,9 +91,14 @@ export const IceSidebar: React.FC<{
   const outsideDesk = React.useRef(false);
   outsideDesk.current = active !== 'work';
   const goToDesk = React.useRef(() => {});
+  // A escolha da Mesa consome o pedido e navega numa entrada só (Voltar devolve à tela de onde se saiu). Se a Mesa não
+  // escolher nada, a lateral vai à Mesa sozinha.
   goToDesk.current = () => {
-    onSelect('work');
+    requestDeskEntry();
     onCloseMobile();
+    window.setTimeout(() => {
+      if (consumeDeskEntry()) onSelect('work');
+    }, 0);
   };
   useEffect(() => {
     const area = historyArea.current;

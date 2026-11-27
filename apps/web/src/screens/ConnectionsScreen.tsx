@@ -41,7 +41,7 @@ export const ConnectionsScreen: React.FC = () => {
         <div>
           <p className="eyebrow">Conexão MCP</p>
           <h1 className="font-editorial text-3xl font-bold text-stone-900 sm:text-4xl">Conectar o ForgeLex ao ChatGPT ou Claude</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-7 text-stone-600">Configure o aplicativo, autorize sua conta ForgeLex e confira o acesso. As instruções abaixo mostram cada etapa; as autorizações podem ser consultadas e revogadas nesta página.</p>
+          <p className="mt-2 max-w-3xl text-sm leading-7 text-stone-600">{ice ? 'Configure a sua IA e autorize sua conta ForgeLex. As instruções abaixo mostram cada etapa; as autorizações podem ser consultadas e revogadas nesta página.' : 'Configure o aplicativo, autorize sua conta ForgeLex e confira o acesso. As instruções abaixo mostram cada etapa; as autorizações podem ser consultadas e revogadas nesta página.'}</p>
         </div>
         <span className="inline-flex w-fit items-center gap-2 rounded-full border border-stone-200 bg-stone-100 px-3 py-1.5 text-xs font-semibold text-stone-700"><ShieldCheck className="h-3.5 w-3.5 text-cognac-700" aria-hidden="true" /> Sem chaves de modelo no ForgeLex</span>
       </header>

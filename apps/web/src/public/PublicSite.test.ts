@@ -87,7 +87,7 @@ describe('site público no modelo novo, centrado na Mesa (27/11)', () => {
   it('a Mesa é descrita pelo que está no ar, sem o que saiu e sem preço escrito', () => {
     for (const phrase of ['Descreva e anexe', 'PDF, texto ou Markdown', 'só o texto extraído acompanha o pedido', 'Pasta'])
       expect(text, phrase).toContain(phrase);
-    for (const absent of ['OCR', 'Word', '.docx', 'agentes analíticos', 'Gemini', 'vigência', 'está suspenso', 'pesquisa salva', 'API REST', 'consulta processual'])
+    for (const absent of ['OCR', 'Word', '.docx', 'agentes analíticos', 'Gemini', 'vigência', 'está suspenso', 'pesquisa salva', 'API REST', 'consulta processual', 'guia'])
       expect(text, absent).not.toContain(absent);
     expect(text).not.toMatch(/R\$\s?\d/);
   });
@@ -142,7 +142,7 @@ describe('metadados no modelo novo (V5A)', () => {
   it('cada página pública muda com o texto, menos a consulta gratuita e a não encontrada', () => {
     expect(metadataFor('home', true).title).toBe('ForgeLex · Peças jurídicas prontas para revisar, com a jurisprudência na fonte');
     expect(metadataFor('home', true).description).toContain('Mesa de trabalho');
-    expect(metadataFor('home', true).description).toContain('ChatGPT ou o Claude por MCP');
+    expect(metadataFor('home', true).description).toContain('no ChatGPT ou no Claude por MCP');
     expect(metadataFor('home', true).path).toBe('/');
     for (const page of ['how', 'credits'] as const) {
       expect(metadataFor(page, true).description, page).not.toBe(metadataFor(page, false).description);

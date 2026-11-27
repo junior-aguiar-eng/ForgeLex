@@ -195,7 +195,11 @@ const modelFaq = [
     question: 'Quais tribunais estão na pesquisa?',
     answer: 'A cobertura disponível atualmente para pesquisa jurisprudencial é o STJ.',
   },
-  faq[3],
+  {
+    question: 'O que preciso para conectar minha IA?',
+    answer:
+      'Uma conta ForgeLex e o ChatGPT ou o Claude com suporte a MCP. Depois de entrar, abra Conectar IA, siga as instruções da sua IA e autorize a conexão.',
+  },
   faq[4],
   {
     question: 'A minha IA conectada lê os meus casos?',

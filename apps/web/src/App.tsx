@@ -46,7 +46,7 @@ const AppContent: React.FC = () => {
   const ice = React.useMemo(() => activeTheme() === 'gelo', []);
   // No gelo a Mesa fica montada desde a entrada: o histórico e a Pasta que ela desenha na lateral aparecem em qualquer tela.
   const [workVisited, setWorkVisited] = React.useState(visibleTab === 'work' || ice);
-  const selectTab = (tab: AppTab) => setActiveTab(tab);
+  const selectTab = (tab: AppTab, mode?: 'push' | 'replace') => setActiveTab(tab, mode);
   React.useEffect(() => { if (visibleTab === 'work') setWorkVisited(true); }, [visibleTab]);
   const billingReturn = React.useMemo(() => parseBillingReturn(window.location.search), []);
 
@@ -91,7 +91,7 @@ const AppContent: React.FC = () => {
       <div className="relative flex min-w-0 flex-1">
         {ice
           // A coluna leva o fundo da lateral até o fim da página; a lateral, fixa no alto, continua acompanhando a rolagem.
-          ? <div className="contents lg:block lg:shrink-0 lg:border-r lg:border-line lg:bg-surface"><IceSidebar activeTab={visibleTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={selectTab} /></div>
+          ? <div className="contents lg:block lg:shrink-0 lg:bg-surface"><IceSidebar activeTab={visibleTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={selectTab} /></div>
           : <Sidebar mobileOnly={visibleTab === 'work'} activeTab={visibleTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={selectTab} />}
         <main className="min-w-0 flex-1">
           {ice && visibleTab !== 'work' && <IceFrame tab={visibleTab} />}

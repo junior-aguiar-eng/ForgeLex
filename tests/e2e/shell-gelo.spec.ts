@@ -54,13 +54,23 @@ test('a lateral tem Nova conversa, Pasta e Recentes; Conectar IA, Conta e Sair f
   await expect(account).toContainText(/Saldo R\$/);
   await expect(account).toHaveAttribute('aria-expanded', 'false');
   await account.click();
-  const menu = aside.getByRole('menu', { name: 'Conta' });
-  await expect(menu.getByRole('menuitem')).toHaveText(['Conectar IA', 'Conta e créditos', 'Sair']);
+  // Disclosure (não é role=menu): o painel vem depois do botão, e Tab percorre os itens na ordem.
+  await expect(aside.getByRole('menu')).toHaveCount(0);
+  const panel = aside.getByRole('group', { name: 'Conta' });
+  await expect(panel.getByRole('button')).toHaveText(['Conectar IA', 'Conta e créditos', 'Sair']);
+  await page.keyboard.press('Tab');
+  await expect(panel.getByRole('button', { name: 'Conectar IA' })).toBeFocused();
   await page.keyboard.press('Escape');
-  await expect(menu).toHaveCount(0);
+  await expect(panel).toHaveCount(0);
   await expect(account).toBeFocused();
   await account.click();
-  await menu.getByRole('menuitem', { name: 'Conectar IA' }).click();
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
+  await expect(panel).toHaveCount(0);
+  await account.click();
+  await panel.getByRole('button', { name: 'Conectar IA' }).click();
   await expect(page).toHaveURL(/\/app\/conectar$/);
   for (const removed of [
     'Mesa',
@@ -96,7 +106,7 @@ test('os caminhos das telas removidas abrem a Mesa', async ({ page }) => {
   }
   // O logotipo também leva à Mesa, inclusive a partir da Conta.
   await accountButton(page).click();
-  await sidebar(page).getByRole('menuitem', { name: 'Conta e créditos' }).click();
+  await sidebar(page).getByRole('button', { name: 'Conta e créditos', exact: true }).click();
   await sidebar(page).getByRole('button', { name: 'ForgeLex, ir para o início' }).click();
   await expect(page).toHaveURL(/\/app\/trabalho/);
   // O site público de consulta processual não muda.
@@ -252,7 +262,7 @@ test('celular: a gaveta tem Pasta e o menu da conta; Escape fecha e devolve o fo
   await expect(page.getByRole('button', { name: 'Abrir menu lateral' })).toBeFocused();
   await toggle.click();
   await accountButton(page).click();
-  await aside.getByRole('menuitem', { name: 'Conta e créditos' }).click();
+  await aside.getByRole('button', { name: 'Conta e créditos', exact: true }).click();
   await expect(page).toHaveURL(/\/app\/conta/);
   await expect(aside).toBeHidden();
 });
@@ -268,7 +278,7 @@ test('acessibilidade da Mesa mínima: Mesa, Pasta aberta, peça, Conta e gaveta,
   expect((await scan(page)).violations).toEqual([]);
   await accountButton(page).click();
   expect((await scan(page)).violations).toEqual([]);
-  await sidebar(page).getByRole('menuitem', { name: 'Conta e créditos' }).click();
+  await sidebar(page).getByRole('button', { name: 'Conta e créditos', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Conta e créditos' })).toBeVisible();
   expect((await scan(page)).violations).toEqual([]);
   await page.setViewportSize({ width: 390, height: 844 });
@@ -283,7 +293,7 @@ test('Conta tem Faturamento, Atividade e Segurança; Conectar IA não tem seçõ
   await page.setViewportSize({ width: 1440, height: 900 });
   await login(page);
   await accountButton(page).click();
-  await sidebar(page).getByRole('menuitem', { name: 'Conta e créditos' }).click();
+  await sidebar(page).getByRole('button', { name: 'Conta e créditos', exact: true }).click();
   await expect(page).toHaveURL(/\/app\/conta$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Conta e créditos' })).toBeVisible();
   const sections = page.getByRole('navigation', { name: 'Seções da conta' });
@@ -293,7 +303,7 @@ test('Conta tem Faturamento, Atividade e Segurança; Conectar IA não tem seçõ
   await expect(page).toHaveURL(/\/app\/conta\/atividade$/);
 
   await accountButton(page).click();
-  await sidebar(page).getByRole('menuitem', { name: 'Conectar IA' }).click();
+  await sidebar(page).getByRole('button', { name: 'Conectar IA', exact: true }).click();
   await expect(page).toHaveURL(/\/app\/conectar$/);
   await expect(page.getByRole('navigation', { name: 'Seções de Conectar IA' })).toHaveCount(0);
 
@@ -447,6 +457,7 @@ test('Conectar IA: só conectar, autorizar e revogar; a privacidade diz que a IA
   await expect(page.getByText('Perguntas que o ForgeLex entende')).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Casos' })).toHaveCount(0);
   await expect(page.getByText('A assinatura da sua IA não paga o ForgeLex')).toBeVisible();
+  await expect(page.getByText(/confira o acesso/)).toHaveCount(0);
   await page.getByText('Privacidade da conexão MCP').click();
   await expect(page.getByText(/a sua IA passa a ler os seus casos ativos/)).toBeVisible();
   const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
@@ -478,6 +489,9 @@ test('Recentes e Pasta aparecem também fora da Mesa; escolher uma conversa ou N
   await recent.click();
   await expect(page).toHaveURL(new RegExp(`/app/trabalho.*executionId=${executionId}`));
   await expect(page.getByText(/Trabalho concluído/)).toBeVisible();
+  // Voltar devolve à Conta, não a uma Mesa vazia.
+  await page.goBack();
+  await expect(page).toHaveURL(/\/app\/conta$/);
 
   await page.goto('/app/conectar');
   await sidebar(page).getByRole('button', { name: 'Nova conversa' }).first().click();
@@ -517,4 +531,11 @@ test('Conta longa: ao rolar até o fim, a lateral continua inteira na tela, com 
   expect(aside!.y).toBeLessThanOrEqual(1);
   expect(aside!.y + aside!.height).toBeGreaterThanOrEqual(699);
   await expect(accountButton(page)).toBeInViewport();
+});
+
+test('a coluna da lateral tem uma borda só', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await login(page);
+  const parentBorder = await sidebar(page).evaluate((aside) => getComputedStyle(aside.parentElement!).borderRightWidth);
+  expect(parentBorder).toBe('0px');
 });

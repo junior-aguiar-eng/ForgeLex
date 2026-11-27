@@ -3,6 +3,7 @@ import { ApiRequestError, getBillingAccount, requestApi } from '../api-client';
 import { SearchCoordinator } from '../operations/search-coordinator';
 import { OperationsClient } from '../operations/operations-client';
 import type { OperationalResource, ResearchHistoryItem, ReviewQueueItem, SearchExecution, SearchIntent, SearchResultItem, TribunalCapability } from '../operations/contracts';
+import { consumeDeskEntry } from '../navigation/desk-entry';
 import { canonicalPathname, iceCaseDestination, isKnownPath, navigateToTab, resolveVisibleTab, routeForTab, tabForPath, updateDocumentTitle, type AppTab, type CaseRouteContext } from '../navigation/routes';
 
 import { AGENTIC_WORKSPACE_ENABLED, CASE_WORKSPACE_ENABLED, isDeskEnabled } from '../config/site-capabilities';
@@ -99,7 +100,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   ), []);
   const setDeskSelection = useCallback((selection: DeskSelection, mode?: 'push' | 'replace') => {
     if (isDeskRoute(window.location.pathname)) writeDeskLocation(selection, mode);
-    else lastDesk.current = selection;
+    else if (consumeDeskEntry()) {
+      // Escolha feita no histórico da lateral, fora da Mesa: vai à Mesa já com ela, numa entrada só do histórico.
+      navigateToTab('work', 'push', selection);
+      window.dispatchEvent(new Event('forgelex:route-updated'));
+      setCurrentTab('work');
+    } else lastDesk.current = selection;
   }, []);
   const client = useMemo(() => new OperationsClient(), []);
   const [tribunals, setTribunals] = useState<OperationalResource<TribunalCapability[]>>(OperationsClient.loading([]));

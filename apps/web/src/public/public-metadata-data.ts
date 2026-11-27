@@ -77,7 +77,7 @@ export const modelMetadata: Partial<Record<PublicPage, PageMetadata>> = {
   home: {
     title: 'ForgeLex · Peças jurídicas prontas para revisar, com a jurisprudência na fonte',
     description:
-      'Descreva o que precisa e anexe o que tiver: a Mesa de trabalho prepara a peça para você revisar, com decisões do STJ e a fonte de cada uma. Use também no ChatGPT ou o Claude por MCP. Pagamento só pelo uso.',
+      'Descreva o que precisa e anexe o que tiver: a Mesa de trabalho prepara a peça para você revisar, com decisões do STJ e a fonte de cada uma. Use também no ChatGPT ou no Claude por MCP. Pagamento só pelo uso.',
     path: '/',
   },
   product: {
