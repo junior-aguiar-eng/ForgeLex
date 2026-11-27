@@ -343,47 +343,49 @@ test('tema clássico: com um caso vinculado, o anexo não oferece "Salvar no cas
   );
 });
 
-// E4: anexo grande é dividido em trechos; cada trecho é um pedido com cabeçalho próprio, enviados em ordem. O servidor
-// recusa o trecho que já foi analisado (409) e o envio segue com os demais.
-test('anexo grande: o aviso diz quantas partes, cada parte sai como um pedido e a já analisada é pulada', async ({
-  page,
-}) => {
+// Item 20 do plano (27/11/2026): sem divisão em trechos. O anexo segue inteiro num pedido só, até 100.000 caracteres;
+// acima disso o pedido não sai e a conversa pede as páginas que importam.
+test('anexo grande segue num pedido só, e o que passa do limite não sai', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await login(page);
   const paragraphs = Array.from({ length: 90 }, (_, i) => `Parágrafo ${i + 1}. ${'texto sintético '.repeat(60)}`);
   const long = paragraphs.join('\n\n');
   await attach(page).setInputFiles({ name: 'processo.txt', mimeType: 'text/plain', buffer: Buffer.from(long) });
   await expect(list(page).getByText('processo.txt', { exact: true })).toBeVisible();
-  await expect(page.getByText(/Este anexo será analisado em \d+ partes\./)).toBeVisible();
-  const notice = await page.getByText(/Este anexo será analisado em \d+ partes\./).innerText();
-  const total = Number(/em (\d+) partes/.exec(notice)![1]);
-  expect(total).toBeGreaterThan(1);
+  await expect(page.getByText(/em \d+ partes/)).toHaveCount(0);
 
   const message = 'Dissecar este processo.';
   await page.getByLabel('O que você precisa fazer?', { exact: true }).fill(message);
   const sent: any[] = [];
   await page.route('**/api/agentic/executions', async (route) => {
     sent.push(route.request().postDataJSON());
-    // 1º trecho aceito, 2º já analisado (409, o envio segue), 3º falha de verdade (o envio para e o usuário é avisado).
-    if (sent.length === 1) return route.fulfill({ json: { id: 'execucao-1', status: 'QUEUED' } });
-    if (sent.length === 2)
-      return route.fulfill({ status: 409, json: { error: 'ALREADY_ANALYZED', message: 'Já analisado.' } });
-    return route.fulfill({ status: 503, json: { error: 'SYNTHETIC_STOP' } });
+    return route.fulfill({ json: { id: 'execucao-1', status: 'QUEUED' } });
   });
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
-  await expect.poll(() => sent.length).toBe(3);
-  const codes = new Set<string>();
-  sent.forEach((body, index) => {
-    expect(body.objective).toBe(message);
-    expect(body.context.text.length).toBeLessThan(100_000);
-    const header = /Anexo "processo\.txt" \(texto extraído; parte (\d+) de (\d+), documento ([a-f0-9]{12})\):/.exec(
-      body.context.text,
-    );
-    expect(header, body.context.text.slice(0, 200)).toBeTruthy();
-    expect(Number(header![1])).toBe(index + 1);
-    expect(Number(header![2])).toBe(total);
-    codes.add(header![3]!);
+  await expect.poll(() => sent.length).toBe(1);
+  expect(sent[0].objective).toBe(message);
+  expect(sent[0].context.text).toContain('Anexo "processo.txt" (texto extraído):');
+  expect(sent[0].context.text).toContain('Parágrafo 90.');
+  expect(sent[0].context.text).not.toMatch(/parte \d+ de \d+/);
+});
+
+test('anexo acima de 100.000 caracteres não sai e pede as páginas que importam', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page);
+  const huge = Array.from({ length: 120 }, (_, i) => `Parágrafo ${i + 1}. ${'texto sintético '.repeat(60)}`).join(
+    '\n\n',
+  );
+  await attach(page).setInputFiles({ name: 'processo.txt', mimeType: 'text/plain', buffer: Buffer.from(huge) });
+  await expect(list(page).getByText('processo.txt', { exact: true })).toBeVisible();
+  await page.getByLabel('O que você precisa fazer?', { exact: true }).fill('Dissecar este processo.');
+  let sent = 0;
+  await page.route('**/api/agentic/executions', async (route) => {
+    sent += 1;
+    return route.fulfill({ json: { id: 'execucao-1', status: 'QUEUED' } });
   });
-  // Todos os trechos do mesmo anexo levam o mesmo código de documento.
-  expect(codes.size).toBe(1);
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  const alert = page.getByRole('alert');
+  await expect(alert).toContainText('Anexe só as páginas que importam');
+  await expect(alert).not.toContainText('indisponível');
+  expect(sent).toBe(0);
 });

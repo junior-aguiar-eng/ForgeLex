@@ -2685,3 +2685,35 @@ mantido. Efeito de segurança aceito por Boni: qualquer IA que ele conectar por 
 mandar peças, que esperam revisão. Testes: `case-ai-access.spec.ts` reescrita para a regra (5/5: leitura automática e
 gratuita, uma permissão por conexão, sessão do site e token desconhecido barrados, revogação que não volta, caso
 arquivado fora e caso novo dentro); unitários de persistência, servidor e conector 491/491.
+
+## Item 20 · fim da divisão do anexo em trechos (27/11/2026)
+
+Sobre `main` em `81d0557`. **Defeito:** no modo comercial, o PDF dividido em trechos (E4) parava no 1º trecho, porque o
+navegador enviava os trechos em seguida e a política recusa nova reserva com trabalho ativo
+(`COMMERCIAL_EXECUTION_ACTIVE`). **Decisão de Boni (27/11, regra do mínimo):** remover a divisão, em vez de criar fila
+ou reserva única por PDF.
+
+**O que saiu (só `apps/web`):** `attachment-parts.ts` e seu teste (divisão por página, código do documento, cabeçalho
+de parte), o envio de vários pedidos em ordem (`startMany` e `onSubmitMany`), o aviso "será analisado em N partes" com
+o custo somado, o bloqueio por excesso de partes e as mensagens `ATTACHMENT_PARTS_*`, `ATTACHMENT_TOO_MANY_PARTS`,
+`ATTACHMENT_SPLIT_UNSUPPORTED`, `ATTACHMENT_NEW_REQUEST` e `ATTACHMENT_PART_TOO_LONG`. O aviso de saldo voltou a
+comparar com o custo de um trabalho.
+
+**Como fica:** os anexos seguem inteiros com o pedido, como na U5, até 100.000 caracteres somados ao texto (o limite
+de entrada da política comercial). Acima disso o pedido não sai e a conversa diz "passa de 100.000 caracteres, cerca de
+30 páginas. Anexe só as páginas que importam". Um PDF, um pedido, uma reserva.
+
+**Defeito antigo corrigido junto:** a recusa por tamanho era um `Error` comum, e a tela o trocava por "O serviço está
+indisponível". Agora tem código próprio (`ATTACHMENT_TOO_LARGE`) e a frase certa, sem o sufixo de indisponibilidade; o
+mesmo sufixo deixou de aparecer em `ALREADY_ANALYZED`.
+
+**Mantido de propósito:** o servidor continua reconhecendo o cabeçalho de parte (`parseAttachmentBlocks`, agrupamento
+por `documentCode` na soma da estrutura), para ler as análises de trechos já gravadas desde a publicação de 25/11. O
+navegador não gera mais esse cabeçalho.
+
+**Verificação:** `tsc` do web, ESLint de `apps/web/src` e Prettier aprovados; Vitest completo 2.968 passaram, 40
+pulados; Playwright `attachments` 12/12 (dois testes novos: anexo de ~87 mil caracteres sai num pedido só, sem
+cabeçalho de parte; acima de 100 mil não sai e mostra a frase), `attachments-gelo` 1/1, `agentic-workspace` 25/25,
+`shell-gelo` 18/18 e `desk-shell` 31/31. **Não verificado:** modo comercial real (sem chamada paga; o teste simula a
+rota) e PDF real de produção.
+

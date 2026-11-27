@@ -287,57 +287,6 @@ export function AgenticWorkspaceScreen({
     }
     void invoke('start', input, (key) => client.start(input, key));
   };
-  // E4: um PDF longo vira vários pedidos (um por trecho), enviados em ordem. A Mesa abre o primeiro; os demais correm no
-  // histórico. Trecho já analisado neste caso conta como feito; qualquer outra falha interrompe o envio e diz quantos saíram.
-  const startMany = async (inputs: StartInput[], authorization?: CommercialAuthorization) => {
-    if (busy || !inputs.length) return;
-    if (commercial && !authorization) {
-      setError('ATTACHMENT_PARTS_COST');
-      return;
-    }
-    setBusy(true);
-    setError('');
-    const epoch = navigationEpoch.current;
-    const created: Execution[] = [];
-    let skipped = 0;
-    let failure: unknown;
-    try {
-      for (const input of inputs) {
-        const key = crypto.randomUUID();
-        try {
-          created.push(
-            await (commercial && authorization
-              ? client.commercialStart({ ...input, ...authorization }, key)
-              : client.start(input, key)),
-          );
-        } catch (e) {
-          if (e instanceof ApiRequestError && e.code === 'ALREADY_ANALYZED') skipped += 1;
-          else {
-            failure = e;
-            break;
-          }
-        }
-        if (created.length === 1 && created[0] && mounted.current && epoch === navigationEpoch.current) {
-          const first = created[0];
-          generation.current++;
-          submittedRun.current = first.id;
-          setRun(first);
-          setDeliveries([]);
-          setCorrection(undefined);
-          setPaidCommand(undefined);
-          setSide((old) => ({ ...old, open: false, source: null }));
-          changeId(first.id);
-        }
-      }
-      if (!mounted.current || epoch !== navigationEpoch.current) return;
-      if (failure) {
-        if (created.length) setError('ATTACHMENT_PARTS_PARTIAL');
-        else fail(failure);
-      } else if (!created.length && skipped) setError('ATTACHMENT_PARTS_DONE');
-    } finally {
-      if (mounted.current && epoch === navigationEpoch.current) setBusy(false);
-    }
-  };
   const onAnswer = (answer: Answer) => {
     if (run) {
       if (commercial) {
@@ -496,7 +445,7 @@ export function AgenticWorkspaceScreen({
             <p role="alert" className="break-words rounded-xl border border-amber-300 bg-amber-50 p-4">
               {statusText('FAILED', shownError)}{' '}
               {!shownError.match(
-                /ACCESS|BUDGET|BALANCE|FUNDS|NOT_FOUND|APPROVED_|COMMERCIAL_(DAILY|MONTHLY|EXECUTION_ACTIVE|POLICY)/,
+                /ACCESS|BUDGET|BALANCE|FUNDS|NOT_FOUND|APPROVED_|ATTACHMENT_TOO_LARGE|ALREADY_ANALYZED|COMMERCIAL_(DAILY|MONTHLY|EXECUTION_ACTIVE|POLICY)/,
               ) && 'O serviço está indisponível. Seu pedido permanece nesta tela.'}
             </p>
           )}
@@ -545,7 +494,6 @@ export function AgenticWorkspaceScreen({
                 available={isActiveSurface && available}
                 onFail={fail}
                 onSubmit={start}
-                onSubmitMany={(inputs, authorization) => void startMany(inputs, authorization)}
                 onGuide={guidanceEnabled ? guidance.start : undefined}
                 guidanceId={guidance.id}
                 guidanceState={guidance.state}
