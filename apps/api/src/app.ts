@@ -3142,6 +3142,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       const callStartedAt = Date.now();
       const callLog = { body, idempotencyHeader: Boolean(idempotencyKey), agent: String(req.headers['user-agent'] ?? '') };
       try {
+        // Regra do mínimo (26/11/2026): a conexão aprovada no login da IA vale para os casos ativos da conta, sem painel.
+        // Antes de uma ferramenta de caso, a permissão desta conexão é posta em dia com o material atual de cada caso.
+        const calledTool = body?.method === 'tools/call' ? String(body?.params?.name ?? '') : '';
+        if (caseAiAccess && req.principal.authMethod === 'oauth_access_token' && req.principal.oauthClientId && req.principal.oauthGrantedAt && /^(case|draft|analise)\.|^workflow\.legal_research_memo$/.test(calledTool))
+          await caseAiAccess.syncAutomatic({ tenantId: req.principal.tenantId, userId: req.principal.userId, oauthConnection: { clientId: req.principal.oauthClientId, grantedAt: req.principal.oauthGrantedAt } }).catch(() => undefined);
         const response = await mcpHandler.handleRequest(body, {
           idempotencyKey,
           tenantId: req.principal.tenantId,

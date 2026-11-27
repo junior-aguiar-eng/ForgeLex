@@ -1,5 +1,6 @@
 import { SupportingSurface } from '../desk/SupportingSurface';
 import { ConversationHistoryView, useConversationHistory } from '../desk/ConversationHistory';
+import { CaseFolder, type FolderCase } from '../desk/CaseFolder';
 import { ReevaluationNotice, WorkingIndicator, WorkspaceHeader, pastResponses } from '../desk/ConversationParts';
 import type { DeskPiece, DeskRequest } from '../agentic-workspace/desk-model';
 import { editorLink } from '../agentic-workspace/execution-model';
@@ -355,6 +356,8 @@ export function AgenticWorkspaceScreen({
       );
     }
   };
+  // Pasta (gelo): o caso escolhido recebe o próximo pedido novo.
+  const [folderCase, setFolderCase] = useState<FolderCase>();
   const newWork = () => {
     resetSelection();
     changeId(null, true);
@@ -440,6 +443,20 @@ export function AgenticWorkspaceScreen({
             container={historyContainer}
             onNew={newWork}
             onOpen={openExecution}
+            {...(activeTheme() === 'gelo'
+              ? {
+                  folder: (items, open) => (
+                    <CaseFolder
+                      conversations={items}
+                      currentId={id}
+                      activeCase={folderCase}
+                      busy={busy}
+                      onOpen={open}
+                      onSelectCase={setFolderCase}
+                    />
+                  ),
+                }
+              : {})}
           />
           <WorkspaceHeader
             landing={landing}
@@ -535,6 +552,8 @@ export function AgenticWorkspaceScreen({
                 guidanceBusy={guidance.busy}
                 guidanceEditing={Boolean(guidanceField)}
                 guidanceError={!guidance.id ? guidance.feedback : undefined}
+                folderCase={folderCase}
+                onLeaveCase={() => setFolderCase(undefined)}
               />
               {!guidance.id && emptyState}
               {paidBar('start')}

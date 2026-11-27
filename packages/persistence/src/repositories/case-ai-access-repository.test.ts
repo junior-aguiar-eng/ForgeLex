@@ -175,3 +175,68 @@ describe('Permissão explícita de contexto', () => {
     }
   });
 });
+
+describe('Regra do mínimo: a conexão aprovada vale para os casos ativos, sem painel', () => {
+  it('cria a permissão com todo o material, inclusive caso vazio, e acompanha documento novo', async () => {
+    const f = await caseAccessFixture();
+    try {
+      const empty = await f.matters.createMatter({ ...f.owner, createdBy: f.owner.userId, title: 'Caso da Pasta' });
+      await f.repo.syncAutomatic(f.reader);
+      const grants = await f.repo.listForReader(f.reader);
+      expect(grants.map((g) => g.matterId)).toEqual(expect.arrayContaining([f.matter.id, empty.id]));
+      const withDoc = grants.find((g) => g.matterId === f.matter.id)!;
+      expect(withDoc.selection.documents).toEqual(f.selection.documents);
+      expect(withDoc.receivePermission).toEqual({ enabled: true, destination: { mode: 'NEW' } });
+      expect(grants.find((g) => g.matterId === empty.id)!.selection.documents).toEqual([]);
+      // Outra conta nunca entra.
+      expect(grants.some((g) => g.matterId === f.foreign.id)).toBe(false);
+
+      // Sem mudança, nada é regravado; com documento novo, a permissão passa a incluí-lo.
+      await f.repo.syncAutomatic(f.reader);
+      expect((await f.repo.assertActive(f.reader, f.matter.id)).revision).toBe(withDoc.revision);
+      const added = await f.matters.ingestTextDocument({
+        ...f.owner,
+        matterId: f.matter.id,
+        createdBy: f.owner.userId,
+        title: 'Petição',
+        originalFilename: 'peticao.txt',
+        mimeType: 'text/plain',
+        content: 'Texto da petição.',
+      });
+      await f.repo.syncAutomatic(f.reader);
+      const updated = await f.repo.assertActive(f.reader, f.matter.id);
+      // Material novo não muda a revisão: o envio com a revisão que a IA leu continua valendo.
+      expect(updated.revision).toBe(withDoc.revision);
+      expect(updated.selection.documents.map((d) => d.documentId)).toContain(added.document.id);
+    } finally {
+      f.client.close();
+    }
+  });
+
+  it('respeita a revogação desta conexão; a conexão nova começa do zero; caso fora de uso não entra', async () => {
+    const f = await caseAccessFixture();
+    try {
+      await f.repo.syncAutomatic(f.reader);
+      const grant = await f.repo.assertActive(f.reader, f.matter.id);
+      await f.repo.revoke(f.owner, f.matter.id, grant.id, grant.revision);
+      await f.repo.syncAutomatic(f.reader);
+      await expect(f.repo.assertActive(f.reader, f.matter.id)).rejects.toThrow('CASE_CONTEXT_NOT_AUTHORIZED');
+
+      const reconnected = {
+        ...f.owner,
+        oauthConnection: { clientId: 'app-one', grantedAt: '2026-11-26T10:00:00.000Z' },
+      };
+      await f.repo.syncAutomatic(reconnected);
+      expect((await f.repo.assertActive(reconnected, f.matter.id)).status).toBe('ACTIVE');
+
+      await f.client.execute({
+        sql: "UPDATE matters SET lifecycle_state = 'ARCHIVED' WHERE id = ?",
+        args: [f.matter.id],
+      });
+      await f.repo.syncAutomatic(reconnected);
+      expect((await f.repo.listForReader(reconnected)).some((g) => g.matterId === f.matter.id)).toBe(false);
+    } finally {
+      f.client.close();
+    }
+  });
+});

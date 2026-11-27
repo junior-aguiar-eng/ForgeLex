@@ -423,6 +423,96 @@ export class CaseAiAccessRepository {
       return next;
     });
   }
+  /**
+   * Regra do mínimo (decisão de Boni, 26/11/2026): a conexão que o usuário aprovou no login da IA dele vale para os
+   * casos ativos da conta, sem painel. Para cada caso ativo, garante uma permissão desta conexão com todo o material
+   * atual do caso e com o envio de peças novas ao editor. Uma revogação feita nesta mesma conexão é respeitada; para
+   * cortar o acesso, o usuário desconecta a IA (a conexão nova tem outra data e começa do zero). Melhor esforço: um caso
+   * que não pode ser atualizado agora fica como está.
+   */
+  async syncAutomatic(r: CaseAiReader): Promise<void> {
+    const { clientId, grantedAt } = r.oauthConnection ?? {};
+    if (!clientId || !grantedAt) return;
+    const owner = { tenantId: r.tenantId, userId: r.userId };
+    const active = await this.db
+      .select({ id: s.matters.id })
+      .from(s.matters)
+      .where(and(eq(s.matters.tenantId, r.tenantId), eq(s.matters.lifecycleState, 'ACTIVE')))
+      .limit(100);
+    for (const { id: matterId } of active) {
+      try {
+        const current = (await this.listForOwner(owner, matterId)).find((g) => g.oauthClientId === clientId);
+        if (current?.status === 'REVOKED' && current.oauthGrantedAt === grantedAt) continue;
+        const selection = CaseAiSelectionSchema.parse(await this.fullSelection(owner, matterId));
+        const same = current?.status === 'ACTIVE' && current.oauthGrantedAt === grantedAt;
+        if (same && current.receivePermission.enabled) {
+          // Material novo entrando no caso não é mudança de permissão: atualiza a lista sem mudar a revisão, para não
+          // invalidar o que a IA acabou de ler (envio de peça ou de análise com a revisão lida).
+          if (JSON.stringify(current.selection) !== JSON.stringify(selection))
+            await this.refreshSelection(owner, matterId, current, selection);
+          continue;
+        }
+        // Mantém o que o usuário já tinha dado nesta conexão (destino de peças e recebimento de análises).
+        await this.replace(owner, matterId, {
+          oauthClientId: clientId,
+          oauthGrantedAt: grantedAt,
+          expectedRevision: current?.revision ?? 0,
+          selection,
+          receivePermission:
+            same && current.receivePermission.enabled
+              ? current.receivePermission
+              : { enabled: true, destination: { mode: 'NEW' } },
+          ...(same && current.analysisPermission.enabled && selection.documents.length
+            ? { analysisPermission: current.analysisPermission }
+            : {}),
+        });
+      } catch {
+        /* Conflito de revisão ou material mudando agora: a próxima chamada da IA tenta de novo. */
+      }
+    }
+  }
+  /** Troca só a lista de material de uma permissão ativa, na mesma revisão (sincronização automática). */
+  private async refreshSelection(o: CaseAiOwner, matterId: string, current: CaseAiGrant, selection: CaseAiSelection) {
+    await this.db.transaction(async (tx) => {
+      const repo = new CaseAiAccessRepository(tx as unknown as ForgeLexDatabase);
+      await tx
+        .update(s.matters)
+        .set({ updatedAt: sql`${s.matters.updatedAt}` })
+        .where(and(eq(s.matters.id, matterId), eq(s.matters.tenantId, o.tenantId)));
+      await repo.loadSelection(o, matterId, selection);
+      await tx
+        .update(s.caseAiAccessGrants)
+        .set({ selectionJson: JSON.stringify(selection), updatedAt: new Date().toISOString() })
+        .where(
+          and(
+            this.scope(o, matterId),
+            eq(s.caseAiAccessGrants.id, current.id),
+            eq(s.caseAiAccessGrants.revision, current.revision),
+            eq(s.caseAiAccessGrants.status, 'ACTIVE'),
+          ),
+        );
+    });
+  }
+  /** Todo o material atual de um caso: a versão mais recente de cada documento ativo, fatos, provas, teses e fontes. */
+  private async fullSelection(o: CaseAiOwner, matterId: string): Promise<CaseAiSelection> {
+    const all = async (kind: CaseItemKind) => {
+      const items: { id: string; versionId?: string }[] = [];
+      let cursor: string | undefined;
+      do {
+        const page = await this.catalog(o, matterId, kind, { ...(cursor ? { cursor } : {}), limit: 100 });
+        items.push(...page.items);
+        cursor = page.nextCursor;
+      } while (cursor && items.length < 100);
+      return items.slice(0, 100);
+    };
+    return {
+      documents: (await all('DOCUMENT')).map((d) => ({ documentId: d.id, versionId: d.versionId! })),
+      factIds: (await all('FACT')).map((i) => i.id),
+      evidenceIds: (await all('EVIDENCE')).map((i) => i.id),
+      thesisIds: (await all('THESIS')).map((i) => i.id),
+      authorityIds: (await all('AUTHORITY')).map((i) => i.id),
+    };
+  }
   async revoke(o: CaseAiOwner, matterId: string, id: string, revision: number): Promise<CaseAiGrant> {
     return this.db.transaction(async (tx) => {
       await tx

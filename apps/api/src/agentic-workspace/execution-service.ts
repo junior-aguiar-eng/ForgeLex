@@ -27,7 +27,6 @@ import { InferenceBudgetService } from '@forgelex/billing-ledger';
 import { ExecutionStore, digest, type ExecutionJob, type WorkerLease } from './execution-store.js';
 import { projectClientExecutionEvent, publicQuestion, type ExecutionFailureReason } from './event-stream.js';
 import { reportAgenticFailure } from './failure-log.js';
-import { routeCaseInput, startHasAttachmentText } from './pasted-account.js';
 
 const id = z.string().trim().min(1).max(200);
 export const StartExecutionSchema = z
@@ -307,20 +306,9 @@ export class ExecutionService {
         const prepared = this.options.prepareStart
           ? StartExecutionSchema.parse(await this.options.prepareStart(s, owner, requested))
           : requested;
-        // E1b: o relato colado vira análise de fatos e provas, salvo se o mesmo texto já foi analisado neste caso.
-        // E4: o anexo com texto também vira análise; o texto completo já analisado é recusado (nada é cobrado de novo).
-        const routed = routeCaseInput(prepared);
-        const autoRouted = routed.actionId !== prepared.actionId;
-        const byAttachment = autoRouted && startHasAttachmentText(routed);
-        if (
-          byAttachment &&
-          (await s.hasLiveEvidenceAnalysis(owner, routed.matterId!, routed.objective, routed.context?.text ?? ''))
-        )
-          throw new Error('ALREADY_ANALYZED');
-        const input =
-          autoRouted && !byAttachment && (await s.hasLiveEvidenceAnalysis(owner, routed.matterId!, routed.objective))
-            ? prepared
-            : routed;
+        // Regra do mínimo (AGENTS.md, 26/11/2026): o pedido segue como o usuário escreveu, como numa conversa; num caso,
+        // o relato colado ou o anexo não viram análise de fatos e provas por conta própria (E1b/E4 retirados).
+        const input = prepared;
         let conversation = input.conversationId
           ? await s.workspace.getConversation(owner, input.conversationId)
           : undefined;

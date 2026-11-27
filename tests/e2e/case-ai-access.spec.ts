@@ -112,240 +112,132 @@ test('análise documental recebida: conferir fonte, editar e incorporar no caso'
     .screenshot({ path: info.outputPath('analysis-review-mobile.png') });
 });
 
-test('conexões com o mesmo nome são distinguíveis e não recebem permissão automaticamente', async ({
-  page,
-  request,
-}, info) => {
-  const state = await (await request.get(api + '/e2e/state')).json();
-  const headers = { authorization: 'Bearer phase7-e2e-access-token' };
-  const created = await request.post(api + '/api/v2/matters', {
-    headers,
-    data: { title: 'Conexões homônimas — teste sintético' },
-  });
-  expect(created.status()).toBe(200);
-  const matter = await created.json();
-  let writes = 0;
-  page.on('request', (r) => {
-    if (r.url().endsWith('/ai-access') && r.method() === 'PUT') writes++;
-  });
-  await page.route('**/mcp/authorized-applications', async (route) => {
-    const response = await route.fetch();
-    const apps = await response.json();
-    await route.fulfill({ response, json: apps.map((a: any) => ({ ...a, displayName: 'Claude' })) });
-  });
-  await login(page);
-  await openCase(page, matter.id);
-  await page.getByLabel('Onde você vai usar?').selectOption('Claude');
-  const choices = page.getByLabel('Aplicativo autorizado');
-  await expect(choices).toHaveValue('');
-  const options = await choices.locator('option').allTextContents();
-  expect(options[1]).toContain('05/10/2026');
-  expect(options[2]).toContain('05/10/2026');
-  expect(options[1]).not.toBe(options[2]);
-  await choices.selectOption('app-two');
-  const selected = page.getByRole('region', { name: 'Conexão escolhida' });
-  await expect(selected).toContainText('Sem acesso a este caso');
-  await expect(selected).toContainText('Autorizada em');
-  await selected.getByText('Detalhes da conexão', { exact: true }).click();
-  await expect(selected).toContainText('app-two');
-  await page.getByText('Reconectou sua IA?', { exact: true }).click();
-  await expect(
-    page.getByText('As permissões do caso não são transferidas entre conexões.', { exact: true }),
-  ).toBeVisible();
-  await page.setViewportSize({ width: 390, height: 844 });
-  expect(await page.locator('dialog').evaluate((e) => e.scrollWidth <= e.clientWidth)).toBe(true);
-  const axe = await new AxeBuilder({ page })
-    .include('dialog')
-    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-    .analyze();
-  expect(axe.violations).toEqual([]);
-  await page.locator('dialog').screenshot({ path: info.outputPath('connection-identity-mobile.png') });
-  await page.setViewportSize({ width: 1280, height: 800 });
-  await page.locator('dialog').screenshot({ path: info.outputPath('connection-identity-desktop.png') });
-  expect(writes).toBe(0);
-  expect(await (await request.get(api + `/api/v2/matters/${matter.id}/ai-access`, { headers })).json()).toEqual([]);
-  expectCaseDenied(await mcp(request, state.oauthTokens['app-two'], 'case.get_context', { matterId: matter.id }));
-});
+// Regra do mínimo (decisão de Boni, 26/11/2026): a conexão que o usuário aprovou no login da IA dele vale para os casos
+// ativos da conta, sem painel. Estes testes guardam os limites que continuam valendo: só conexão OAuth lê pelo conector,
+// cada conexão tem a própria permissão, a revogação é respeitada e caso fora de uso não é lido.
+const session = { authorization: 'Bearer phase7-e2e-access-token' };
 
-test('atualizar conexão renovada invalida a prévia sem descartar material nem autorizar acesso', async ({
-  page,
+async function caseWithDocument(request: APIRequestContext, title: string, content: string) {
+  const matter = await (await request.post(api + '/api/v2/matters', { headers: session, data: { title } })).json();
+  const document = await (
+    await request.post(api + `/api/v2/matters/${matter.id}/documents`, {
+      headers: session,
+      data: { title: `Documento de ${title}`, originalFilename: 'doc.txt', mimeType: 'text/plain', content },
+    })
+  ).json();
+  return { matter, document };
+}
+
+test('a conexão aprovada lê o caso ativo sozinha, sem painel e sem cobrança, e o caso aparece na lista compartilhada', async ({
   request,
 }) => {
   const state = await (await request.get(api + '/e2e/state')).json();
-  const headers = { authorization: 'Bearer phase7-e2e-access-token' };
-  const created = await request.post(api + '/api/v2/matters', {
-    headers,
-    data: { title: 'Renovação de conexão — teste sintético' },
-  });
-  expect(created.status()).toBe(200);
-  const matter = await created.json();
-  const document = await request.post(api + `/api/v2/matters/${matter.id}/documents`, {
-    headers,
-    data: {
-      title: 'Material da renovação',
-      originalFilename: 'teste.txt',
-      mimeType: 'text/plain',
-      content: 'Conteúdo inteiramente fictício para seleção.',
-    },
-  });
-  expect(document.status()).toBe(200);
-  let renewed = false;
-  let available = true;
-  let writes = 0;
-  page.on('request', (r) => {
-    if (r.url().endsWith('/ai-access') && r.method() === 'PUT') writes++;
-  });
-  await page.route('**/mcp/authorized-applications', async (route) => {
-    const response = await route.fetch();
-    const apps = await response.json();
-    await route.fulfill({
-      response,
-      json: apps
-        .filter((a: any) => available || a.clientId !== 'app-one')
-        .map((a: any) => (a.clientId === 'app-one' && renewed ? { ...a, grantedAt: '2026-10-07T16:00:00.000Z' } : a)),
-    });
-  });
-  await login(page);
-  await openCase(page, matter.id);
-  await page.getByLabel('Onde você vai usar?').selectOption('Claude');
-  await page.getByLabel('Aplicativo autorizado').selectOption('app-one');
-  await page.locator('dialog summary').filter({ hasText: 'Documentos' }).click();
-  const choice = page.locator('dialog label').filter({ hasText: 'Material da renovação' }).getByRole('checkbox');
-  await choice.check();
+  const title = `Leitura automática ${Date.now()}`;
+  const { matter, document } = await caseWithDocument(request, title, 'CONTEÚDO LIDO PELA CONEXÃO APROVADA');
+  const token = state.oauthTokens['app-one'];
 
-  await expect(page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true })).toBeEnabled();
-  // Keep the replacement preview pending so invalidation is observable even on fast runners.
-  let releasePreview!: () => void;
-  const heldPreview = new Promise<void>((resolve) => {
-    releasePreview = resolve;
+  const context = await mcp(request, token, 'case.get_context', { matterId: matter.id });
+  expect(context.result.isError).toBe(false);
+  expect(context.result.billing).toMatchObject({ mode: 'FREE', chargedCents: 0 });
+  expect(context.result.structuredContent.items.map((item: { id: string }) => item.id)).toContain(document.document.id);
+  // A IA pode mandar peça nova para o caso; ela espera a revisão do usuário.
+  expect(context.result.structuredContent.draftReceiving).toMatchObject({
+    enabled: true,
+    destination: { mode: 'NEW' },
   });
-  let enteredPreview!: () => void;
-  const renewedPreviewStarted = new Promise<void>((resolve) => {
-    enteredPreview = resolve;
-  });
-  await page.route('**/ai-access/preview', async (route) => {
-    const response = await route.fetch();
-    enteredPreview();
-    await heldPreview;
-    await route.fulfill({ response });
-  });
-  renewed = true;
-  await page.getByRole('button', { name: 'Atualizar permissões', exact: true }).click();
-  await renewedPreviewStarted;
-  await expect(page.getByRole('region', { name: 'Prévia do material' })).toHaveCount(0);
-  await expect(choice).toBeChecked();
-  await expect(page.getByRole('region', { name: 'Conexão escolhida' })).toContainText('07/10/2026');
-  releasePreview();
-  await expect(page.getByRole('region', { name: 'Prévia do material' })).toContainText('Material da renovação');
 
-  await expect(page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true })).toBeEnabled();
-  available = false;
-  await page.getByRole('button', { name: 'Atualizar permissões', exact: true }).click();
-  await expect(page.getByRole('region', { name: 'Prévia do material' })).toHaveCount(0);
-  await expect(choice).toBeChecked();
-  await expect(page.getByRole('region', { name: 'Conexão escolhida' })).toContainText('Conexão indisponível');
-  await expect(page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true })).toHaveCount(0);
-  expect(writes).toBe(0);
-  expect(await (await request.get(api + `/api/v2/matters/${matter.id}/ai-access`, { headers })).json()).toEqual([]);
-  expectCaseDenied(await mcp(request, state.oauthTokens['app-one'], 'case.get_context', { matterId: matter.id }));
+  const item = await mcp(request, token, 'case.read_item', {
+    matterId: matter.id,
+    kind: 'DOCUMENT',
+    itemId: document.document.id,
+  });
+  expect(JSON.stringify(item.result.structuredContent)).toContain('CONTEÚDO LIDO PELA CONEXÃO APROVADA');
+
+  const shared = await mcp(request, token, 'case.list_shared');
+  expect(shared.result.structuredContent.items.map((entry: { matterId: string }) => entry.matterId)).toContain(
+    matter.id,
+  );
+  const ledger = await (await request.get(api + '/api/v2/billing/transactions', { headers: session })).json();
+  expect(JSON.stringify(ledger)).not.toContain(matter.id);
 });
 
-test('permissão anterior fica identificada após renovação e pode ser revogada sem ser transferida', async ({
-  page,
+test('cada conexão tem a própria permissão; a sessão do site e um token desconhecido não leem pelo conector', async ({
   request,
 }) => {
   const state = await (await request.get(api + '/e2e/state')).json();
-  const headers = { authorization: 'Bearer phase7-e2e-access-token' };
-  const created = await request.post(api + '/api/v2/matters', {
-    headers,
-    data: { title: 'Permissão anterior — teste sintético' },
-  });
-  expect(created.status()).toBe(200);
-  const matter = await created.json();
-  const docResponse = await request.post(api + `/api/v2/matters/${matter.id}/documents`, {
-    headers,
+  const { matter } = await caseWithDocument(request, `Duas conexões ${Date.now()}`, 'Conteúdo de duas conexões.');
+
+  expect(
+    (await mcp(request, state.oauthTokens['app-one'], 'case.get_context', { matterId: matter.id })).result.isError,
+  ).toBe(false);
+  expect(
+    (await mcp(request, state.oauthTokens['app-two'], 'case.get_context', { matterId: matter.id })).result.isError,
+  ).toBe(false);
+  const grants = await (await request.get(api + `/api/v2/matters/${matter.id}/ai-access`, { headers: session })).json();
+  expect(grants.map((grant: { oauthClientId: string }) => grant.oauthClientId).sort()).toEqual(['app-one', 'app-two']);
+
+  // A sessão do site não é uma conexão OAuth: pelo conector, as ferramentas de caso não leem nada.
+  expectCaseDenied(await mcp(request, 'phase7-e2e-access-token', 'case.get_context', { matterId: matter.id }));
+  const unknown = await request.post(api + '/mcp', {
+    headers: { authorization: 'Bearer token-desconhecido' },
     data: {
-      title: 'Documento da permissão anterior',
-      originalFilename: 'permissao.txt',
-      mimeType: 'text/plain',
-      content: 'Conteúdo fictício para conferir a permissão anterior.',
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'tools/call',
+      params: { name: 'case.get_context', arguments: { matterId: matter.id } },
     },
   });
-  expect(docResponse.status()).toBe(200);
-  const doc = await docResponse.json();
-  const base = api + `/api/v2/matters/${matter.id}/ai-access`;
-  const granted = await request.put(base, {
-    headers,
-    data: {
-      oauthClientId: 'app-one',
-      expectedRevision: 0,
-      selection: {
-        documents: [{ documentId: doc.document.id, versionId: doc.version.id }],
-        factIds: [],
-        evidenceIds: [],
-        thesisIds: [],
-        authorityIds: [],
-      },
-    },
+  expect(unknown.status()).toBe(401);
+});
+
+test('a revogação de uma conexão é respeitada e não volta sozinha; a outra conexão segue lendo', async ({
+  request,
+}) => {
+  const state = await (await request.get(api + '/e2e/state')).json();
+  const { matter } = await caseWithDocument(request, `Revogação ${Date.now()}`, 'Conteúdo da revogação.');
+  const one = state.oauthTokens['app-one'];
+  const two = state.oauthTokens['app-two'];
+  await mcp(request, one, 'case.get_context', { matterId: matter.id });
+  await mcp(request, two, 'case.get_context', { matterId: matter.id });
+
+  const grants = await (await request.get(api + `/api/v2/matters/${matter.id}/ai-access`, { headers: session })).json();
+  const first = grants.find((grant: { oauthClientId: string }) => grant.oauthClientId === 'app-one');
+  const revoked = await request.post(api + `/api/v2/matters/${matter.id}/ai-access/${first.id}/revoke`, {
+    headers: session,
+    data: { expectedRevision: first.revision },
   });
-  expect(granted.status()).toBe(200);
-  const grant = await granted.json();
-  let renewed = false;
-  let writes = 0;
-  page.on('request', (r) => {
-    if (r.url().endsWith('/ai-access') && r.method() === 'PUT') writes++;
+  expect(revoked.status()).toBe(200);
+
+  // Duas chamadas seguidas: a sincronização automática não devolve o acesso revogado.
+  expectCaseDenied(await mcp(request, one, 'case.get_context', { matterId: matter.id }));
+  expectCaseDenied(await mcp(request, one, 'case.get_context', { matterId: matter.id }));
+  expect((await mcp(request, two, 'case.get_context', { matterId: matter.id })).result.isError).toBe(false);
+});
+
+test('caso arquivado não é lido pelo conector, e caso novo entra sem painel', async ({ request }) => {
+  const state = await (await request.get(api + '/e2e/state')).json();
+  const token = state.oauthTokens['app-one'];
+  const { matter } = await caseWithDocument(request, `Arquivado ${Date.now()}`, 'Conteúdo do caso arquivado.');
+  expect((await mcp(request, token, 'case.get_context', { matterId: matter.id })).result.isError).toBe(false);
+
+  const current = await (await request.get(api + `/api/v2/matters/${matter.id}`, { headers: session })).json();
+  const archived = await request.post(api + `/api/v2/matters/${matter.id}/archive`, {
+    headers: session,
+    data: { expectedLifecycleRevision: current.lifecycleRevision ?? 0 },
   });
-  await page.route('**/mcp/authorized-applications', async (route) => {
-    const response = await route.fetch();
-    const apps = await response.json();
-    await route.fulfill({
-      response,
-      json: apps.map((a: any) => ({
-        ...a,
-        displayName: 'Claude',
-        ...(a.clientId === 'app-one' && renewed ? { grantedAt: '2026-10-07T16:00:00.000Z' } : {}),
-      })),
-    });
-  });
-  await login(page);
-  await openCase(page, matter.id);
-  await page.getByLabel('Onde você vai usar?').selectOption('Claude');
-  await page.getByLabel('Aplicativo autorizado').selectOption('app-one');
-  await expect(page.getByRole('button', { name: 'Copiar instrução', exact: true })).toBeVisible();
-  await page.locator('dialog summary').filter({ hasText: 'Documentos' }).click();
-  const selectedDocument = page
-    .locator('dialog label')
-    .filter({ hasText: 'Documento da permissão anterior' })
-    .getByRole('checkbox');
-  await expect(selectedDocument).toBeChecked();
-  renewed = true;
-  await page.getByRole('button', { name: 'Atualizar permissões', exact: true }).click();
-  const chosen = page.getByRole('region', { name: 'Conexão escolhida' });
-  await expect(chosen).toContainText('Conexão renovada; revise a permissão');
-  await expect(chosen).toContainText('07/10/2026');
-  await expect(selectedDocument).toBeChecked();
-  await expect(page.getByRole('button', { name: 'Copiar instrução', exact: true })).toHaveCount(0);
-  const permission = page.getByRole('region', { name: 'Permissões da IA' });
-  await expect(permission).toContainText('05/10/2026');
-  await permission.getByRole('button', { name: 'Revogar acesso', exact: true }).click();
-  const confirmation = page
-    .locator('dialog div')
-    .filter({ hasText: 'Bloquear novas consultas desta conexão a este caso?' })
-    .last();
-  await expect(confirmation).toContainText('05/10/2026');
-  await page.getByRole('button', { name: 'Confirmar revogação', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('Impede novas consultas');
-  const grants = await (await request.get(base, { headers })).json();
-  expect(grants).toHaveLength(1);
-  expect(grants[0]).toMatchObject({
-    id: grant.id,
-    oauthClientId: 'app-one',
-    oauthGrantedAt: '2026-10-05T10:00:00.000Z',
-    status: 'REVOKED',
-  });
-  expect(writes).toBe(0);
-  expectCaseDenied(await mcp(request, state.oauthTokens['app-one'], 'case.get_context', { matterId: matter.id }));
-  expectCaseDenied(await mcp(request, state.oauthTokens['app-two'], 'case.get_context', { matterId: matter.id }));
+  expect(archived.status()).toBe(200);
+  expectCaseDenied(await mcp(request, token, 'case.get_context', { matterId: matter.id }));
+  const shared = await mcp(request, token, 'case.list_shared');
+  expect(shared.result.structuredContent.items.map((entry: { matterId: string }) => entry.matterId)).not.toContain(
+    matter.id,
+  );
+
+  // Caso criado depois, ainda sem documento (como nasce na Pasta), entra na próxima chamada.
+  const fresh = await (
+    await request.post(api + '/api/v2/matters', { headers: session, data: { title: `Caso novo ${Date.now()}` } })
+  ).json();
+  const after = await mcp(request, token, 'case.list_shared');
+  expect(after.result.structuredContent.items.map((entry: { matterId: string }) => entry.matterId)).toContain(fresh.id);
 });
 
 async function login(page: Page) {
@@ -358,18 +250,6 @@ async function login(page: Page) {
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   expect((await bootstrap).status()).toBe(200);
   await page.waitForURL('**/app');
-}
-async function openCase(page: Page, id: string) {
-  await page.goto(`/app/casos?caso=${id}`);
-  await page.getByText('Acesso da IA', { exact: true }).click();
-  await page.getByRole('button', { name: 'Usar este caso na IA' }).click();
-  await expect(page.getByRole('button', { name: 'Atualizar permissões' })).toBeEnabled();
-}
-async function select(page: Page) {
-  await page.getByLabel('Onde você vai usar?').selectOption('ChatGPT');
-  await page.getByLabel('Aplicativo autorizado').selectOption('app-one');
-  await page.locator('dialog summary').filter({ hasText: 'Documentos' }).click();
-  await page.locator('dialog label').filter({ hasText: 'Contrato selecionável' }).getByRole('checkbox').check();
 }
 async function mcp(request: APIRequestContext, token: string, name: string, args: unknown = {}) {
   const r = await request.post(api + '/mcp', {
@@ -389,226 +269,3 @@ function expectCaseDenied(reply: any) {
     message: expect.stringContaining('Este material não está autorizado para o aplicativo.'),
   });
 }
-test('prévia, permissão gratuita, seleção explícita e revogação persistida', async ({ page, request }, info) => {
-  const state = await (await request.get(api + '/e2e/state')).json();
-  const grantBase = api + `/api/v2/matters/${state.matterId}/ai-access`;
-  const grantHeaders = { authorization: 'Bearer phase7-e2e-access-token' };
-  const prior = (await (await request.get(grantBase, { headers: grantHeaders })).json()).find(
-    (g: any) => g.oauthClientId === 'app-one',
-  );
-  if (prior?.status === 'ACTIVE')
-    expect(
-      (
-        await request.post(grantBase + `/${prior.id}/revoke`, {
-          headers: grantHeaders,
-          data: { expectedRevision: prior.revision },
-        })
-      ).status(),
-    ).toBe(200);
-  await login(page);
-  await openCase(page, state.matterId);
-  await expect(page.getByLabel('Aplicativo autorizado')).toHaveValue('');
-  await select(page);
-  // Select by document identity rather than catalogue order.
-  const wanted = page.locator('dialog label').filter({ hasText: 'Contrato selecionável' }).getByRole('checkbox');
-  await page.locator('dialog label').filter({ hasText: 'Contrato selecionável' }).getByRole('checkbox').uncheck();
-  await wanted.check();
-
-  await expect(page.getByRole('region', { name: 'Prévia do material' })).toContainText(
-    'Conteúdo reservado selecionado',
-  );
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.locator('dialog').screenshot({ path: info.outputPath('case-ai-mobile.png') });
-  expect(await page.locator('dialog').evaluate((e) => e.scrollWidth <= e.clientWidth)).toBe(true);
-  const axe = await new AxeBuilder({ page })
-    .include('dialog')
-    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-    .analyze();
-  expect(axe.violations).toEqual([]);
-  await page.setViewportSize({ width: 1280, height: 800 });
-  await page.locator('dialog').screenshot({ path: info.outputPath('case-ai-desktop.png') });
-  await page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('Acesso permitido');
-  const read = await mcp(request, state.oauthTokens['app-one'], 'case.read_item', {
-    matterId: state.matterId,
-    kind: 'DOCUMENT',
-    itemId: state.documentId,
-  });
-  expect(read.result.billing).toMatchObject({ mode: 'FREE', chargedCents: 0, isReplay: false });
-  expect(read.result.billing).not.toHaveProperty('remainingBalanceCents');
-  expect(JSON.stringify(read)).toContain('Conteúdo reservado selecionado');
-  expectCaseDenied(await mcp(request, state.oauthTokens['app-two'], 'case.get_context', { matterId: state.matterId }));
-  expectCaseDenied(
-    await mcp(request, state.oauthTokens['app-one'], 'case.read_item', {
-      matterId: state.matterId,
-      kind: 'DOCUMENT',
-      itemId: state.hiddenDocumentId,
-    }),
-  );
-  // A document added after permission is not automatically shared.
-  const extra = await request.post(api + `/api/v2/matters/${state.matterId}/documents`, {
-    headers: { authorization: 'Bearer phase7-e2e-access-token' },
-    data: {
-      title: 'Documento posterior',
-      originalFilename: 'novo.txt',
-      mimeType: 'text/plain',
-      content: 'NÃO COMPARTILHADO',
-    },
-  });
-  expect(extra.status()).toBe(200);
-  const added = await extra.json();
-  expectCaseDenied(
-    await mcp(request, state.oauthTokens['app-one'], 'case.read_item', {
-      matterId: state.matterId,
-      kind: 'DOCUMENT',
-      itemId: added.document.id,
-    }),
-  );
-  await page.getByRole('button', { name: 'Fechar', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Usar este caso na IA' })).toBeFocused();
-  await page.reload();
-  await openCase(page, state.matterId);
-  await expect(page.getByText('Minha conexão de teste — Acesso permitido')).toBeVisible();
-  await page.getByRole('button', { name: 'Revogar acesso', exact: true }).click();
-  await page.getByRole('button', { name: 'Confirmar revogação' }).click();
-  await expect(page.getByRole('status')).toContainText('Impede novas consultas');
-  expectCaseDenied(
-    await mcp(request, state.oauthTokens['app-one'], 'case.read_item', {
-      matterId: state.matterId,
-      kind: 'DOCUMENT',
-      itemId: state.documentId,
-      cursor: read.result.structuredContent.nextCursor,
-    }),
-  );
-  await page.reload();
-  await openCase(page, state.matterId);
-  await expect(page.getByText('Minha conexão de teste — Acesso revogado')).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(page.locator('dialog')).toHaveCount(0);
-});
-test('erro mantém seleção; resposta atrasada não atravessa o caso', async ({ page, request }) => {
-  const state = await (await request.get(api + '/e2e/state')).json();
-  await login(page);
-  await openCase(page, state.otherMatterId);
-  await page.getByLabel('Onde você vai usar?').selectOption('Claude');
-  await page.getByLabel('Aplicativo autorizado').selectOption('app-two');
-  await page.getByRole('button', { name: 'Fechar', exact: true }).click();
-  await openCase(page, state.matterId);
-  await page.route('**/ai-access/preview', (route) =>
-    route.fulfill({
-      status: 503,
-      contentType: 'application/json',
-      body: JSON.stringify({ error: 'CASE_ACCESS_UNAVAILABLE' }),
-    }),
-  );
-
-  await select(page);
-  await expect(page.getByRole('alert')).toContainText('Sua escolha foi mantida');
-  await expect(
-    page.locator('dialog label').filter({ hasText: 'Contrato selecionável' }).getByRole('checkbox'),
-  ).toBeChecked();
-  await page.unroute('**/ai-access/preview');
-  const chosenDocument = page
-    .locator('dialog label')
-    .filter({ hasText: 'Contrato selecionável' })
-    .getByRole('checkbox');
-  await chosenDocument.uncheck();
-  await chosenDocument.check();
-
-  await expect(page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true })).toBeEnabled();
-  // Delay a real preview response; close, then open a different case.
-  let release!: () => void;
-  const held = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  let entered!: () => void;
-  const started = new Promise<void>((resolve) => {
-    entered = resolve;
-  });
-  await page.route('**/ai-access/preview', async (route) => {
-    const response = await route.fetch();
-    entered();
-    await held;
-    await route.fulfill({ response });
-  });
-
-  await chosenDocument.uncheck();
-  await chosenDocument.check();
-  await started;
-  await page.getByRole('button', { name: 'Fechar', exact: true }).click();
-  await openCase(page, state.otherMatterId);
-  release();
-  await expect(page.getByLabel('Aplicativo autorizado')).toHaveValue('');
-  await expect(page.getByRole('region', { name: 'Prévia do material' })).toHaveCount(0);
-  await expect(page.locator('dialog')).toContainText('Outro caso E2E');
-  await page.unroute('**/ai-access/preview');
-});
-test('conflito real exige atualização explícita e impede escrita duplicada', async ({ page, request }) => {
-  const state = await (await request.get(api + '/e2e/state')).json();
-  await login(page);
-  await openCase(page, state.matterId);
-  await select(page);
-
-  await expect(page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true })).toBeEnabled();
-  const base = api + `/api/v2/matters/${state.matterId}/ai-access`;
-  const headers = { authorization: 'Bearer phase7-e2e-access-token' };
-  const grants = await (await request.get(base, { headers })).json();
-  const revision = grants.find((g: any) => g.oauthClientId === 'app-one')?.revision ?? 0;
-  const changed = await request.put(base, {
-    headers,
-    data: {
-      oauthClientId: 'app-one',
-      expectedRevision: revision,
-      selection: {
-        documents: [
-          {
-            documentId: state.hiddenDocumentId,
-            versionId: (await (await request.get(base + '/materials?kind=DOCUMENT', { headers })).json()).items.find(
-              (i: any) => i.id === state.hiddenDocumentId,
-            ).versionId,
-          },
-        ],
-        factIds: [],
-        evidenceIds: [],
-        thesisIds: [],
-        authorityIds: [],
-      },
-    },
-  });
-  expect(changed.status()).toBe(200);
-  await page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true }).click();
-  await expect(page.getByRole('alert')).toContainText('Sua escolha foi mantida');
-  await expect(
-    page.locator('dialog label').filter({ hasText: 'Contrato selecionável' }).getByRole('checkbox'),
-  ).toBeChecked();
-  await expect(page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true })).toBeDisabled();
-  await page.getByRole('button', { name: 'Atualizar permissões' }).click();
-  await expect(page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true })).toBeEnabled();
-  let release!: () => void;
-  const held = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  let entered!: () => void;
-  const started = new Promise<void>((resolve) => {
-    entered = resolve;
-  });
-  let writes = 0;
-  await page.route('**/ai-access', async (route) => {
-    if (route.request().method() !== 'PUT') return route.continue();
-    writes++;
-    const response = await route.fetch();
-    entered();
-    await held;
-    await route.fulfill({ response });
-  });
-  await page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true }).click();
-  await started;
-  await page.keyboard.press('Escape');
-  await expect(page.locator('dialog')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Fechar', exact: true })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true })).toBeDisabled();
-  release();
-  await expect(page.getByRole('status')).toContainText('Acesso permitido');
-  expect(writes).toBe(1);
-  await page.unroute('**/ai-access');
-});

@@ -32,6 +32,7 @@ import {
   type TaskBinding,
 } from '@forgelex/domain';
 import { findCaseStructure } from './case-structure.js';
+import { caseHistorySource, type CaseHistoryEntry } from './case-history-source.js';
 import { applyStructureAdjustment, structureSourceKey } from './apply-structure-adjustment.js';
 import type { AgentTool, ToolExecutionContext } from '@forgelex/agent-core';
 import type { SearchCaseLawInput } from '@forgelex/legal-tools';
@@ -165,6 +166,28 @@ export function createCaseTaskDriver(
       return undefined;
     }
   };
+  // Regra do mínimo: o que as outras conversas do caso produziram acompanha a conversa, sem botão nem etapa.
+  // Melhor esforço: sem caso, sem conversas anteriores ou com falha de leitura, segue sem histórico.
+  const historySource = async (owner: AgenticOwner, matterId: string | undefined, conversationId: string) => {
+    if (!matterId) return undefined;
+    try {
+      const conversations = await workspace.listMatterConversations(owner, matterId, { limit: 20 });
+      const entries: CaseHistoryEntry[] = [];
+      for (const conversation of conversations) {
+        const execution = conversation.execution;
+        if (conversation.conversationId === conversationId || conversation.matterId !== matterId) continue;
+        if (execution.status !== 'COMPLETED' || (options.manages && !options.manages(execution))) continue;
+        const deliveryId = execution.deliveryIds.at(-1);
+        if (!deliveryId) continue;
+        const { delivery } = await native.getDelivery(owner, deliveryId);
+        if (delivery.action === 'adjust_structure') continue;
+        entries.push({ conversationId: conversation.conversationId, objective: conversation.objective, delivery });
+      }
+      return caseHistorySource(matterId, entries);
+    } catch {
+      return undefined;
+    }
+  };
   const applyAdjustment = async (owner: AgenticOwner, matterId: string | undefined, id: string) => {
     if (!matterId) throw new Error('STRUCTURE_NOT_AVAILABLE');
     const { delivery } = await native.getDelivery(owner, id);
@@ -257,9 +280,15 @@ export function createCaseTaskDriver(
           context:
             binding.actionId === 'adjust_structure'
               ? native.withTrustedSources([await structureSource(owner, binding.matterId)])
-              : await contextSource(owner, binding.matterId, binding.actionId).then((source) =>
-                  source ? native.withTrustedSources([source]) : native,
-                ),
+              : await (async () => {
+                  // Em sequência: o banco de desenvolvimento e o de teste têm conexão única (ver E4).
+                  const structure = await contextSource(owner, binding.matterId, binding.actionId);
+                  const history = await historySource(owner, binding.matterId, binding.conversationId);
+                  const sources = [structure, history].filter((source): source is NonNullable<typeof source> =>
+                    Boolean(source),
+                  );
+                  return sources.length ? native.withTrustedSources(sources) : native;
+                })(),
           tools,
           createProvider: options.createProvider,
           authorizeRealProvider: options.authorizeRealProvider,

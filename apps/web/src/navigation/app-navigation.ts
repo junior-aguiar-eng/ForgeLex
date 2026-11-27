@@ -26,6 +26,15 @@ export interface AccountSection {
 }
 
 export function iceNavigation(flags: { deskEnabled: boolean; casesEnabled: boolean }): IceNavigation {
+  // Regra do mínimo (AGENTS.md, 26/11): com a Mesa, ela é tudo; fora dela, só Conectar IA e Conta.
+  if (flags.deskEnabled)
+    return {
+      work: [],
+      resources: [
+        { tab: 'connections', label: 'Conectar IA', icon: 'connections' },
+        { tab: 'credits', label: 'Conta', icon: 'billing' },
+      ],
+    };
   return {
     work: [
       ...(flags.deskEnabled ? [{ tab: 'work' as const, label: 'Mesa', icon: 'desk' as const }] : []),

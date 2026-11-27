@@ -1,16 +1,12 @@
 import type { DeskPiece, DeskRequest } from './desk-model';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { DeskCaseSelector } from '../desk/DeskCaseSelector';
-import { useDeskCaseSlot } from '../desk/desk-case-slot';
 import { Sparkles } from 'lucide-react';
 import { ATTACHMENTS_ENABLED, MATTER_CHIPS_ENABLED } from '../config/site-capabilities';
 import { MatterChips, type MatterChip } from './MatterChips';
-import { AttachButton, AttachmentChips, type SaveToCase } from './AttachmentChips';
+import { AttachButton, AttachmentChips } from './AttachmentChips';
 import { attachmentContext, hasReadingAttachment } from './attachments';
 import { ATTACHMENT_MAX_PARTS, documentCodeOf, partContext, partsPlan } from './attachment-parts';
 import { useAttachments } from './use-attachments';
-import { useSaveAttachment } from './use-save-attachment';
 import { activeTheme } from '../theme/active-theme';
 import { ApiRequestError, requestApi } from '../api-client';
 import type { WorkspaceClient, StartInput } from './client';
@@ -63,6 +59,8 @@ export function Composer({
   guidanceBusy = false,
   guidanceEditing = false,
   guidanceError,
+  folderCase,
+  onLeaveCase,
 }: {
   client: WorkspaceClient;
   actions: PublicAction[];
@@ -84,13 +82,16 @@ export function Composer({
   guidanceBusy?: boolean;
   guidanceEditing?: boolean;
   guidanceError?: string;
+  /** Caso escolhido na Pasta (gelo): o pedido novo nasce nele. */
+  folderCase?: { id: string; title: string };
+  onLeaveCase?: () => void;
 }) {
   const [objective, setObjective] = useState<string>();
   const attachments = useAttachments();
-  const saveAttachment = useSaveAttachment();
-  const iceTheme = activeTheme() === 'gelo';
+  // Regra do mínimo (AGENTS.md, 26/11): no gelo o pedido é só texto, anexo e Enviar; sem caso, modo, etapas nem matérias.
+  const minimal = activeTheme() === 'gelo';
   const [matterChips, setMatterChips] = useState<MatterChip[]>([]);
-  const chipsOn = MATTER_CHIPS_ENABLED && Boolean(onGuide);
+  const chipsOn = MATTER_CHIPS_ENABLED && Boolean(onGuide) && !minimal;
   const reading = ATTACHMENTS_ENABLED && hasReadingAttachment(attachments.items);
   // E4: quantos pedidos os anexos viram (um só, ou um por trecho de PDF longo).
   const plan = useMemo(() => (ATTACHMENTS_ENABLED ? partsPlan(attachments.items) : undefined), [attachments.items]);
@@ -136,7 +137,6 @@ export function Composer({
   const [selected, setSelected] = useState<Context['documents']>(followUp?.documents ?? []);
   const [selectedDraft, setSelectedDraft] = useState<Context['draft']>(followUp?.draft);
   const [matters, setMatters] = useState<{ id: string; title: string }[]>([]);
-  const caseSlot = useDeskCaseSlot();
   const [documents, setDocuments] = useState<MatterDocument[]>([]);
   const [drafts, setDrafts] = useState<MatterDraft[]>([]);
   const hadPiece = useRef(false);
@@ -173,8 +173,7 @@ export function Composer({
     let active = true;
     setDocuments([]);
     setDrafts([]);
-    // No tema gelo o seletor de caso fica no cabeçalho e precisa da lista desde o início.
-    if (!scopeOpen && !matter && !caseSlot) return;
+    if (!scopeOpen && !matter) return;
     requestApi<{ items: { id: string; title: string }[] }>('/api/v2/matters', {}, { sessionOnly: true })
       .then((r) => active && setMatters(r.items))
       .catch(() => {
@@ -216,7 +215,7 @@ export function Composer({
     return () => {
       active = false;
     };
-  }, [matter, scopeOpen, caseSlot]);
+  }, [matter, scopeOpen]);
 
   const description = guidanceState?.description;
   const message = objective ?? (description && description.length <= 15000 ? description : '');
@@ -231,18 +230,6 @@ export function Composer({
   // One visible message supplies the written context; existing conversations retain theirs.
   const text = inheritedText || goal;
   const matterTitle = matters.find((m) => m.id === matter)?.title;
-  // Salvar o anexo no caso escolhido (U7): só no tema gelo e só com um caso em uso que a lista de casos conhece.
-  const saveToCase: SaveToCase | undefined =
-    ATTACHMENTS_ENABLED && iceTheme && matter && matterTitle
-      ? {
-          caseTitle: matterTitle,
-          stateOf: (id) => saveAttachment.stateOf(id, matter),
-          onSave: (id) => {
-            const item = attachments.items.find((attachment) => attachment.id === id);
-            if (item) void saveAttachment.save(item, matter);
-          },
-        }
-      : undefined;
   const scopeSummary = [
     matter ? `Caso: ${matterTitle ?? 'selecionado'}` : 'Vincular a um caso',
     selected.length ? `${selected.length} documento${selected.length > 1 ? 's' : ''}` : '',
@@ -287,7 +274,13 @@ export function Composer({
       if (!isCurrent()) return;
       if (currentPiece?.dirty) throw new Error('A peça ainda está sendo atualizada.');
       const conversation = guidanceState ?? followUp;
-      const matterId = currentPiece ? currentPiece.matterId : conversation ? conversation.matterId : matter;
+      const matterId = currentPiece
+        ? currentPiece.matterId
+        : conversation
+          ? conversation.matterId
+          : minimal
+            ? (folderCase?.id ?? '')
+            : matter;
       if (conversation && (matterId || null) !== conversation.matterId)
         throw new Error('A peça pertence a outro caso.');
       const actionId = guidanceState
@@ -391,41 +384,16 @@ export function Composer({
   };
   if (guided && !guidanceState) return null;
   const pendingQuestion = guidanceEditing || Boolean(guidanceState?.question);
-  // Tema gelo: o caso é escolhido no cabeçalho da Mesa. O motivo, quando fixo, é dito por escrito.
-  const caseLock = followUp || guided ? 'Fixo nesta conversa' : piece ? 'Fixo pela peça aberta' : undefined;
   return (
     <section aria-label="Novo pedido" className="space-y-3">
-      {caseSlot &&
-        createPortal(
-          <DeskCaseSelector
-            cases={matters}
-            value={matter}
-            lockedReason={caseLock}
-            suggestedName={goal}
-            disabled={busy}
-            onChange={(id) => {
-              setMatter(id);
-              setSelected([]);
-              setSelectedDraft(undefined);
-            }}
-            onCreated={(created) => {
-              setMatters((old) => [...old.filter((item) => item.id !== created.id), created]);
-              setMatter(created.id);
-              setSelected([]);
-              setSelectedDraft(undefined);
-            }}
-            onCasesChanged={(active) => {
-              setMatters(active);
-              // Um caso que saiu de uso (arquivado ou na lixeira) deixa de ser o escolhido.
-              if (matter && !active.some((item) => item.id === matter)) {
-                setMatter('');
-                setSelected([]);
-                setSelectedDraft(undefined);
-              }
-            }}
-          />,
-          caseSlot,
-        )}
+      {minimal && folderCase && !followUp && !piece && (
+        <p className="flex items-center gap-2 text-xs text-stone-600">
+          <span className="truncate">No caso: {folderCase.title}</span>
+          <button type="button" aria-label="Sair do caso" className="min-h-9 px-1 underline" onClick={onLeaveCase}>
+            ×
+          </button>
+        </p>
+      )}
       {piece && !pieceConflict && (!guided || canSendGuide) && (
         <p className="text-xs text-stone-500">{`Sobre a peça: ${piece.title}`} · Ao enviar, uso o texto aberto.</p>
       )}
@@ -497,28 +465,18 @@ export function Composer({
             attachments={attachments.items}
             notice={attachments.notice}
             busy={busy || preparing}
-            onReplace={(id, file) => {
-              saveAttachment.forget(id);
-              attachments.replace(id, file);
-            }}
-            onRemove={(id) => {
-              saveAttachment.forget(id);
-              attachments.remove(id);
-            }}
+            onReplace={attachments.replace}
+            onRemove={attachments.remove}
             onRecognize={(id) => void attachments.recognize(id)}
             onCancelRecognize={attachments.cancelRecognize}
             onEdit={attachments.edit}
-            {...(saveToCase ? { save: saveToCase } : {})}
-            {...(iceTheme && !saveToCase
-              ? { saveHint: 'Para guardar o texto de um anexo como documento do caso, escolha um caso.' }
-              : {})}
           />
         )}
         <div className="flex flex-wrap items-center gap-x-1 gap-y-0">
           {ATTACHMENTS_ENABLED && (
             <AttachButton disabled={busy || preparing} count={attachments.items.length} onFiles={attachments.add} />
           )}
-          {!guided && !followUp && (
+          {!minimal && !guided && !followUp && (
             <select
               aria-label="Opção do pedido"
               className="min-h-11 lg:min-h-9 w-auto max-w-full shrink-0 cursor-pointer rounded-full border-0 bg-transparent py-2 pl-2 pr-7 text-sm lg:text-[13px] text-stone-600 hover:bg-stone-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-600"
@@ -534,7 +492,7 @@ export function Composer({
               ))}
             </select>
           )}
-          {(!guided || (canSendGuide && matter)) && (
+          {!minimal && (!guided || (canSendGuide && matter)) && (
             <button
               type="button"
               aria-expanded={scopeOpen}
@@ -545,7 +503,7 @@ export function Composer({
               <span className="truncate">{scopeSummary}</span>
             </button>
           )}
-          {!guided && onGuide && (
+          {!minimal && !guided && onGuide && (
             <button
               type="button"
               disabled={busy || preparing || guidanceBusy || piecePending}
@@ -630,12 +588,7 @@ export function Composer({
           aria-label="Caso e documentos"
           className="space-y-4 rounded-2xl border border-champagne-border bg-white p-4"
         >
-          {caseSlot && !matter && (
-            <p className="text-sm text-stone-700">
-              Escolha um caso no cabeçalho da Mesa para ver as minutas e os documentos dele.
-            </p>
-          )}
-          {!caseSlot && (
+          {
             <label className="block text-sm font-medium">
               Caso
               <select
@@ -657,7 +610,7 @@ export function Composer({
                 ))}
               </select>
             </label>
-          )}
+          }
           {matter && !piece && (
             <label className="block text-sm font-medium">
               Minuta do caso (opcional)

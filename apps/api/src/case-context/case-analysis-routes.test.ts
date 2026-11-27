@@ -39,6 +39,9 @@ describe('Análise MCP e conferência em sessão', () => {
         },
       });
     try {
+      // A IA lê o contexto antes de enviar: a permissão automática fica em dia e a revisão enviada é a lida.
+      await f.repo.syncAutomatic(f.reader);
+      f.input.expectedGrantRevision = (await f.repo.assertActive(f.reader, f.matter.id)).revision;
       const tools = (await mcp('tools/list')).json().result.tools;
       const tool = tools.find((t: any) => t.name === 'case.save_analysis');
       expect(tool, 'ferramenta de recebimento deve estar publicada').toBeDefined();
@@ -82,7 +85,8 @@ describe('Análise MCP e conferência em sessão', () => {
           })
         ).statusCode,
       ).toBe(409);
-      await f.repo.revoke(f.owner, f.matter.id, f.grant.id, 1);
+      const current = await f.repo.assertActive(f.reader, f.matter.id);
+      await f.repo.revoke(f.owner, f.matter.id, current.id, current.revision);
       expect((await mcp('tools/call', f.input)).json().result.isError).toBe(true);
       expect((await f.client.execute('SELECT id FROM ledger_entries')).rows).toEqual([]);
     } finally {

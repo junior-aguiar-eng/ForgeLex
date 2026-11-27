@@ -88,7 +88,17 @@ async function fixture() {
         },
       },
     });
-  return { app, owner, matter, other, grant, grants, callMemo, memos: new ResearchMemoRepository(connection.db) };
+  return {
+    app,
+    connection,
+    owner,
+    matter,
+    other,
+    grant,
+    grants,
+    callMemo,
+    memos: new ResearchMemoRepository(connection.db),
+  };
 }
 
 describe('research memo through an OAuth-connected app', () => {
@@ -101,8 +111,14 @@ describe('research memo through an OAuth-connected app', () => {
     expect(await f.memos.listMemos(f.owner.tenantId, f.matter.id)).toHaveLength(1);
   });
 
-  it('is refused for a matter that was not shared, creating nothing', async () => {
+  // Minimum rule (26/11/2026): the approved connection reaches every active case automatically; a case out of use
+  // (archived) is still refused.
+  it('is refused for a case that is not active, creating nothing', async () => {
     const f = await fixture();
+    await f.connection.client.execute({
+      sql: "UPDATE matters SET lifecycle_state = 'ARCHIVED' WHERE id = ?",
+      args: [f.other.id],
+    });
 
     const response = await f.callMemo(f.other.id, 'memo-other');
 

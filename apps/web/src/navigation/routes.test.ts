@@ -148,9 +148,13 @@ describe('Dados do caso no tema gelo (U7)', () => {
     expect(iceCaseDestination('matter', false, false, 'gelo')).toBe('matter');
   });
 
-  it('o clássico e as outras abas não mudam', () => {
+  it('regra do mínimo: no gelo, as telas removidas abrem a Mesa; o clássico, Conta e Conectar IA não mudam', () => {
     expect(iceCaseDestination('matter', false, true, 'classico')).toBe('matter');
-    for (const tab of ['work', 'research', 'landing', 'credits'] as const) {
+    for (const tab of ['matter', 'landing', 'research', 'datajud', 'draft_studio', 'dashboard'] as const) {
+      expect(iceCaseDestination(tab, false, true, 'gelo')).toBe('work');
+      expect(iceCaseDestination(tab, false, false, 'gelo')).toBe(tab);
+    }
+    for (const tab of ['work', 'credits', 'connections', 'api_keys'] as const) {
       expect(iceCaseDestination(tab, false, true, 'gelo')).toBe(tab);
     }
   });

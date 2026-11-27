@@ -1,6 +1,7 @@
 import React from 'react';
 import { Menu, Scale } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { DESK_ENABLED } from '../../config/site-capabilities';
 
 /**
  * Barra de cima do tema gelo, só abaixo de `lg` (V2): a marca e o botão da gaveta. Na tela larga não há cabeçalho, como
@@ -13,7 +14,7 @@ export const IceHeader: React.FC<{ menuOpen: boolean; onMenuToggle: () => void }
       <div className="flex min-h-16 items-center justify-between gap-3 px-4 py-2">
         <button
           type="button"
-          onClick={() => setActiveTab('landing')}
+          onClick={() => setActiveTab(DESK_ENABLED ? 'work' : 'landing')}
           className="group flex min-w-0 shrink-0 items-center gap-2.5 rounded-[var(--fl-radius-control)] pr-2"
           aria-label="ForgeLex, ir para o início"
         >

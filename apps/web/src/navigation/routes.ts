@@ -76,12 +76,15 @@ export function canonicalPathname(pathname: string, theme: Theme = activeTheme()
   return canonical && canonical !== normalizePath(pathname) ? canonical : pathname;
 }
 
+/** Telas que, no gelo com a Mesa, deixaram de existir e abrem a Mesa (regra do mínimo, AGENTS.md, 26/11/2026). */
+const iceRemovedTabs: ReadonlySet<AppTab> = new Set(['matter', 'landing', 'research', 'datajud', 'draft_studio', 'dashboard']);
+
 /**
- * Para onde a navegação vai de fato. No gelo tudo vive na Mesa: abrir `/app/casos`, com ou sem caso na URL (os links
- * antigos), leva à Mesa. Sem a Mesa não há para onde mandar, e a tela Casos segue como o lugar dos casos.
+ * Para onde a navegação vai de fato. No gelo tudo vive na Mesa: Casos, Visão geral, Jurisprudência, Andamento,
+ * Rascunhos e Revisão (inclusive os links antigos) abrem a Mesa. Sem a Mesa não há para onde mandar.
  */
 export function iceCaseDestination(tab: AppTab, _hasCase: boolean, deskEnabled: boolean, theme: Theme = activeTheme()): AppTab {
-  return theme === 'gelo' && tab === 'matter' && deskEnabled ? 'work' : tab;
+  return theme === 'gelo' && deskEnabled && iceRemovedTabs.has(tab) ? 'work' : tab;
 }
 
 export function isKnownPath(pathname: string): boolean {

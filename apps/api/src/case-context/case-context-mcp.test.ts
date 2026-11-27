@@ -45,7 +45,10 @@ describe('Contexto MCP autenticado', () => {
     vi.spyOn(audit, 'recordEvent').mockImplementation(async (event) => {
       if (revokeDuringAudit && event.toolName === 'case.read_item' && event.status === 'SUCCESS') {
         revokeDuringAudit = false;
-        await repo.revoke(owner, (event.payload as { matterId: string }).matterId, grantId, 1);
+        // A sincronização automática pode ter atualizado a permissão: revoga a revisão vigente.
+        const matterId = (event.payload as { matterId: string }).matterId;
+        const current = (await repo.listForOwner(owner, matterId)).find((g) => g.id === grantId)!;
+        await repo.revoke(owner, matterId, grantId, current.revision);
       }
       return original(event);
     });
@@ -130,7 +133,9 @@ describe('Contexto MCP autenticado', () => {
       c.client.close();
     }
   }, 20000);
-  it('leitura gratuita sem carteira, seleção isolada, identidade não falsificável e revogação sem replay', async () => {
+  // Regra do mínimo (26/11/2026): a conexão aprovada no login da IA vale para os casos ativos, sem painel. Cada
+  // conexão OAuth do usuário recebe a própria permissão; a sessão do site não lê pelo MCP; a revogação é respeitada.
+  it('leitura gratuita sem carteira, permissão automática por conexão, identidade não falsificável e revogação sem replay', async () => {
     const c = await createDatabase();
     await runPersistenceMigrations(c.client);
     const owner = { tenantId: 'mcp-case', userId: 'author' };
@@ -195,28 +200,23 @@ describe('Contexto MCP autenticado', () => {
       const tool = listed.json().result.tools.find((t: any) => t.name === 'case.read_item');
       expect(tool).toMatchObject({ annotations: { readOnlyHint: true, openWorldHint: false } });
       expect(tool.inputSchema.properties).not.toHaveProperty('idempotencyKey');
-      expect(toolFailure(await call('case.get_context', { matterId: matter.id })).code).toBe(
-        'CASE_CONTEXT_NOT_AUTHORIZED',
+      const context = await call('case.get_context', { matterId: matter.id });
+      expect(context.json().result.isError).toBe(false);
+      expect(JSON.stringify(context.json().result)).toContain('Fonte selecionada');
+      const grant = await access.assertActive(
+        { ...owner, oauthConnection: { clientId: 'app-one', grantedAt: stamp } },
+        matter.id,
       );
-      const grant = await access.replace(owner, matter.id, {
-        oauthClientId: 'app-one',
-        oauthGrantedAt: stamp,
-        expectedRevision: 0,
-        selection: {
-          documents: [{ documentId: doc.document.id, versionId: doc.version.id }],
-          factIds: [],
-          evidenceIds: [],
-          thesisIds: [],
-          authorityIds: [],
-        },
-      });
       const input = { matterId: matter.id, kind: 'DOCUMENT', itemId: doc.document.id };
       const ok = await call('case.read_item', input);
       expect(ok.headers['cache-control']).toBe('no-store');
       expect(ok.json().result).toMatchObject({ billing: { mode: 'FREE', chargedCents: 0, isReplay: false } });
       expect(JSON.stringify(ok.json().result)).toContain('MATERIAL PRIVADO AUTORIZADO');
       expect((await c.client.execute('SELECT * FROM ledger_accounts')).rows).toHaveLength(0);
-      expect(toolFailure(await call('case.read_item', input, 'app-two')).code).toBe('CASE_CONTEXT_NOT_AUTHORIZED');
+      // Outra conexão OAuth do mesmo usuário ganha a própria permissão automática.
+      expect(JSON.stringify((await call('case.read_item', input, 'app-two')).json().result)).toContain(
+        'MATERIAL PRIVADO AUTORIZADO',
+      );
       expect(toolFailure(await call('case.read_item', input, 'session')).code).toBe('CASE_CONTEXT_NOT_AUTHORIZED');
       expect(
         (
@@ -228,7 +228,7 @@ describe('Contexto MCP autenticado', () => {
           })
         ).json().error.data.code,
       ).toBe('INVALID_INPUT');
-      await access.revoke(owner, matter.id, grant.id, 1);
+      await access.revoke(owner, matter.id, grant.id, grant.revision);
       expect(toolFailure(await call('case.read_item', input)).code).toBe('CASE_CONTEXT_NOT_AUTHORIZED');
       expect(
         (await new MatterRepository(c.db).getDocumentVersion(owner.tenantId, doc.document.id))?.version.content,

@@ -177,12 +177,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const destination = isKnownPath(window.location.pathname)
         ? iceCaseDestination(known, hasCase, isDeskEnabled(CASE_WORKSPACE_ENABLED, AGENTIC_WORKSPACE_ENABLED))
         : known;
-      if (destination === 'work' && known === 'matter') {
+      if (destination === 'work' && known !== 'work') {
         window.history.replaceState({ ...window.history.state }, document.title, '/app/trabalho');
       }
       const requestedTab = destination;
       const tab = resolveVisibleTab(requestedTab, CASE_WORKSPACE_ENABLED);
-      if (!isKnownPath(window.location.pathname)) navigateToTab('landing', 'replace');
+      if (!isKnownPath(window.location.pathname))
+        navigateToTab(iceCaseDestination('landing', false, isDeskEnabled(CASE_WORKSPACE_ENABLED, AGENTIC_WORKSPACE_ENABLED)), 'replace');
       else if (tab !== requestedTab) navigateToTab(requestedTab, 'replace');
       else updateDocumentTitle(tab);
       setCurrentTab(tab);

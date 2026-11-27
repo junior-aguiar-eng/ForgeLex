@@ -7,6 +7,13 @@
       "runtimeArgs": ["scripts/dev-mesa.mjs"],
       "port": 3400,
       "url": "http://127.0.0.1:3400"
+    },
+    {
+      "name": "mesa-gelo",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set VITE_FORGELEX_THEME=gelo&& set DEV_MESA_PORT_BASE=3500&& node scripts/dev-mesa.mjs"],
+      "port": 3500,
+      "url": "http://127.0.0.1:3500"
     }
   ]
 }
