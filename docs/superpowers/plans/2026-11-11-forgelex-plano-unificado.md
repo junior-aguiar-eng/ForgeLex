@@ -50,7 +50,7 @@ ou decisão dele (nada abaixo se publica sem a autorização dele, seção 0).
 
 | #   | Origem          | Pendência                                                                                                                                         | Quem  |
 | --- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| 1   | Out/2026        | Ensaios residuais do MCP, provas comerciais e fiscais, braces e lacuna STJ (`PENDENCIAS.md`, “Pendências humanas e externas”)                      | Boni  |
+| 1   | Out/2026        | ~~Ensaios residuais do MCP, braces e lacuna STJ~~ — **encerrados em 27/11** por decisão de Boni (regra do mínimo), após reconferir braces e STJ e corrigir o alerta do `fast-xml-parser`. Resta só a parte fiscal e comercial: situação municipal, conciliação dos R$ 25, contratos efetivos e prova de venda real (`PENDENCIAS.md`, “Pendências humanas e externas”) | Boni  |
 | 2   | E2, 11/11       | ~~Outros usos de API recente sem fallback~~ — **fechada em 18/11** (ver E2)                                                                         | Código |
 | 3   | E3, 12/11       | Ensaio em homologação com chave inválida: log e e-mail do alerta. **Roteiro pronto em 24/11 (#211)**: exige ligar o comércio só no `forgelex-api-hml-isolated` e uma política de alerta temporária ([roteiro](../../operations/stabilization/2026-11-24-e3-ensaio-chave-provedor-roteiro.md)) | Boni  |
 | 4   | U1, 12/11       | ~~Remover exemplos e dados de demonstração mortos~~ — **fechada em 19/11** (ver U1)                                                              | Código |
