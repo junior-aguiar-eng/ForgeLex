@@ -464,3 +464,25 @@ test('no tema gelo o favicon e a cor da barra do navegador seguem a paleta, já 
   await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /fill='%230F5C6E'/);
   expect(await page.locator('meta[name="theme-color"]').count()).toBe(1);
 });
+
+test('Recentes e Pasta aparecem também fora da Mesa; escolher uma conversa ou Nova conversa volta à Mesa', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await login(page);
+  const pedido = unique('Conversa vista da Conta');
+  await send(page, pedido);
+  const executionId = new URL(page.url()).searchParams.get('executionId')!;
+
+  await page.goto('/app/conta');
+  await expect(page.getByRole('heading', { level: 1, name: 'Conta e créditos' })).toBeVisible();
+  await expect(folder(page)).toBeVisible();
+  const recent = sidebar(page).getByRole('list', { name: 'Recentes' }).getByTitle(pedido, { exact: true });
+  await expect(recent).toBeVisible();
+  await recent.click();
+  await expect(page).toHaveURL(new RegExp(`/app/trabalho.*executionId=${executionId}`));
+  await expect(page.getByText(/Trabalho concluído/)).toBeVisible();
+
+  await page.goto('/app/conectar');
+  await sidebar(page).getByRole('button', { name: 'Nova conversa' }).first().click();
+  await expect(page).toHaveURL(/\/app\/trabalho$/);
+  await expect(page.getByRole('heading', { name: 'O que você precisa fazer hoje?' })).toBeVisible();
+});

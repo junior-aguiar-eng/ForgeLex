@@ -44,7 +44,8 @@ const AppContent: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   // A casca nova (V2) existe só no tema gelo; o clássico mantém o cabeçalho e a lateral de sempre.
   const ice = React.useMemo(() => activeTheme() === 'gelo', []);
-  const [workVisited, setWorkVisited] = React.useState(visibleTab === 'work');
+  // No gelo a Mesa fica montada desde a entrada: o histórico e a Pasta que ela desenha na lateral aparecem em qualquer tela.
+  const [workVisited, setWorkVisited] = React.useState(visibleTab === 'work' || ice);
   const selectTab = (tab: AppTab) => setActiveTab(tab);
   React.useEffect(() => { if (visibleTab === 'work') setWorkVisited(true); }, [visibleTab]);
   const billingReturn = React.useMemo(() => parseBillingReturn(window.location.search), []);

@@ -84,6 +84,25 @@ export const IceSidebar: React.FC<{
   );
   const active = highlightedTab(activeTab, DESK_ENABLED);
   const balance = useBalanceCents(activeTab);
+  // Fora da Mesa, agir no histórico (abrir conversa, caso ou começar uma nova) é voltar à Mesa. O histórico chega por portal,
+  // então o evento do React segue a árvore da Mesa: o ouvinte é nativo, no próprio elemento da lateral.
+  const historyArea = React.useRef<HTMLDivElement>(null);
+  const outsideDesk = React.useRef(false);
+  outsideDesk.current = active !== 'work';
+  const goToDesk = React.useRef(() => {});
+  goToDesk.current = () => {
+    onSelect('work');
+    onCloseMobile();
+  };
+  useEffect(() => {
+    const area = historyArea.current;
+    if (!area) return;
+    const onClick = (event: MouseEvent) => {
+      if (outsideDesk.current && (event.target as Element | null)?.closest('button')) goToDesk.current();
+    };
+    area.addEventListener('click', onClick, true);
+    return () => area.removeEventListener('click', onClick, true);
+  }, []);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -158,7 +177,7 @@ export const IceSidebar: React.FC<{
           {/* Regra do mínimo: com a Mesa, a conversa ocupa o alto da lateral; Conectar IA e Conta ficam abaixo, sem rótulo. */}
           {/* Lateral A (27/11): com a Mesa, as conversas e a Pasta ficam na lateral em qualquer tela. */}
           {DESK_ENABLED && (
-            <div className={collapsed ? 'lg:hidden' : ''}>
+            <div className={collapsed ? 'lg:hidden' : ''} ref={historyArea}>
               <aside aria-label="Histórico de conversas" ref={setHistorySlot} className="min-w-0" />
             </div>
           )}
