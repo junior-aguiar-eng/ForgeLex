@@ -122,6 +122,13 @@ exercitada pela CI. O `gcloud` em si **nunca foi exercitado**: criar, executar e
 de qualquer `apply`. As ferramentas não autorizam por si publicar, aplicar migration ou ligar flag: isso continua sendo
 decisão e execução de Boni.
 
+**Primeiro uso real (27/11/2026).** `migrate-production.ps1 -Mode inspect -DryRun` e, em seguida, `-Mode inspect`, com a
+imagem de produção `forgelex-api@sha256:78402997…` (revisão `forgelex-api-prod-81d0557-f4629475`). O Job
+`forgelex-migrate-inspect-20261127163344` foi criado, executado (saída 0) e apagado; o `gcloud run jobs list` confirmou a remoção.
+Resultado: banco `forgelex`, journal com 57 entradas, `missing` e `unknown` vazios; contagens `agentic_execution_jobs` 13,
+`billing_refund_requests` 0, `drafts` 6, `ledger_entries` 161, `matters` 4, `webhook_deliveries` 0. Os modos `apply` e
+`verify` continuam sem uso real.
+
 ## Pendências humanas e externas
 
 | Pendência                                      | Dependência para encerrar                                                                                                                                                                                                                                                                                                                                                                                                                                        |
