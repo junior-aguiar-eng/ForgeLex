@@ -59,17 +59,12 @@ export function accountSections(): AccountSection[] {
     { tab: 'credits', label: 'Faturamento' },
     { tab: 'account_activity', label: 'Atividade' },
     { tab: 'account_security', label: 'Segurança' },
-    { tab: 'api_keys', label: 'Chaves de API' },
   ];
 }
 
-/** Seções de Conectar IA: a conexão, o guia e a API para desenvolvedores. */
+/** Seções de Conectar IA: nenhuma desde 27/11 (o guia e a API saíram); a tela mostra só o título. */
 export function connectSections(): AccountSection[] {
-  return [
-    { tab: 'connections', label: 'Conexão' },
-    { tab: 'for_lawyers_guide', label: 'Guia de conexão' },
-    { tab: 'api_docs', label: 'API para desenvolvedores' },
-  ];
+  return [];
 }
 
 /**

@@ -37,24 +37,17 @@ describe('iceNavigation (V2, protótipo de 09/11)', () => {
 });
 
 describe('accountSections (seções da conta)', () => {
-  it('Faturamento, Atividade, Segurança e Chaves de API, todas com rota', () => {
+  it('Faturamento, Atividade e Segurança, todas com rota (Chaves de API saiu, 27/11)', () => {
     const sections = accountSections();
-    expect(labels(sections)).toEqual(['Faturamento', 'Atividade', 'Segurança', 'Chaves de API']);
-    expect(sections.map((section) => section.tab)).toEqual([
-      'credits',
-      'account_activity',
-      'account_security',
-      'api_keys',
-    ]);
+    expect(labels(sections)).toEqual(['Faturamento', 'Atividade', 'Segurança']);
+    expect(sections.map((section) => section.tab)).toEqual(['credits', 'account_activity', 'account_security']);
     for (const section of sections) expect(() => routeForTab(section.tab, 'gelo')).not.toThrow();
   });
 });
 
 describe('connectSections (seções de Conectar IA)', () => {
-  it('Conexão, Guia de conexão e API para desenvolvedores, todas com rota', () => {
-    const sections = connectSections();
-    expect(labels(sections)).toEqual(['Conexão', 'Guia de conexão', 'API para desenvolvedores']);
-    for (const section of sections) expect(() => routeForTab(section.tab, 'gelo')).not.toThrow();
+  it('só a Conexão: o guia e a API saíram (27/11), então a tela não mostra barra de seções', () => {
+    expect(connectSections()).toEqual([]);
   });
 });
 
