@@ -486,3 +486,22 @@ test('Recentes e Pasta aparecem também fora da Mesa; escolher uma conversa ou N
   await expect(page).toHaveURL(/\/app\/trabalho$/);
   await expect(page.getByRole('heading', { name: 'O que você precisa fazer hoje?' })).toBeVisible();
 });
+
+test('Mesa vazia: a saudação e a caixa de pedido ficam no centro da área; com conversa, a caixa vai para baixo', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page);
+  const main = await page.locator('main').boundingBox();
+  const box = await page.getByRole('region', { name: 'Novo pedido', exact: true }).boundingBox();
+  expect(main && box).toBeTruthy();
+  const visibleBottom = Math.min(main!.y + main!.height, 1000);
+  const centerY = box!.y + box!.height / 2;
+  expect((centerY - main!.y) / (visibleBottom - main!.y)).toBeGreaterThan(0.4);
+  expect((centerY - main!.y) / (visibleBottom - main!.y)).toBeLessThan(0.6);
+  expect(Math.abs(box!.x + box!.width / 2 - (main!.x + main!.width / 2))).toBeLessThan(24);
+  expect(box!.width).toBeLessThanOrEqual(680);
+
+  await page.setViewportSize({ width: 360, height: 800 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
