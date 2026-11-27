@@ -10,7 +10,14 @@ const navigation = [
   { label: 'Desenvolvedores', href: '/desenvolvedores/api' },
 ] as const;
 
-export function PublicHeader() {
+/** Modelo novo (27/11): só Como funciona e Preços; o Início é a marca. */
+const modelNavigation = [
+  { label: 'Como funciona', href: '/como-funciona' },
+  { label: 'Preços', href: '/creditos' },
+] as const;
+
+export function PublicHeader({ model = false }: { model?: boolean }) {
+  const links = model ? modelNavigation : navigation;
   const [open, setOpen] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
@@ -56,7 +63,7 @@ export function PublicHeader() {
           <span className="font-editorial text-xl font-bold">ForgeLex</span>
         </a>
         <nav className="ml-auto hidden items-center gap-1 xl:flex" aria-label="Navegação pública">
-          {navigation.map((item) => (
+          {links.map((item) => (
             <a
               key={item.href}
               href={item.href}
@@ -89,7 +96,7 @@ export function PublicHeader() {
       {open && (
         <div id="public-menu" ref={menu} className="page-container border-t border-champagne-border py-3 xl:hidden">
           <nav aria-label="Navegação pública mobile" className="flex flex-col">
-            {navigation.map((item) => (
+            {links.map((item) => (
               <a
                 key={item.href}
                 href={item.href}

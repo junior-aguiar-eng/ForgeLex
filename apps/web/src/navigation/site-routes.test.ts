@@ -44,3 +44,17 @@ describe('rotas públicas e protegidas', () => {
     expect(safeWorkspaceDestination('/app/desconhecido')).toBe('/app');
   });
 });
+
+describe('site no modelo novo (27/11): só Início, Como funciona, Preços e entrada', () => {
+  it.each(['/produto', '/integracoes', '/guia', '/desenvolvedores/api', '/consulta-processual'])(
+    '%s leva ao Início, sem 404; sem o modelo, continua como está',
+    (path) => {
+      expect(resolveSiteRoute(path, true, true, true)).toEqual({ kind: 'public', page: 'home' });
+      expect(resolveSiteRoute(path, true, true, false)).not.toEqual({ kind: 'public', page: 'home' });
+    },
+  );
+  it('Como funciona e Preços continuam', () => {
+    expect(resolveSiteRoute('/como-funciona', true, true, true)).toEqual({ kind: 'public', page: 'how' });
+    expect(resolveSiteRoute('/creditos', true, true, true)).toEqual({ kind: 'public', page: 'credits' });
+  });
+});

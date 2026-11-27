@@ -17,7 +17,7 @@ import { DEFAULT_PUBLIC_ORIGIN, metadata, modelMetadata } from './src/public/pub
 export const OG_IMAGE_PATH = '/og/forgelex-modelo.png';
 /** Mesma imagem na paleta do tema gelo (V6); entra quando o build é `VITE_FORGELEX_THEME=gelo`. */
 export const OG_IMAGE_GELO_PATH = '/og/forgelex-modelo-gelo.png';
-export const OG_IMAGE_ALT = 'ForgeLex: Sua IA, com jurisprudência que dá para conferir.';
+export const OG_IMAGE_ALT = 'ForgeLex: peças jurídicas prontas para revisar, com a jurisprudência na fonte.';
 
 export interface PublicSiteOptions {
   model: boolean;
@@ -62,6 +62,17 @@ export function transformPublicText(text: string, origin?: string): string {
   return target === DEFAULT_PUBLIC_ORIGIN ? text : text.split(DEFAULT_PUBLIC_ORIGIN).join(target);
 }
 
+/** Páginas que o site no modelo novo não tem mais (27/11): os endereços levam ao Início e saem do sitemap. */
+export const MODEL_REMOVED_PATHS = ['/produto', '/integracoes', '/guia', '/consulta-processual', '/desenvolvedores/api'];
+
+/** O sitemap do modelo novo: só as páginas que existem nele. */
+export function modelSitemap(xml: string): string {
+  return xml
+    .split(/\r?\n/)
+    .filter((line) => !MODEL_REMOVED_PATHS.some((path) => line.includes(`${path}</loc>`)))
+    .join('\n');
+}
+
 export function publicSitePlugin(options: PublicSiteOptions): Plugin {
   let outDir = 'dist';
   return {
@@ -72,6 +83,9 @@ export function publicSitePlugin(options: PublicSiteOptions): Plugin {
     transformIndexHtml: (html) => transformPublicIndexHtml(html, options),
     // `public/` é copiado como está; com outro domínio, o sitemap e o robots precisam apontar para ele.
     closeBundle() {
+      const sitemapPath = join(outDir, 'sitemap.xml');
+      if (options.model && existsSync(sitemapPath))
+        writeFileSync(sitemapPath, modelSitemap(readFileSync(sitemapPath, 'utf8')));
       if (normalizeOrigin(options.origin) === DEFAULT_PUBLIC_ORIGIN) return;
       for (const file of ['sitemap.xml', 'robots.txt']) {
         const path = join(outDir, file);

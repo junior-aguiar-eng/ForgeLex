@@ -131,29 +131,24 @@ const modelCapabilities = [
 /** A Mesa de trabalho em detalhe. Cada frase corresponde a uma função publicada (orientação guiada, peça, revisão, edição delimitada, versões, pesquisa na Mesa, anexos, casos). */
 const mesaFeatures = [
   {
-    icon: MessageSquare,
-    title: 'Ela pergunta o que falta',
-    body: 'Descreva o pedido em uma frase ou peça ajuda para começar. Se faltar algo que muda o resultado, a Mesa pergunta; você pode responder “não sei” e corrigir o resumo antes de enviar.',
+    icon: Paperclip,
+    title: 'Descreva e anexe',
+    body: 'Escreva o que precisa como numa conversa e anexe PDF, texto ou Markdown. O arquivo não é enviado nem guardado: só o texto extraído acompanha o pedido.',
   },
   {
     icon: PenLine,
-    title: 'Elabora, revisa e edita um trecho',
-    body: 'Elabora uma peça nova ou revisa a que você já tem, sem gerar versão nova a cada pedido. Para mexer em uma parte, selecione o trecho e peça a alteração só ali.',
-  },
-  {
-    icon: History,
-    title: 'Cada versão fica guardada',
-    body: 'O que você salva vira uma versão, com histórico. Se a resposta se perder no caminho, nada é duplicado nem se perde. A revisão aponta pontos e você decide o que aplicar.',
+    title: 'A peça sai pronta para revisar',
+    body: 'A peça fica aberta ao lado da conversa. Revise, peça ajustes na própria conversa, salve e exporte.',
   },
   {
     icon: BookOpen,
     title: 'Fontes dentro da peça',
-    body: 'Pesquise jurisprudência sem sair da Mesa. Cada decisão traz a origem e o estado de verificação, e uma pesquisa salva reabre sem nova busca, com a mesma proveniência.',
+    body: 'A jurisprudência citada vem do STJ, com a origem e o estado de verificação de cada decisão à vista.',
   },
   {
-    icon: Paperclip,
-    title: 'Seu material e seu caso',
-    body: 'Anexe PDF, texto ou Markdown: o arquivo não é enviado nem guardado, só o texto extraído acompanha o pedido. Organize peças e pesquisas por caso.',
+    icon: History,
+    title: 'Seus casos na Pasta',
+    body: 'Guarde as conversas de um caso na Pasta: a conversa nova de um caso já parte do que foi dito nas anteriores.',
   },
   {
     icon: ListChecks,
@@ -165,23 +160,18 @@ const mesaFeatures = [
 const mesaSteps = [
   {
     number: '01',
-    title: 'Descreva o que precisa',
-    body: 'Escreva o pedido em uma frase, escolha o caso e, se quiser, anexe PDF, texto ou Markdown. Se não souber por onde começar, peça ajuda.',
+    title: 'Descreva e anexe',
+    body: 'Escreva o pedido e anexe o que tiver. Se faltar algo que mude o resultado, a conversa pergunta.',
   },
   {
     number: '02',
-    title: 'Responda só o que falta',
-    body: 'A Mesa faz as perguntas que mudam o resultado. Responda, diga “não sei” ou corrija o resumo antes de enviar.',
+    title: 'Acompanhe o trabalho',
+    body: 'Antes de enviar, o custo máximo aparece; o que não for usado volta ao saldo. O andamento fica à vista.',
   },
   {
     number: '03',
-    title: 'Acompanhe o trabalho',
-    body: 'A peça fica aberta ao lado da conversa, com as fontes à vista. Os trabalhos da Mesa usam créditos da conta.',
-  },
-  {
-    number: '04',
-    title: 'Revise, decida e salve a versão',
-    body: 'Confira as fontes, aplique o que valer, peça a alteração de um trecho e salve. Cada versão fica no histórico.',
+    title: 'Revise e salve a peça',
+    body: 'Confira as fontes, peça ajustes na conversa e salve. Cada versão fica guardada.',
   },
 ] as const;
 
@@ -189,30 +179,29 @@ const modelFaq = [
   {
     question: 'O que é o ForgeLex?',
     answer:
-      'É um serviço para elaborar e revisar peças e para pesquisar jurisprudência com fonte: a Mesa de trabalho, ferramentas MCP para a sua IA (ChatGPT ou Claude), pesquisa com estado de verificação, API REST e consulta processual gratuita.',
-  },
-  {
-    question: 'O que é a Mesa de trabalho?',
-    answer:
-      'É o espaço do ForgeLex para elaborar e revisar peças. Você descreve o que precisa; ela pergunta o que falta, elabora ou revisa a peça com as fontes à vista, altera só o trecho que você selecionar e guarda cada versão. Aceita anexos em PDF, texto ou Markdown e organiza o trabalho por caso. A conferência e o uso jurídico do resultado continuam sob sua responsabilidade.',
+      'É uma Mesa de trabalho para preparar e revisar peças jurídicas numa conversa, com a jurisprudência do STJ e a fonte de cada decisão. Você também pode usar o ForgeLex na sua IA (ChatGPT ou Claude), por MCP.',
   },
   {
     question: 'O que a Mesa faz com meus anexos?',
     answer:
-      'Aceita PDF, texto e Markdown. O arquivo não é enviado nem guardado: só o texto extraído acompanha o pedido, somado ao contexto que você escrever.',
+      'Aceita PDF, texto e Markdown. O arquivo não é enviado nem guardado: só o texto extraído acompanha o pedido, somado ao que você escrever.',
   },
-  {
-    question: 'A Mesa usa créditos?',
-    answer:
-      'Sim. Os trabalhos da Mesa usam créditos da sua conta, sem mensalidade ForgeLex, e o saldo e o consumo ficam à vista na conta. O aplicativo de IA conectado por MCP tem custos próprios, separados dos créditos ForgeLex.',
-  },
-  faq[1],
   {
     question: 'Como funciona a cobrança?',
     answer:
-      'Os créditos são pré-pagos em reais. Uma nova pesquisa válida é faturável, inclusive sem resultados, e os trabalhos da Mesa também usam créditos. Abrir uma autoridade e verificar sua proveniência são gratuitos no contrato vigente.',
+      'Os créditos são pré-pagos em reais, sem mensalidade. Cada trabalho na Mesa mostra o custo máximo antes de enviar, e o que não for usado volta ao saldo. Uma nova pesquisa válida é faturável; abrir uma autoridade e verificar sua proveniência são gratuitos.',
   },
-  ...faq.slice(3),
+  {
+    question: 'Quais tribunais estão na pesquisa?',
+    answer: 'A cobertura disponível atualmente para pesquisa jurisprudencial é o STJ.',
+  },
+  faq[3],
+  faq[4],
+  {
+    question: 'A minha IA conectada lê os meus casos?',
+    answer:
+      'Sim, quando você autoriza a conexão: ela passa a ler os seus casos ativos e pode enviar peças, que só valem depois da sua revisão. Você revoga o acesso a qualquer momento em Conectar IA.',
+  },
 ] as const;
 
 function SectionHeader({ eyebrow, title, text }: { eyebrow: string; title: string; text?: string }) {
@@ -226,11 +215,11 @@ function SectionHeader({ eyebrow, title, text }: { eyebrow: string; title: strin
 }
 
 export function Hero({ model = false }: { model?: boolean }) {
-  const steps = model ? modelMovements : movements;
+  const steps = model ? mesaSteps : movements;
   return (
     <section className="page-container grid gap-10 py-16 sm:py-24 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
       <div className="min-w-0 break-words">
-        <p className="eyebrow">{model ? 'Mesa de trabalho e pesquisa por MCP' : 'Pesquisa jurídica por MCP'}</p>
+        <p className="eyebrow">{model ? 'Mesa de trabalho' : 'Pesquisa jurídica por MCP'}</p>
         <h1 className="mt-5 max-w-3xl font-editorial text-4xl font-bold leading-[1.16] tracking-tight text-stone-950 sm:text-5xl xl:text-6xl">
           {model ? MODEL_TITLE : 'Jurisprudência dos tribunais superiores e consulta processual.'}
         </h1>
@@ -243,18 +232,18 @@ export function Hero({ model = false }: { model?: boolean }) {
           <a href="/cadastro" className="btn-primary">
             Criar acesso <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </a>
-          <a href={model ? '/produto#mesa-de-trabalho' : '/produto'} className="btn-secondary">
-            {model ? 'Conhecer a Mesa de trabalho' : 'Conhecer o produto'}
+          <a href={model ? '/como-funciona' : '/produto'} className="btn-secondary">
+            {model ? 'Ver como funciona' : 'Conhecer o produto'}
           </a>
         </div>
         <p className="mt-8 text-sm text-stone-500">
           {model
-            ? 'Peças elaboradas e revisadas na Mesa, com as fontes à vista'
+            ? 'Peças preparadas e revisadas na Mesa, com as fontes à vista'
             : 'Decisões, fontes e consulta processual'}
         </p>
       </div>
       <div className="surface min-w-0 break-words p-6 sm:p-8" aria-label="Percurso de trabalho">
-        <p className="eyebrow">Da conexão à fonte</p>
+        <p className="eyebrow">{model ? 'Da pergunta à peça' : 'Da conexão à fonte'}</p>
         <ol className="mt-6 space-y-5">
           {steps.map((step) => (
             <li key={step.number} className="flex gap-4 border-b border-stone-100 pb-4 last:border-0 last:pb-0">
@@ -279,7 +268,7 @@ export function MesaSection() {
         <SectionHeader
           eyebrow="Mesa de trabalho"
           title="Da pergunta à peça, com a IA trabalhando e você decidindo."
-          text="A Mesa é o espaço do ForgeLex para elaborar e revisar peças. Você descreve o que precisa; ela pergunta o que falta, trabalha com as fontes à vista e entrega uma versão que você confere antes de usar."
+          text="A Mesa é o espaço do ForgeLex para elaborar e revisar peças. Você descreve o que precisa; ela trabalha com as fontes à vista e entrega uma versão que você confere antes de usar."
         />
         <div className="mt-9 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {mesaFeatures.map(({ icon: Icon, title, body }) => (
@@ -301,7 +290,7 @@ export function MesaSection() {
             Ver como funciona <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </a>
           <p className="text-sm text-stone-600">
-            Os trabalhos da Mesa usam créditos da conta, sem mensalidade ForgeLex.
+            Cada trabalho mostra o custo máximo antes de enviar; o que não for usado volta ao saldo.
           </p>
         </div>
       </div>
@@ -314,7 +303,7 @@ export function MesaMovements() {
   return (
     <section className="page-container py-16 sm:py-20">
       <SectionHeader eyebrow="Na Mesa de trabalho" title="Da pergunta à peça." />
-      <ol className="mt-9 grid gap-4 md:grid-cols-2">
+      <ol className="mt-9 grid gap-4 md:grid-cols-3">
         {mesaSteps.map((step) => (
           <li key={step.number} className="border-l-2 border-champagne-border py-2 pl-6">
             <span className="text-sm font-bold text-cognac-700">{step.number}</span>
@@ -323,6 +312,39 @@ export function MesaMovements() {
           </li>
         ))}
       </ol>
+    </section>
+  );
+}
+
+/**
+ * Temas transversais do modelo novo (27/11): a jurisprudência que sustenta a peça e o uso do ForgeLex dentro da IA do
+ * usuário. Vêm depois da Mesa, que é o centro.
+ */
+export function CrossCuttingSection() {
+  return (
+    <section className="page-container grid gap-6 py-16 sm:py-20 md:grid-cols-2">
+      <article id="jurisprudencia" className="surface scroll-mt-24 p-6 sm:p-8">
+        <BookOpen className="h-6 w-6 text-cognac-700" aria-hidden="true" />
+        <h2 className="mt-4 font-editorial text-2xl font-bold text-stone-900">Jurisprudência que dá para conferir</h2>
+        <p className="mt-2 text-sm leading-6 text-stone-600">
+          As decisões que sustentam a peça vêm do STJ, com a origem e o estado de verificação à vista. Abrir e conferir uma
+          decisão é gratuito.
+        </p>
+      </article>
+      <article id="sua-ia" className="surface scroll-mt-24 p-6 sm:p-8">
+        <MessageSquare className="h-6 w-6 text-cognac-700" aria-hidden="true" />
+        <h2 className="mt-4 font-editorial text-2xl font-bold text-stone-900">Use também na sua IA</h2>
+        <p className="mt-2 text-sm leading-6 text-stone-600">
+          Conecte o ChatGPT ou o Claude, por MCP, e peça a pesquisa com fonte dentro da sua própria conversa. A assinatura
+          da sua IA continua com ela; o ForgeLex cobra só o que é dele.
+        </p>
+        <a
+          href="/entrar?next=%2Fapp%2Fconectar"
+          className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-cognac-800 hover:underline"
+        >
+          Conectar sua IA <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </a>
+      </article>
     </section>
   );
 }
@@ -359,11 +381,15 @@ export function Problems() {
   );
 }
 
-export function Movements({ model = false }: { model?: boolean }) {
+export function Movements({ model = false, title }: { model?: boolean; title?: string }) {
   const steps = model ? modelMovements : movements;
+  // Modelo novo (27/11): os links não levam às páginas que saíram do site.
+  const links = model
+    ? ['/cadastro', '/entrar?next=%2Fapp%2Fconectar', '/#jurisprudencia', '/#mesa-de-trabalho']
+    : ['/cadastro', '/integracoes', '/produto#pesquisa', '/guia'];
   return (
     <section className="page-container py-16 sm:py-20">
-      <SectionHeader eyebrow="Como funciona" title="Da conta à pesquisa com fontes." />
+      <SectionHeader eyebrow={title ?? 'Como funciona'} title="Da conta à pesquisa com fontes." />
       <ol className="mt-9 grid gap-4 md:grid-cols-2">
         {steps.map((step, index) => (
           <li key={step.number} className="border-l-2 border-champagne-border py-2 pl-6">
@@ -371,7 +397,7 @@ export function Movements({ model = false }: { model?: boolean }) {
             <h3 className="mt-3 font-editorial text-xl font-bold text-stone-900">{step.title}</h3>
             <p className="mt-2 text-sm leading-6 text-stone-600">{step.body}</p>
             <a
-              href={['/cadastro', '/integracoes', '/produto#pesquisa', '/guia'][index]}
+              href={links[index]}
               className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-cognac-800 hover:underline"
             >
               Ver ferramentas <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -480,14 +506,18 @@ export function WaysToUse({ model = false }: { model?: boolean }) {
   );
 }
 
-export function CreditsInfo() {
+export function CreditsInfo({ model = false }: { model?: boolean }) {
   return (
     <section className="border-y border-champagne-border bg-white/70 py-16 sm:py-20">
       <div className="page-container grid gap-8 lg:grid-cols-[1fr_1fr] lg:items-center">
         <SectionHeader
           eyebrow="Cobrança transparente"
-          title="Créditos para as operações jurídicas do ForgeLex."
-          text="Você adiciona créditos pré-pagos em reais, sem mensalidade ForgeLex. A pesquisa jurisprudencial válida é faturável, inclusive quando não retorna resultados. Abrir e verificar uma autoridade não têm cobrança própria no contrato vigente."
+          title={model ? 'Cobrança só pelo uso.' : 'Créditos para as operações jurídicas do ForgeLex.'}
+          text={
+            model
+              ? 'Créditos pré-pagos em reais, sem mensalidade. Cada trabalho na Mesa mostra o custo máximo antes de enviar, e o que não for usado volta ao saldo. A pesquisa válida é faturável; abrir e conferir uma decisão é gratuito.'
+              : 'Você adiciona créditos pré-pagos em reais, sem mensalidade ForgeLex. A pesquisa jurisprudencial válida é faturável, inclusive quando não retorna resultados. Abrir e verificar uma autoridade não têm cobrança própria no contrato vigente.'
+          }
         />
         <div className="surface p-6">
           <p className="text-sm font-semibold text-stone-900">O que a cobrança cobre</p>
@@ -499,7 +529,7 @@ export function CreditsInfo() {
             href="/creditos"
             className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-cognac-800 hover:underline"
           >
-            Ver como funcionam os créditos <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            {model ? 'Ver os preços' : 'Ver como funcionam os créditos'} <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </a>
         </div>
       </div>
