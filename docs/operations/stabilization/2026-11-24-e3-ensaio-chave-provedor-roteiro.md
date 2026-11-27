@@ -161,3 +161,18 @@ Não verifiquei, por falta de acesso ao projeto: a revisão e a imagem atuais do
 é alcançável pelo Uptime Check, o formato exato do e-mail do alerta e as permissões da conta de serviço sobre o segredo
 novo. Os comandos `gcloud` das Etapas 0 a 7 não foram executados; a Etapa 0 existe para confirmar essas premissas antes de
 qualquer alteração.
+
+## 7. Resultado (27/11/2026)
+
+Só a Etapa 0 foi feita, em leitura, com `gcloud`:
+
+- `forgelex-api-hml-isolated`: revisão `forgelex-api-hml-isolated-m2fix-idle-9888d4e6` com 100% do tráfego, imagem de
+  `5793964` (12/11, já com o `ProviderKeyMonitor`), `FORGELEX_COMMERCIAL_EXECUTION_ENABLED=false`. O ingress é
+  `internal-and-cloud-load-balancing`: o `/readyz` chamado de fora responde 404, então nem o disparo manual (escopo A) nem
+  um Uptime Check (escopo B) alcançam o serviço sem abrir o ingress.
+- `forgelex-hml-isolated-pg`: estava `RUNNABLE`/`ALWAYS`, e não parado como o roteiro supunha. A última alteração da instância
+  é de 18/11/2026. Foi parada em 27/11 (`STOPPED`/`NEVER`), com autorização de Boni.
+- Canal `ForgeLex STJ ingestion alerts` ativo; política de produção “falha de autenticacao do provedor comercial” ativa;
+  único Uptime Check em `nexojuris.ia.br/readyz`, a cada 300 s. Nada disso foi alterado.
+
+**Decisão de Boni (27/11/2026, regra do mínimo):** o ensaio foi encerrado como desnecessário. As Etapas 1 a 7 não foram executadas.
