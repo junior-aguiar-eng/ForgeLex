@@ -128,6 +128,10 @@ sobe a revisão com migration pendente (a API recusa subir e a sonda `/readyz` f
 
 Automática (script): readiness, 401 do `/mcp`, logs sem 5xx. Manual, por Boni, **sem compra nem reembolso reais**:
 
+> **27/11/2026, publicação de `9ccb9e7` (25/11).** Logs de `forgelex-api-prod` desde 25/11 23:45 UTC sem 5xx nem `ERROR`;
+> `forgelex.connection_status` autenticado; uma pesquisa e o painel com `ok=true` no `mcp.call`. Os demais itens manuais
+> foram encerrados como desnecessários por decisão de Boni (regra do mínimo) e não foram percorridos.
+
 - [ ] Logs de 15 minutos sem 5xx nem `error` nas revisões novas.
 - [ ] `forgelex.connection_status` no Claude responde autenticado; uma pesquisa de jurisprudência e a ferramenta do painel funcionam.
 - [ ] Memo de pesquisa por app conectado via OAuth (#163) executa e **não** ganha acesso fora do MCP.
