@@ -19,6 +19,7 @@ import { CASE_WORKSPACE_ENABLED, DESK_ENABLED } from '../../config/site-capabili
 import { formatBRL } from '../../format';
 import { highlightedTab, iceNavigation, type NavIcon, type NavItem } from '../../navigation/app-navigation';
 import type { AppTab } from '../../navigation/routes';
+import { AccountMenu } from './AccountMenu';
 import { useDeskHistorySlot } from './desk-history-slot';
 import { useBalanceCents } from './use-balance';
 
@@ -155,12 +156,13 @@ export const IceSidebar: React.FC<{
             </nav>
           )}
           {/* Regra do mínimo: com a Mesa, a conversa ocupa o alto da lateral; Conectar IA e Conta ficam abaixo, sem rótulo. */}
-          {DESK_ENABLED && active === 'work' && (
+          {/* Lateral A (27/11): com a Mesa, as conversas e a Pasta ficam na lateral em qualquer tela. */}
+          {DESK_ENABLED && (
             <div className={collapsed ? 'lg:hidden' : ''}>
               <aside aria-label="Histórico de conversas" ref={setHistorySlot} className="min-w-0" />
             </div>
           )}
-          <nav aria-label="Conta e recursos" className="space-y-0.5">
+          {navigation.resources.length > 0 && <nav aria-label="Conta e recursos" className="space-y-0.5">
             {!DESK_ENABLED && (
               <span className={`block ${groupLabel} ${collapsed ? 'lg:sr-only' : ''}`}>Conta e recursos</span>
             )}
@@ -173,7 +175,7 @@ export const IceSidebar: React.FC<{
                 onSelect={select}
               />
             ))}
-          </nav>
+          </nav>}
           {/* A Mesa renderiza aqui a lista de conversas. No trilho recolhido não há espaço para ela. */}
           {!DESK_ENABLED && active === 'work' && (
             <div className={collapsed ? 'lg:hidden' : ''}>
@@ -182,6 +184,19 @@ export const IceSidebar: React.FC<{
           )}
         </div>
 
+        {DESK_ENABLED ? (
+          account && (
+            <div className="shrink-0 border-t border-line pt-3">
+              <AccountMenu
+                name={account.user.displayName}
+                balanceCents={balance}
+                active={active}
+                onSelect={select}
+                onSignOut={() => void signOut()}
+              />
+            </div>
+          )
+        ) : (
         <div className="shrink-0 space-y-3">
           {balance !== undefined && active !== 'credits' && (
             <div className={`rounded-xl border border-line bg-surface-muted p-3.5 ${collapsed ? 'lg:hidden' : ''}`}>
@@ -234,6 +249,7 @@ export const IceSidebar: React.FC<{
             )}
           </button>
         </div>
+        )}
       </aside>
     </>
   );

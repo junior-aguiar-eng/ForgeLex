@@ -27,14 +27,8 @@ export interface AccountSection {
 
 export function iceNavigation(flags: { deskEnabled: boolean; casesEnabled: boolean }): IceNavigation {
   // Regra do mínimo (AGENTS.md, 26/11): com a Mesa, ela é tudo; fora dela, só Conectar IA e Conta.
-  if (flags.deskEnabled)
-    return {
-      work: [],
-      resources: [
-        { tab: 'connections', label: 'Conectar IA', icon: 'connections' },
-        { tab: 'credits', label: 'Conta', icon: 'billing' },
-      ],
-    };
+  // Lateral A (27/11): Conectar IA e Conta saem da lista e vão ao menu da conta (`accountMenu`).
+  if (flags.deskEnabled) return { work: [], resources: [] };
   return {
     work: [
       ...(flags.deskEnabled ? [{ tab: 'work' as const, label: 'Mesa', icon: 'desk' as const }] : []),
@@ -77,4 +71,15 @@ export function highlightedTab(tab: AppTab, deskEnabled = true): AppTab {
   if (tab === 'account_activity' || tab === 'account_security' || tab === 'api_keys') return 'credits';
   if (tab === 'for_lawyers_guide' || tab === 'api_docs') return 'connections';
   return tab;
+}
+
+/**
+ * Menu da conta no rodapé da lateral do gelo (lateral A, 27/11): os destinos fora da conversa. “Sair” fica à parte porque
+ * não é uma tela. Recentes, Pasta, “Nova conversa” e “Conversas excluídas” vivem no histórico da Mesa, acima.
+ */
+export function accountMenu(): AccountSection[] {
+  return [
+    { tab: 'connections', label: 'Conectar IA' },
+    { tab: 'credits', label: 'Conta e créditos' },
+  ];
 }

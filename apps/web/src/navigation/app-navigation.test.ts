@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { accountSections, connectSections, highlightedTab, iceNavigation } from './app-navigation';
+import { accountMenu, accountSections, connectSections, highlightedTab, iceNavigation } from './app-navigation';
 import { routeForTab } from './routes';
 
 const labels = (items: ReadonlyArray<{ label: string }>) => items.map((item) => item.label);
@@ -7,9 +7,9 @@ const labels = (items: ReadonlyArray<{ label: string }>) => items.map((item) => 
 describe('iceNavigation (V2, protótipo de 09/11)', () => {
   const all = iceNavigation({ deskEnabled: true, casesEnabled: true });
 
-  it('regra do mínimo: com a Mesa, a lateral só tem as conversas, Conectar IA e Conta', () => {
+  it('lateral A (27/11): com a Mesa, a lateral só tem as conversas; Conectar IA e Conta vão ao menu da conta', () => {
     expect(labels(all.work)).toEqual([]);
-    expect(labels(all.resources)).toEqual(['Conectar IA', 'Conta']);
+    expect(labels(all.resources)).toEqual([]);
   });
 
   it('sem a Mesa os casos precisam do próprio item; sem casos não há Mesa nem Casos, e a Jurisprudência fica', () => {
@@ -75,5 +75,14 @@ describe('highlightedTab', () => {
     for (const tab of ['work', 'research', 'landing', 'credits', 'datajud', 'connections'] as const) {
       expect(highlightedTab(tab)).toBe(tab);
     }
+  });
+});
+
+describe('accountMenu (menu da conta no rodapé da lateral, 27/11)', () => {
+  it('Conectar IA e Conta e créditos, cada um com a sua tela; Sair fica à parte', () => {
+    expect(accountMenu()).toEqual([
+      { tab: 'connections', label: 'Conectar IA' },
+      { tab: 'credits', label: 'Conta e créditos' },
+    ]);
   });
 });
