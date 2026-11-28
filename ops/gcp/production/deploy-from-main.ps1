@@ -38,6 +38,8 @@ param(
   # Tema do app (V6) e texto público do modelo novo (V5A). Mesma regra: só mudam se informados.
   [ValidateSet('classico', 'gelo')][string]$Theme,
   [ValidateSet('true', 'false')][string]$PublicModelEnabled,
+  # Domínio do site (item 14), só na virada de domínio. Mesma regra: só muda se informado.
+  [string]$PublicOrigin,
   [ValidatePattern('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')]
   [string]$ReleaseBuildId,
   [switch]$DryRun,
@@ -178,6 +180,7 @@ if ($PSBoundParameters.ContainsKey('MatterChipsEnabled')) { $overrides['_VITE_FO
 if ($PSBoundParameters.ContainsKey('OcrEnabled')) { $overrides['_VITE_FORGELEX_OCR_ENABLED'] = $OcrEnabled }
 if ($PSBoundParameters.ContainsKey('Theme')) { $overrides['_VITE_FORGELEX_THEME'] = $Theme }
 if ($PSBoundParameters.ContainsKey('PublicModelEnabled')) { $overrides['_VITE_FORGELEX_PUBLIC_MODEL'] = $PublicModelEnabled }
+if ($PSBoundParameters.ContainsKey('PublicOrigin')) { $overrides['_VITE_PUBLIC_ORIGIN'] = $PublicOrigin }
 $substitutions = New-BuildSubstitutions -Previous $base.Substitutions -Sha $sha -Overrides $overrides
 Write-Host "  base: build $($base.Id)$(if ($ReleaseBuildId) { '  (retomada explícita)' } elseif ($overrides.Count) { "  (com $($overrides.Count) flag(s) trocada(s) de propósito)" })"
 Format-MaskedSubstitutions $substitutions | ForEach-Object { Write-Host "  $_" }

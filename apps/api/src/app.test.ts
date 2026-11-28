@@ -201,6 +201,31 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     }
   });
 
+  it('com FORGELEX_LEGACY_HOSTS, o domínio antigo redireciona e o MCP anuncia o domínio novo (item 14)', async () => {
+    const movedApp = await buildApp({
+      database,
+      ledgerService,
+      environment: {
+        NODE_ENV: 'test',
+        FORGELEX_PUBLIC_URL: 'https://forgelex.com.br',
+        FORGELEX_LEGACY_HOSTS: 'nexojuris.ia.br',
+      },
+    });
+    try {
+      const old = await movedApp.inject({ method: 'GET', url: '/como-funciona', headers: { host: 'nexojuris.ia.br' } });
+      expect(old.statusCode).toBe(301);
+      expect(old.headers.location).toBe('https://forgelex.com.br/como-funciona');
+      const metadata = await movedApp.inject({
+        method: 'GET',
+        url: '/.well-known/oauth-protected-resource',
+        headers: { host: 'forgelex.com.br' },
+      });
+      expect(JSON.parse(metadata.body).resource).toBe('https://forgelex.com.br/mcp');
+    } finally {
+      await movedApp.close();
+    }
+  });
+
   it('executa e encerra o worker de encerramento somente quando habilitado', async () => {
     vi.useFakeTimers();
     const runOne = vi.fn().mockResolvedValue('idle');

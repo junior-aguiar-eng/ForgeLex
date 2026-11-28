@@ -134,7 +134,7 @@ Test-Case 'copia tudo do build anterior e troca só o SHA' {
   Assert-Equal $result['_SOURCE_SHA'] $sha
   Assert-Equal $result['_VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED'] 'true'
   Assert-Equal $result['_VITE_FORGELEX_CASE_WORKSPACE_ENABLED'] 'true'
-  Assert-Equal $result.Count 14
+  Assert-Equal $result.Count 15
 }
 Test-Case 'flags da Mesa ausentes no build anterior valem false, como no cloudbuild.yaml' {
   $result = New-BuildSubstitutions -Previous $goodSubs -Sha $sha
@@ -179,6 +179,18 @@ Test-Case 'só classico e gelo vão à produção: previa, vazio e maiúsculas s
   $prev['_VITE_FORGELEX_THEME'] = 'previa'
   Assert-Throws { New-BuildSubstitutions -Previous $prev -Sha $sha } 'Tema inválido'
   Assert-Throws { New-BuildSubstitutions -Previous $goodSubs -Sha $sha -Overrides @{ '_VITE_FORGELEX_PUBLIC_MODEL' = 'sim' } } 'Flag inválida'
+}
+Test-Case 'domínio do site (item 14): ausente vale o atual, presente é preservado, só muda de propósito e só https' {
+  $result = New-BuildSubstitutions -Previous $goodSubs -Sha $sha
+  Assert-Equal $result['_VITE_PUBLIC_ORIGIN'] 'https://nexojuris.ia.br'
+  $moved = New-BuildSubstitutions -Previous $goodSubs -Sha $sha -Overrides @{ '_VITE_PUBLIC_ORIGIN' = 'https://forgelex.com.br' }
+  Assert-Equal $moved['_VITE_PUBLIC_ORIGIN'] 'https://forgelex.com.br'
+  $prev = @{}; foreach ($key in $goodSubs.Keys) { $prev[$key] = $goodSubs[$key] }
+  $prev['_VITE_PUBLIC_ORIGIN'] = 'https://forgelex.com.br'
+  Assert-Equal (New-BuildSubstitutions -Previous $prev -Sha $sha)['_VITE_PUBLIC_ORIGIN'] 'https://forgelex.com.br'
+  foreach ($bad in 'http://forgelex.com.br', 'https://forgelex.com.br/', 'https://forgelex.com.br/x', 'forgelex.com.br') {
+    Assert-Throws { New-BuildSubstitutions -Previous $goodSubs -Sha $sha -Overrides @{ '_VITE_PUBLIC_ORIGIN' = $bad } } 'Domínio público inválido'
+  }
 }
 Test-Case 'aceita troca explícita de flag de interface' {
   $result = New-BuildSubstitutions -Previous $goodSubs -Sha $sha -Overrides @{ '_VITE_FORGELEX_CASE_WORKSPACE_ENABLED' = 'false' }

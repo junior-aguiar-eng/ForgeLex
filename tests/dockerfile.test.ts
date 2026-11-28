@@ -32,6 +32,11 @@ describe('imagem de produção', () => {
     expect(productionBuild).toContain("_VITE_FORGELEX_THEME: 'classico'");
     expect(productionBuild).toContain('VITE_FORGELEX_PUBLIC_MODEL=${_VITE_FORGELEX_PUBLIC_MODEL}');
     expect(productionBuild).toContain("_VITE_FORGELEX_PUBLIC_MODEL: 'false'");
+    // Item 14: o domínio do site chega ao build de produção; o padrão é o domínio atual.
+    expect(dockerfile).toContain('ARG VITE_PUBLIC_ORIGIN=https://nexojuris.ia.br');
+    expect(dockerfile.indexOf('VITE_PUBLIC_ORIGIN=${VITE_PUBLIC_ORIGIN}')).toBeLessThan(dockerfile.indexOf('RUN pnpm build'));
+    expect(productionBuild).toContain('VITE_PUBLIC_ORIGIN=${_VITE_PUBLIC_ORIGIN}');
+    expect(productionBuild).toContain("_VITE_PUBLIC_ORIGIN: 'https://nexojuris.ia.br'");
     expect(cloudBuild).toContain('VITE_SUPABASE_URL=${_VITE_SUPABASE_URL}');
     expect(cloudBuild).toContain('VITE_SUPABASE_PUBLISHABLE_KEY=${_VITE_SUPABASE_PUBLISHABLE_KEY}');
   });

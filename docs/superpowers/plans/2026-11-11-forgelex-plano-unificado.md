@@ -24,7 +24,7 @@
 4. **Estado publicado** continua em `PENDENCIAS.md` (seção “Estado publicado atual”), atualizado a cada deploy.
 5. **Marcar o progresso aqui.** Ao concluir uma etapa, marcar os itens `[x]` e acrescentar uma linha de evidência com
    link para a seção do registro. Uma decisão nova de Boni entra na seção 2, com data.
-6. **Publicações de risco separadas.** A troca de tema (V6) e a virada de domínio (D3/D4) nunca saem na mesma
+6. **Publicações de risco separadas.** A troca de tema (V6) e a virada de domínio (D2) nunca saem na mesma
    publicação nem na mesma semana.
 
 ## 1. Ponto de partida
@@ -39,7 +39,7 @@
 | Verificação            | A18 aceita em 14/11; A19 aceita em 17/11. Pendentes: Estrutura do caso e Frente A com o modelo real. As três falhas intermitentes de CI foram diagnosticadas em 19/11 (item 9 da 1A). |
 | Visual                 | Tema clássico vigente em produção. Gelo feito de V0 a V5A e pronto atrás de flag; V6 (ligar) aguarda passada final e publicação isolada.                                                 |
 | U7                     | Partes 1 a 4 integradas. A trava de produto de 19/11 substituiu a decisão de 18/11: no gelo não há “Dados do caso”; `/app/casos` abre a Mesa e a exclusão definitiva vive nela. A `MatterWorkspaceScreen` só sobrevive no clássico, até a V7. |
-| Domínio em uso         | `nexojuris.ia.br` em produção. D0 a D5 não iniciadas; `hml.nexojuris.ia.br` deu timeout na conferência de 12/11.                                                                         |
+| Domínio em uso         | `nexojuris.ia.br` em produção. Virada de uma vez decidida em 27/11 (Frente D); D0 e D1 concluídos, D2 (virada) pendente.                                                                         |
 
 Revisões, flags e validação da reserva constam em [PENDENCIAS.md](../../../PENDENCIAS.md#estado-publicado-atual) e no [registro da reconciliação](../../architecture/2026-11-10-mesa-guiada-execucao.md#reconciliação-pós-deploy--12-de-novembro-de-2026).
 
@@ -63,7 +63,7 @@ ou decisão dele (nada abaixo se publica sem a autorização dele, seção 0).
 | 11  | U5, U6          | ~~Identificação pela leitura do PDF (hipótese de U3); qualidade do OCR em documentos autorizados~~ — **superada em 27/11 pela DEC-16** (a análise automática do anexo saiu na MIN; o usuário anexa e pede na conversa) | Código e Boni |
 | 12  | U7, 18/11       | ~~Documentos do caso, PDF como anexo, “Dados do caso”, redirecionamento~~ — **feitos em 19/11, no gelo**; “Dados do caso” eliminado pela trava de produto no mesmo dia. Aceite visual refeito sem “Dados do caso” (20/11); aguarda o veredito de Boni. O clássico some na V7 **27/11:** os ajustes do gelo pedidos por Boni (lateral, Mesa centralizada, Conta, Conectar IA, site e textos legais) foram feitos ([registro](../../architecture/2026-11-10-mesa-guiada-execucao.md#ajustes-do-gelo-antes-do-aceite-27112026)); o aceite visual passa às capturas novas | Boni |
 | 13  | V5A, V6, V7     | Textos legais, `tests/public-*`, passada final e aceite, ligar o gelo, limpeza — **26/11:** a regra do mínimo (DEC-16) tirou do gelo tudo o que não é conversa ([MIN](../../architecture/2026-11-10-mesa-guiada-execucao.md#min--mesa-mínima-no-gelo-e-pasta-de-casos-26112026)); o painel de acesso da IA por caso não foi levado. Falta: decisão de Boni sobre esse acesso, aceite visual e publicação isolada da V6 **27/11:** textos legais aplicados (`2026-11-27.v1`), site no modelo novo recentrado na Mesa e acesso da IA já decidido em 26/11 (automático, sem painel). Falta: aceite visual das capturas novas, título do site, leitor de tela e publicação isolada da V6 | Código e Boni |
-| 14  | D0–D5           | Mudança de domínio (começa por registrar `forgelex.com.br`)                                                                                       | Boni, depois código |
+| 14  | D0–D2           | Mudança de domínio de uma vez, com redirecionamento (D0 e D1 feitos em 27/11; falta a virada)                                                                                       | Boni, depois código |
 | 15  | CI, 19/11       | ~~`shell-gelo.spec.ts:278` intermitente~~ — **causa provada e corrigida em 19/11**: a Visão mostrava os passos antes de os dados chegarem e o botão “Abrir a jurisprudência” trocava de estilo (com `transition` de 160 ms) quando chegavam; o axe lia a cor no meio da troca. Agora a tela mostra um esqueleto até saber o resultado | Código |
 | 16  | Estrutura, 20–24/11 | Estrutura do caso E1 a E4 integrada só com agente simulado: exercitar com o modelo real (relato colado, PDF longo em trechos, ajuste pela conversa, redação apoiada na estrutura) e decidir os limites listados no desenho (frase do usuário só nos acrescentados, confirmação de item acrescentado, cobrança de ajuste que vira só pergunta, conversa nova por correção). **Roteiro pronto em 26/11**: ensaio em produção, na conta de Boni, no tema clássico (relato colado, PDF de um trecho, redação no caso; [roteiro](../../operations/stabilization/2026-11-26-estrutura-modelo-real-roteiro.md)); aba Estrutura e ajuste pela conversa ficam para a passada da V6 | Boni, depois código |
 | 17  | A3, 24/11       | Frente A: avaliação jurídica das fases pagas, execuções pagas de cache e schemas e decisão de adoção do perfil `1.17.0` (`workflowVersion: 16`) | Boni  |
@@ -90,7 +90,7 @@ A tabela preserva as decisões de 11/11/2026. A DEC-9 foi executada no PR #138. 
 | DEC-5  | Reserva de R$ 11,50 por trabalho comercial (PR #135, antes R$ 5,00)                                     | **Decidido por Boni em 11/11/2026:** manter R$ 11,50. Aumento já autorizado até R$ 20,00, se necessário, com nova política de preço versionada e exibida na Conta e na confirmação de custo. Acima de R$ 20,00 exige nova decisão                                                                                                                                                | M1                 |
 | DEC-6  | Tarifa da análise de aderência na busca ancorada                                                        | **Decidido por Boni em 11/11/2026:** gerar a frase de aderência na mesma chamada da pesquisa, sem tarifa adicional, enquanto o uso real é medido                                                                                                                                                                                                                                 | M4                 |
 | DEC-7  | Título principal e posicionamento do site público                                                       | **Decidido por Boni em 11/11/2026:** todo o frontend e a parte externa do site se adaptam ao modelo MCP originário (a IA do cliente conectada ao ForgeLex, mais a Mesa). O título novo é escolhido na V5A entre propostas escritas por mim; até lá vale o título atual, travado em `tests/public-copy.test.ts`                                                                   | V5A                |
-| DEC-8  | Destino do Ratione (`ratione.nexojuris.ia.br`) na troca de domínio                                      | **Decidido por Boni em 11/11/2026:** por ora o Ratione continua em `ratione.nexojuris.ia.br`. O domínio `nexojuris.ia.br` e esse subdomínio permanecem ativos e renovados; a troca de domínio não os toca                                                                                                                                                                        | D5 e Frente R      |
+| DEC-8  | Destino do Ratione (`ratione.nexojuris.ia.br`) na troca de domínio                                      | **Decidido por Boni em 11/11/2026:** por ora o Ratione continua em `ratione.nexojuris.ia.br`. O domínio `nexojuris.ia.br` e esse subdomínio permanecem ativos e renovados; a troca de domínio não os toca                                                                                                                                                                        | D0 e Frente R      |
 | DEC-9  | Arquivamento dos planos antigos de `docs/superpowers/plans/`                                            | Arquivamento e atualização de referências integrados no PR #138. O plano v2 está em `docs/historico/planos/`.                                                                                                                                                                                                                                                                    | E6                 |
 | DEC-10 | Mesa: peça e matéria em uso, sem lista exposta                                                          | **Decidido por Boni em 11/11/2026:** a Mesa mostra expressamente só a peça e a matéria que serão usadas naquele momento, nunca uma lista do catálogo. O cliente chega a elas por grande área, por texto livre e, depois, pela leitura de um PDF anexado. Conteúdo, IDs e hashes das fichas continuam ocultos. Revisa a decisão do v2 de manter Forma e Matéria só nos bastidores | Nada (U3 liberada) |
 | DEC-11 | Modo de piloto fechado (`closedPilot`, `ClosedPilotPanel`, `closed-pilot*.ts`, `task6-homologation.ts`) | **Decidido por Boni em 11/11/2026:** manter enquanto servir a testes. Fica isolado fora da Mesa nova e é reavaliado ao fim da Frente U                                                                                                                                                                                                                                           | Nada               |
@@ -146,11 +146,8 @@ flowchart LR
     V5A --> V6["V6 Ligar o tema novo"]
     V6 --> V7["V7 Limpeza do tema antigo"]
     E --> D0["D0 Decidir e inventariar domínio"]
-    D0 --> D1["D1 Código com domínio configurável"]
-    D1 --> D2["D2 Homologação no domínio novo"]
-    D2 --> D3["D3 Produção nos dois domínios"]
-    D3 --> D4["D4 Redirecionar o site"]
-    D4 --> D5["D5 Encerrar o uso do domínio antigo"]
+    D0 --> D1["D1 Código para a virada"]
+    D1 --> D2["D2 Virada de uma vez, com redirecionamento"]
     M1 --> M3["M3 Catálogo: mapa, incorporação e cruzamento"]
     M1 --> U0["U0 Inventário da Mesa"]
     U0 --> U1["U1 Remover duplicidade e código morto"]
@@ -193,18 +190,18 @@ tabela. Proposta de 11/11/2026, a confirmar por Boni.
 | ----- | ------ | -------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | PR-E  | E      | E1 a E7  | —                            | Integrada no #138 e publicada em `b4c76e0`. Ensaio E3 encerrado por decisão de Boni (27/11).                                                             |
 | PR-M1 | M      | M1 a M3  | PR-E                         | Fechada em 27/11: código publicado; verificações residuais de M1, M2 e M3 feitas ou encerradas por decisão de Boni (regra do mínimo); manifesto do catálogo conferido em produção. |
-| PR-D  | D      | D0 a D5  | PR-E                         | Pendente; cada virada é uma publicação                                                                                                |
+| PR-D  | D      | D0 a D2  | PR-E                         | Pendente; cada virada é uma publicação                                                                                                |
 | PR-U1 | U      | U0 a U6  | PR-E; M3.0 (PR-M1) para a U3 | PR #139 integrado. Mesa única, casca, orientação v3, ações e anexos publicados. U2–U5 têm recortes pendentes e U6 está aberta.        |
 | PR-V1 | V      | V0 a V3  | PR-M1 (M2); PR-U1 (U4)       | V0 (#181) e V1 (#183) integradas; V2 a V5 (#184 a #189) feitas no gelo; A19 aceita.                                                   |
 | PR-M2 | M      | M4 e M5  | PR-V1 (V3)                   | Pendente                                                                                                                              |
 | PR-U2 | U      | U7       | PR-V1 (V3); PR-U1 (U6)       | Partes 1 a 4 integradas (#196 a #201); “Dados do caso” eliminado pela trava (DEC-15). Falta o veredito do aceite visual. |
-| PR-V2 | V      | V4 a V7  | PR-M2 (M4); PR-U2 (U7)       | Pendente; V6 e D3/D4 nunca na mesma semana                                                                                            |
+| PR-V2 | V      | V4 a V7  | PR-M2 (M4); PR-U2 (U7)       | Pendente; V6 e D2 nunca na mesma semana                                                                                            |
 | PR-R  | R      | Frente R | PR-V2 (V6); PR-M2 (M5)       | Posterior                                                                                                                             |
 | PR-A  | A      | A0 a A3  | Execução comercial integrada | A0 a A2 verificadas offline; prompts revisados e perfis integrados (#205, `workflowVersion: 16`). Avaliação paga e ativação seguem autorização de Boni. |
 | PR-EC | Estrutura do caso | E1 a E4 | U7; trava de produto | Integrada em seis PRs (#202–#204, #208–#210), fora da regra de uma PR por frente. Falta a verificação com o modelo real (1A, item 16). |
 
 Cada etapa continua com seu registro, seus critérios de aceite e sua reversão; o que muda é só a unidade de PR. As
-etapas que são publicação (M1, M2 em homologação, D2 a D5, V6) seguem exigindo a autorização de Boni no momento de
+etapas que são publicação (M1, M2 em homologação, D2, V6) seguem exigindo a autorização de Boni no momento de
 publicar, independentemente da PR.
 
 ## 5. Etapa E — estabilização
@@ -733,7 +730,7 @@ publicação, por flag (`VITE_FORGELEX_PUBLIC_MODEL`), e uma frase sem função 
 - [ ] Atualizar no mesmo commit `tests/public-copy.test.ts`, `tests/public-seo.test.ts` e
       `apps/web/src/public/PublicSite.test.ts`; manter o veto ao título rejeitado.
 - [ ] A consulta processual gratuita (DataJud) continua descrita como é, sem sugerir mais do que oferece.
-- [x] URLs canônicas e `og:url` com o domínio vigente na ocasião (D3), sem valor fixo no texto: `VITE_PUBLIC_ORIGIN` no build (parte 3).
+- [x] URLs canônicas e `og:url` com o domínio vigente na ocasião (D2), sem valor fixo no texto: `VITE_PUBLIC_ORIGIN` no build (parte 3).
 
 **Verificação.** `playwright.public.config.ts`, `accessibility.spec.ts`, testes de cópia e SEO. **Aceite.** Cada
 afirmação do site corresponde a uma função publicada; título aprovado por Boni. **Reversão.** Desligar
@@ -759,84 +756,58 @@ Depois de ao menos duas semanas de V6 sem reversão.
 
 ## 8. Frente D — mudança de domínio
 
-Objetivo: levar site, API, MCP e OAuth para o domínio novo sem quebrar conexões existentes de ChatGPT e Claude,
-pagamentos em curso, login nem SEO. O domínio antigo continua respondendo por um período e nunca deixa de ser
-renovado.
+**Decisão de Boni em 27/11/2026: virar tudo de uma vez, com redirecionamento.** Site, API, MCP e OAuth passam juntos a
+`forgelex.com.br`; `nexojuris.ia.br` só redireciona para o domínio novo. Não há período com os dois domínios servindo
+o produto, nem código para isso. Custo aceito: quem já conectou a IA por MCP reconecta uma vez, colando o endereço
+novo (avisar por e-mail). O domínio antigo é **renovado indefinidamente** (também abriga `ratione.nexojuris.ia.br`,
+DEC-8): um domínio vencido poderia ser registrado por terceiro e receber retornos de OAuth.
 
-### D0 — Decisão e inventário
+### D0 — Domínio e inventário
 
-Depende de DEC-1.
+- [x] `forgelex.com.br` registrado no Registro.br (conferido em 27/11/2026: delegado a `a.auto.dns.br` e
+      `b.auto.dns.br`, ainda sem registros).
+- [x] Inventário (27/11/2026). No código, o domínio já é configurável: site por `VITE_PUBLIC_ORIGIN` no build
+      (canonical, `og:url`, `og:image`, `sitemap.xml`, `robots.txt`); API e MCP por `FORGELEX_PUBLIC_URL`. As demais
+      ocorrências de `nexojuris` são testes, scripts de ensaio e registros históricos, que mantêm o domínio da época.
+      Fora do repositório:
 
-- [ ] Registrar `forgelex.com.br` no Registro.br em nome de Boni (DEC-1).
-- [ ] Inventário completo e registrado: `rg -n "nexojuris" --glob '!**/dist/**'` (165 ocorrências em 11/11), mais o que
-      fica fora do repositório:
+| Sistema           | O que muda na virada                                                                                   |
+| ----------------- | ------------------------------------------------------------------------------------------------------ |
+| Registro.br e DNS | A/AAAA de `forgelex.com.br` (e `www`, se usado) para o IP do balanceador; CAA para o emissor           |
+| GCP               | Certificado gerenciado com os dois domínios; regra de host do domínio novo no balanceador             |
+| Cloud Run (API)   | `FORGELEX_PUBLIC_URL`, `FORGELEX_LEGACY_HOSTS`, `FORGELEX_ALLOWED_ORIGINS`, `FORGELEX_WEB_URL` (se definida), `MERCADOPAGO_NOTIFICATION_URL`; `FORGELEX_MCP_RESOURCE_URL` e `FORGELEX_OAUTH_AUTHORIZATION_SERVERS`, se definidas |
+| Supabase Auth     | Site URL, Redirect URLs e links dos e-mails no domínio novo; servidor OAuth com `/oauth/consent`       |
+| Mercado Pago      | URL de notificação; pagamentos anteriores à virada continuam notificando o domínio antigo (atendido)  |
+| SEO               | Search Console: propriedade nova e mudança de endereço                                                 |
+| Monitoramento     | Uptime Check passa a chamar `https://forgelex.com.br/readyz`                                           |
+| Ratione           | Continua em `ratione.nexojuris.ia.br` (DEC-8); não entra em `FORGELEX_LEGACY_HOSTS`                    |
+| Usuários com MCP  | E-mail com o endereço novo do conector                                                                 |
 
-| Sistema           | O que muda                                                                                                                                                                            |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Registro.br e DNS | Registros A/AAAA do balanceador, CAA para o emissor do certificado                                                                                                                    |
-| GCP               | Certificado gerenciado com os dois domínios, regras de host no balanceador, revisões de homologação                                                                                   |
-| Supabase Auth     | Site URL, Redirect URLs (antigo e novo durante a transição), servidor OAuth com caminho `/oauth/consent`, links dos e-mails                                                           |
-| Login social      | Origens e redirecionamentos autorizados no provedor, se houver                                                                                                                        |
-| MCP e OAuth       | `FORGELEX_PUBLIC_URL`, `FORGELEX_MCP_RESOURCE_URL`, metadados `/.well-known/oauth-protected-resource/mcp`; conectores já criados no ChatGPT e no Claude apontam para o domínio antigo |
-| Mercado Pago      | URL de notificação; pagamentos criados antes da virada notificam o domínio antigo                                                                                                     |
-| CORS              | `FORGELEX_ALLOWED_ORIGINS`                                                                                                                                                            |
-| SEO               | `index.html` (canonical, `og:url`), `sitemap.xml`, `robots.txt`, `public-metadata.ts`, Search Console                                                                                 |
-| Ratione           | `ratione.nexojuris.ia.br` (DEC-8)                                                                                                                                                     |
-| Documentação      | `ops/gcp/production/README.md`, runbooks e registros vigentes; registros históricos mantêm o domínio da época                                                                         |
+### D1 — Código para a virada (27/11/2026)
 
-### D1 — Código com domínio configurável e duplo
+- [x] API: `FORGELEX_LEGACY_HOSTS` (lista de hosts) redireciona para `FORGELEX_PUBLIC_URL` com o mesmo caminho e
+      consulta: 301 em GET e HEAD, 308 nos demais métodos. Exceção única: `/api/v2/webhooks/mercadopago` continua
+      atendido no domínio antigo. Sem a variável, nada muda (`apps/api/src/legacy-host-redirect.ts`).
+- [x] Build de produção: `_VITE_PUBLIC_ORIGIN` no `cloudbuild.yaml` e no `Dockerfile` (padrão, o domínio atual);
+      `deploy-from-main.ps1 -PublicOrigin https://forgelex.com.br` troca o domínio do site de propósito, e o valor
+      fica preservado nos builds seguintes.
 
-Sem mudança de infraestrutura nem de comportamento em produção.
+**Aceite.** Com as variáveis atuais, comportamento idêntico. **Reversão.** Reverter o commit.
 
-- [ ] Web: `CANONICAL_ORIGIN` a partir de `VITE_PUBLIC_ORIGIN` (obrigatória no build de produção); `index.html` com
-      `%VITE_PUBLIC_ORIGIN%`; `sitemap.xml` e `robots.txt` gerados no build.
-- [ ] API: `FORGELEX_MCP_RESOURCE_URLS` (lista) além do valor único atual. Metadados de recurso devolvidos conforme o
-      host da requisição; validação de token aceita qualquer recurso da lista. Teste com os dois hosts e com recurso
-      fora da lista (`RESOURCE_MISMATCH`).
-- [ ] `mcp.call` passa a registrar o host, para medir o uso do domínio antigo.
-- [ ] Testes: centralizar o domínio de fixture numa constante de teste e trocar as ocorrências.
-- [ ] Scripts de ops com o domínio por parâmetro, sem valor padrão de produção embutido.
+### D2 — Virada (uma publicação, com autorização de Boni no momento)
 
-**Aceite.** Com as variáveis atuais, comportamento idêntico (testes de OAuth, MCP e SEO verdes).
-**Reversão.** Reverter o commit; nenhuma configuração externa mudou.
+1. DNS, certificado e regra de host do domínio novo; esperar o certificado ficar ativo (`https://forgelex.com.br/readyz`
+   respondendo).
+2. Supabase Auth com o domínio novo (mantendo o antigo nas Redirect URLs até o fim da virada).
+3. `deploy-from-main.ps1 -PublicOrigin https://forgelex.com.br -DryRun`, depois sem `-DryRun`.
+4. Variáveis da API (`gcloud run services update forgelex-api-prod --update-env-vars ...`) conforme a tabela de D0, com
+   `FORGELEX_LEGACY_HOSTS=nexojuris.ia.br`.
+5. Conferência: página antiga chega à nova por 301; login; Mesa; conexão MCP nova no Claude e no ChatGPT; pagamento
+   de teste notificado; `/.well-known/oauth-protected-resource` anuncia `https://forgelex.com.br/mcp`.
+6. Search Console, Uptime Check e e-mail aos usuários com conector MCP.
 
-### D2 — Homologação no domínio novo
-
-- [ ] DNS e certificado de `hml.<domínio novo>`; regras do balanceador.
-- [ ] Supabase de homologação com as duas origens.
-- [ ] Ensaio completo: login, OAuth do MCP no Claude e no ChatGPT com o host novo, conexão antiga continuando a
-      funcionar, pagamento de teste com notificação, pesquisa, Mesa.
-
-**Aceite.** Os dois domínios funcionam em homologação. **Reversão.** Remover o host novo do balanceador.
-
-### D3 — Produção nos dois domínios
-
-- [ ] Certificado com os dois domínios, DNS do novo, `FORGELEX_MCP_RESOURCE_URLS` com os dois, CORS com os dois,
-      Supabase com as duas origens.
-- [ ] Domínio novo passa a ser o canônico (`FORGELEX_PUBLIC_URL`, `VITE_PUBLIC_ORIGIN`); notificação do Mercado Pago
-      aponta para o novo.
-- [ ] Tela Conectar mostra a URL nova e orienta a reconexão.
-
-**Aceite.** Conexões MCP antigas e novas funcionam; pagamentos novos notificam o domínio novo.
-**Reversão.** Voltar o canônico para o antigo; os dois continuam servidos.
-
-### D4 — Redirecionar o site
-
-- [ ] No domínio antigo, redirecionamento 301 só para páginas do site (`GET` de HTML), preservando caminho e query.
-- [ ] Não redirecionar `ratione.nexojuris.ia.br` (DEC-8): o subdomínio continua servindo o Ratione.
-- [ ] Sem redirecionamento para `/mcp`, `/oauth/*`, `/.well-known/*`, `/api/*` e notificações de pagamento, que
-      continuam servidos no domínio antigo.
-- [ ] Search Console: propriedade nova e mudança de endereço.
-
-**Aceite.** Páginas antigas chegam ao domínio novo; nenhuma chamada de máquina quebra.
-
-### D5 — Encerrar o uso do domínio antigo
-
-- [ ] Acompanhar o host no `mcp.call` e nas notificações até o uso antigo chegar a zero por 30 dias.
-- [ ] Comunicar data limite aos usuários com conector antigo.
-- [ ] Remover o recurso antigo de `FORGELEX_MCP_RESOURCE_URLS` e as origens antigas do Supabase.
-- [ ] Manter o redirecionamento do site e **renovar o domínio antigo indefinidamente** (também por abrigar `ratione.nexojuris.ia.br`, DEC-8); um domínio vencido poderia ser
-      registrado por terceiro e receber retornos de OAuth.
+**Reversão.** Voltar as variáveis da API (sem `FORGELEX_LEGACY_HOSTS`, `FORGELEX_PUBLIC_URL` antigo) e publicar com
+`-PublicOrigin https://nexojuris.ia.br`.
 
 ## 9. Frente R — integração com o Ratione (posterior)
 
@@ -949,9 +920,9 @@ etapas D. Falhas preexistentes e testes ignorados são registrados sem contar co
 | Diferença visual não intencional ao introduzir tokens | Screenshots pixel a pixel em V0                                                    | V0         |
 | Contraste insuficiente em bordas de controle          | `line-control` com 3,5:1; medição por script                                       | V1         |
 | Fontes externas lentas ou bloqueadas                  | Fontes no próprio site e `font-display: swap`                                      | V1         |
-| Conectores MCP antigos param na troca de domínio      | Recurso duplo, sem redirecionar `/mcp` e OAuth, desligamento só com uso zero       | D1–D5      |
-| Notificação de pagamento perdida                      | Domínio antigo continua servindo notificações                                      | D3–D5      |
-| Domínio antigo registrado por terceiro                | Renovação indefinida                                                               | D5         |
+| Conectores MCP antigos param na troca de domínio      | Aceito por Boni (27/11): reconexão única, avisada por e-mail                        | D2         |
+| Notificação de pagamento perdida                      | Domínio antigo continua servindo notificações                                      | D1–D2      |
+| Domínio antigo registrado por terceiro                | Renovação indefinida                                                               | D0         |
 | Fichas com erro jurídico ou de escopo                 | Ajustes da conferência amostral em nova versão; avaliação de Boni por lote         | M3         |
 | Reserva de R$ 11,50 impede uso com saldo baixo        | DEC-5 e mensagem clara                                                             | M1         |
 | Remover código ainda usado em produção                | U0 com flags de produção e relatório de uso; commits pequenos; reversão por commit | U1         |
@@ -959,7 +930,7 @@ etapas D. Falhas preexistentes e testes ignorados são registrados sem contar co
 | OCR lento ou fraco em documento ruim                  | OCR com cancelamento, limite de páginas e texto editável; servidor só por decisão  | U6         |
 | Site promete função ainda não publicada               | V5A: texto e função saem juntos, por flag; título vetado mantido                   | V5A        |
 | Alerta de chave não dispara                           | Checagem periódica de `/readyz`                                                    | E3         |
-| Duas mudanças de risco juntas                         | Seção 0, item 6                                                                    | V6, D3, D4 |
+| Duas mudanças de risco juntas                         | Seção 0, item 6                                                                    | V6, D2     |
 | Escalonamento ou saída maior excede o orçamento | Reservar pela configuração efetiva antes de cada chamada e preservar os tetos | A2 |
 | Cache expõe contexto ou distorce contabilização | Validar segregação e tarifas, contabilizar escrita e testar reversão | A3 |
 | Ganho aparente de custo reduz a qualidade da entrega | Comparações controladas, rubrica jurídica e análise de todas as tentativas | A3 |
