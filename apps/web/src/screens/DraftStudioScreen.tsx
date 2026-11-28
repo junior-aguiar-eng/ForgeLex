@@ -1,6 +1,5 @@
-import { DraftCanvas, type PieceTab } from './draft-review/DraftCanvas';
+import { DraftCanvas } from './draft-review/DraftCanvas';
 import { activeTheme } from '../theme/active-theme';
-import { pieceStructureTabActive } from '../agentic-workspace/structure-request';
 import { caseNameFrom } from '../desk/case-name';
 import { CASES_CHANGED_EVENT } from '../desk/CaseFolder';
 import { EditorialReviewPanel } from '../agentic-workspace/EditorialReviewPanel';
@@ -38,7 +37,7 @@ import {
 } from '../desk/draft-studio-model';
 import { ApprovalDialog, CreateCaseControls, PieceNotices, ReviewDialog, VersionHistory } from '../desk/DraftStudioParts';
 
-export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedVersionId?: string; onPieceChange?: (piece: DeskPiece | null) => void; onCaseSources?: () => void; requestedReview?: DeskDocumentSelection; deskEditorialEnabled?: boolean; structureRefreshKey?: string }> = ({ requestedLocation, selectedVersionId, onPieceChange, onCaseSources, requestedReview, deskEditorialEnabled = false}) => {
+export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedVersionId?: string; onPieceChange?: (piece: DeskPiece | null) => void; onCaseSources?: () => void; requestedReview?: DeskDocumentSelection; deskEditorialEnabled?: boolean }> = ({ requestedLocation, selectedVersionId, onPieceChange, onCaseSources, requestedReview, deskEditorialEnabled = false}) => {
   const emptySections = () => [{title:'Texto da peça',content:'',linkedFactIds:[],linkedEvidenceIds:[],linkedAuthorityIds:[],linkedThesisIds:[]}];
   const [importedDelivery, setImportedDelivery] = useState<Delivery>();
   const submittedLocalSnapshot = useRef<string>();
@@ -88,9 +87,6 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
   const [reviewOpenFor, setReviewOpenFor] = useState<string>();
   // Tema gelo: a peça tem abas Texto, Fontes e Revisão no lugar dos diálogos de fontes do caso e de conferência.
   const ice = activeTheme() === 'gelo';
-  const [pieceTab, setPieceTab] = useState<PieceTab>('texto');
-  // A aba Estrutura avisa quando há estrutura carregada: só então o pedido vira ajuste (E2).
-  const structureReady = false;
   const lastRequestedReview = useRef<DeskDocumentSelection>();
   const [historyVersion, setHistoryVersion] = useState('');
   const [historyRuns, setHistoryRuns] = useState<DraftReviewRun[]>([]);
@@ -555,8 +551,6 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
       canOpenDelivery: attached => !loadingSelection && (!dirty || (attached && submittedLocalSnapshot.current === localSnapshot.current)),
       editSelection: !dirty && editSelection?.versionId === versionId ? editSelection : undefined,
       clearEditSelection: () => setEditSelection(undefined),
-      // E2: com a aba Estrutura aberta e uma estrutura carregada, o compositor envia o pedido como ajuste dela.
-      ...(pieceStructureTabActive({ ice, tab: pieceTab, matterId: selectedMatterId, ready: structureReady }) ? { structureTabActive: true } : {}),
     };
     snapshot.prepare = async () => {
       if (busy || loadingSelection || caseUnavailable) throw new Error('A peça ainda está sendo atualizada.');
@@ -564,10 +558,10 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
       if (!dirty && selectedDraftId && versionId) return snapshot;
       const saved = await saveDraft();
       if (!saved) throw new Error('Não foi possível guardar a edição. Seu texto foi preservado.');
-      return { matterId: selectedMatterId, draftId: saved.draft.id, versionId: saved.version.id, title: draftTitle, dirty: false, ...(snapshot.structureTabActive ? { structureTabActive: true } : {}) };
+      return { matterId: selectedMatterId, draftId: saved.draft.id, versionId: saved.version.id, title: draftTitle, dirty: false };
     };
     onPieceChange(snapshot);
-  }, [onPieceChange, selectedMatterId, selectedDraftId, details?.currentVersion?.version.id, importedDelivery, draftTitle, sections, dirty, busy, loadingSelection, caseUnavailable, contextChanged, editSelection, ice, pieceTab, structureReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [onPieceChange, selectedMatterId, selectedDraftId, details?.currentVersion?.version.id, importedDelivery, draftTitle, sections, dirty, busy, loadingSelection, caseUnavailable, contextChanged, editSelection, ice]); // eslint-disable-line react-hooks/exhaustive-deps
   const expectedWorkVersion = new URLSearchParams(requestedLocation?.split('?')[1] ?? window.location.search).get('versionId');
   const selectionHasDifferentVersion = Boolean(selectedVersionId && editingVersion.current && selectedVersionId !== editingVersion.current);
   const requestedVersion = selectedVersionId ?? expectedWorkVersion;
@@ -669,7 +663,6 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
   const openVersionReview = () => {
     if (!selectedDraftId) return;
     setReviewOpenFor(selectedDraftId);
-    if (ice) setPieceTab('revisao');
     if (reviewTargetMismatch && requestedVersion) void openHistory(requestedVersion);
   };
   useEffect(() => {
@@ -692,7 +685,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
                 onClose={() => setPoint(undefined)} onLinked={() => { setContextChanged(true); void refreshDetails().catch(() => setError('Vínculo salvo. Atualize a conferência para consultar o resultado.')); }}
                 onEditSection={() => {
                   const index = details?.currentVersion?.sections.findIndex(s => s.id === point.check.sectionId) ?? -1;
-                  setPoint(undefined); setReviewOpenFor(undefined); setPieceTab('texto'); requestAnimationFrame(() => document.getElementById('draft-section-' + index)?.focus());
+                  setPoint(undefined); setReviewOpenFor(undefined); requestAnimationFrame(() => document.getElementById('draft-section-' + index)?.focus());
                 }}
                 onLinkReference={() => {
                   const index = details?.currentVersion?.sections.findIndex(s => s.id === point.check.sectionId) ?? -1;
@@ -772,7 +765,6 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
     </>
   );
   // Regra do mínimo (AGENTS.md, 26/11): no gelo a peça é só o texto, com Salvar e Exportar; sem abas, caso nem revisão.
-  const pieceTabs = undefined;
 
   const createCase = async (title = newWorkCase.trim()) => {
     setBusy(true);
@@ -836,7 +828,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
       }}
       onMatter={id=>void selectMatter(id)} onDraft={id=>id ? void selectDraft(id) : void selectMatter(selectedMatterId)}
       onArchive={() => void archiveOpenDraft()}
-      onSave={save} minimal={ice} onExport={format=>void exportOpenPiece(format)} onCaseSources={onCaseSources} reviewActions={reviewActions} tabs={pieceTabs}
+      onSave={save} minimal={ice} onExport={format=>void exportOpenPiece(format)} onCaseSources={onCaseSources} reviewActions={reviewActions}
       caseControls={<CreateCaseControls name={newWorkCase} busy={busy} onName={setNewWorkCase} onCreate={() => void createCase()} />}
       extras={<PieceNotices undo={undoDraft} busy={busy} differentVersion={Boolean(selectionHasDifferentVersion)} actionDisabled={busy || loadingSelection} importedWithoutMatter={Boolean(importedDelivery && !selectedMatterId)} onUndo={() => void restoreArchivedDraft()} onDismissUndo={() => setUndoDraft(undefined)} onUseOpenVersion={() => publishDeskPiece(deskScope(), { matterId: selectedMatterId, draftId: selectedDraftId, versionId: editingVersion.current })} />}
       history={<VersionHistory versions={details?.versions} loading={historyLoading} runs={historyRuns} onOpen={(versionId) => void openHistory(versionId)} />}

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { afterEach, expect, it } from 'vitest';
-import { structureItemsSource, type AgenticTaskDelivery } from '@forgelex/domain';
+import { structureContextSource, type AgenticTaskDelivery } from '@forgelex/domain';
 import { createEvidenceFixture } from '../testing/native-evidence-review-fixture.js';
 import { NativeCaseTaskRepository } from './native-case-task-repository.js';
 
@@ -33,11 +33,11 @@ async function setup() {
     executionId: execution.id,
     contextRevision: 1,
     matterId: f.matter.id,
-    objective: 'Ajustar',
-    actionId: 'adjust_structure' as const,
+    objective: 'Redigir',
+    actionId: 'analyze_documents' as const,
   };
   const review = await f.reviews.preview(f.owner, f.saved.id);
-  const source = structureItemsSource(f.saved.id, review.items, new Set());
+  const source = structureContextSource(f.saved.id, review.items, new Map())!;
   return { native: new NativeCaseTaskRepository(f.db, async () => {}), binding, source, conversation };
 }
 
@@ -48,7 +48,7 @@ it('binds server-assembled sources to every load and save of one run', async () 
   expect(packet.sources.find((s) => s.id === source.id)).toEqual(source);
   await port.assert(binding);
   const delivery: AgenticTaskDelivery = {
-    action: 'adjust_structure',
+    action: 'analyze_documents',
     contextId: conversation.id,
     contextRevision: 1,
     status: 'CANDIDATE',
@@ -59,7 +59,6 @@ it('binds server-assembled sources to every load and save of one run', async () 
     requirements: [],
     findings: [],
     sources: packet.sources.map(({ text: _text, ...s }) => s),
-    structureAdjustment: { commands: [], caseSummary: 'Resumo sintético.' },
   };
   // Without the same trusted sources the delivery cites a source the run never had.
   await expect(native.save(binding, delivery)).rejects.toThrow('SOURCE_REFERENCE_INVALID');

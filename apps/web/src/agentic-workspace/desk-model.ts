@@ -19,8 +19,6 @@ export interface DeskPiece {
   editSelection?: DeskEditSelection;
   clearEditSelection?: () => void;
   prepare?: () => Promise<DeskPiece>;
-  /** A aba Estrutura da peça está aberta: no modo Automático, o pedido corrige a estrutura do caso (E2). */
-  structureTabActive?: boolean;
 }
 
 export interface DeskRequest {

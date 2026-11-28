@@ -15,7 +15,7 @@ import { CASE_TASK_INSTRUCTIONS } from './instructions/case-task.js';
 const id = z.string().trim().min(1).max(80),
   text = z.string().trim().min(1).max(4000);
 export const TaskPlanSchema = z.strictObject({
-  action: AgenticTaskActionSchema.exclude(['analyze_evidence', 'adjust_structure']),
+  action: AgenticTaskActionSchema.exclude(['analyze_evidence']),
   requiresCaseLaw: z.boolean(),
   requiresNorms: z.boolean(),
   requiresProcedure: z.boolean(),

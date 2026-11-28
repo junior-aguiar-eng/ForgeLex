@@ -2,7 +2,7 @@ import type { EvidenceReviewItem } from './evidence-review.js';
 
 /**
  * Public reference the user can use for an item: facts F1, F2..., evidence P1, P2..., in review order. No runtime
- * imports: the Estrutura tab (browser) numbers with this same function, so the agent and the tab always agree.
+ * imports, so the browser could reuse it; the drafting source numbers its items with it.
  */
 export function structureItemLabels(items: readonly Pick<EvidenceReviewItem, 'id' | 'kind'>[]): Map<string, string> {
   const labels = new Map<string, string>();

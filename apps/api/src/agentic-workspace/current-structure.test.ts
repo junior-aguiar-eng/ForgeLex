@@ -102,7 +102,7 @@ describe('findCurrentStructure', () => {
     expect(found).toEqual({ executionId: 'e1', deliveryId: 'd-e1', updatedAt: '2026-11-01T00:00:00.000Z' });
   });
 
-  it('acha a análise depois de muitas conversas de ajuste do mesmo caso, sem perder a anterior', async () => {
+  it('acha a análise depois de muitas outras conversas do mesmo caso, sem perder a anterior', async () => {
     const adjusts = Array.from({ length: 130 }, (_, i) =>
       conv(
         `a${i}`,
@@ -111,7 +111,7 @@ describe('findCurrentStructure', () => {
         `2026-11-05T00:${String(Math.floor(i / 60)).padStart(2, '0')}:${String(i % 60).padStart(2, '0')}.000Z`,
       ),
     ).reverse();
-    const actions = Object.fromEntries(adjusts.map((c) => [`d-${c.execution.id}`, 'adjust_structure']));
+    const actions = Object.fromEntries(adjusts.map((c) => [`d-${c.execution.id}`, 'create_document']));
     const found = await findCurrentStructure(
       deps(
         [

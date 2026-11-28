@@ -9,10 +9,9 @@ import {
   type TaskCapabilityRequest,
   type EvidenceTaskPlan,
   type DeliveryTaskPlan,
-  type StructureTaskPlan,
 } from '@forgelex/legal-agents';
-// Every plan contract the case task can hold, v1-v13.
-type TaskPlan = EvidenceTaskPlan | DeliveryTaskPlan | StructureTaskPlan;
+// Every plan contract the case task can hold (v13 was removed on 27/11/2026).
+type TaskPlan = EvidenceTaskPlan | DeliveryTaskPlan;
 
 export const GRAPH_ROLES = [
   'matter-analyst',
@@ -90,10 +89,7 @@ export function graphRoles(plan: TaskPlan, reviewRequired: boolean): GraphRole[]
     if (role === 'procedural-advisor') return (plan.action === 'create_document' && !factual) || plan.requiresProcedure;
     if (role === 'legal-drafter') return plan.action === 'create_document';
     if (role === 'adversarial-reviewer')
-      return (
-        ['create_document', 'review_text', 'analyze_evidence', 'adjust_structure'].includes(plan.action) ||
-        reviewRequired
-      );
+      return ['create_document', 'review_text', 'analyze_evidence'].includes(plan.action) || reviewRequired;
     return true; // Verification is a terminal conditional node, including the no-legal-evidence branch.
   });
 }

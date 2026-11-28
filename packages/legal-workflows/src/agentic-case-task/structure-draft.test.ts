@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { expect, it } from 'vitest';
 import { FakeAgentProvider } from '@forgelex/agent-core';
-import { structureDraftProfile, structureTaskProfile } from '@forgelex/legal-agents';
+import { structureDraftProfile } from '@forgelex/legal-agents';
 import { structureContextSource, type EvidenceReviewItem } from '@forgelex/domain';
 import { AgenticCaseTask, caseTaskContractHash } from './case-task.js';
 
@@ -134,7 +134,7 @@ it('structureUse com id fora da fonte, ou de item confirmado, derruba o trabalho
   }
 });
 
-it('analyze_evidence escolhido roda no v15 e adjust_structure no v13; nenhum dos dois cai no v14', async () => {
+it('analyze_evidence escolhido roda no v15, não no v14', async () => {
   const analysis = await fixture({
     actionId: 'analyze_evidence',
     orchestrator: { ...plan, action: 'analyze_evidence' },
@@ -142,10 +142,6 @@ it('analyze_evidence escolhido roda no v15 e adjust_structure no v13; nenhum dos
     .step()
     .catch((e) => e);
   expect(analysis.state?.version).toBe(15);
-  const adjust = await fixture({ actionId: 'adjust_structure', orchestrator: { ...plan, action: 'adjust_structure' } })
-    .step()
-    .catch((e) => e);
-  expect(adjust.state?.version ?? 13).not.toBe(14);
 });
 
 it('sem guidedWorkflow a fonte é ignorada e a versão é a de hoje', async () => {
@@ -185,6 +181,5 @@ it('o perfil v14 manda redigir na voz da peça e proíbe a frase em terceira pes
   expect(profile.version).toBe('1.15.0');
   expect(profile.instructions).toContain('na voz e na pessoa que a peça pede');
   expect(profile.instructions).toContain('structureUse');
-  expect(structureTaskProfile('legal-drafter').instructions).not.toContain('structure-context');
   expect(caseTaskContractHash(14)).not.toBe(caseTaskContractHash(12));
 });

@@ -12,7 +12,6 @@ import type { WorkspaceClient, StartInput } from './client';
 import { reais, type CommercialAuthorization, type CommercialQuote } from './commercial-model';
 import type { ActionId, Context, PublicAction } from './execution-model';
 import { EvidenceChangesPanel } from './EvidenceChangesPanel';
-import { STRUCTURE_COMPOSER_PLACEHOLDER, adjustsStructure, structureAdjustInput } from './structure-request';
 import type { GuidanceStart, GuidanceState } from './guidance-model';
 
 export interface ComposerFollowUp {
@@ -237,13 +236,6 @@ export function Composer({
     piece && conversationMatter !== undefined && (piece.matterId || null) !== conversationMatter,
   );
   const guided = Boolean(guidanceId);
-  // Dica em texto de que o pedido corrige a estrutura do caso (aba Estrutura aberta, com estrutura, no Automático).
-  const structureCue = adjustsStructure({
-    structureTabActive: piece?.structureTabActive,
-    guided: Boolean(guidanceState),
-    matterId: piece?.matterId,
-    chosenAction: action,
-  });
   const canSendGuide = Boolean(guidanceState && !guidanceState.question && !guidanceEditing);
   const authorization =
     commercial && authorizeOnSend && quote
@@ -287,20 +279,6 @@ export function Composer({
           ? `Matérias indicadas pelo cliente (confira se se aplicam ao caso): ${matterChips.map((chip) => chip.label).join('; ')}.`
           : '';
       const contextText = (base: string, block = attached) => [base, hinted, block].filter(Boolean).join('\n\n');
-      // E2: com a aba Estrutura aberta (e já com estrutura) e o modo Automático, o pedido corrige a estrutura do caso,
-      // numa conversa nova. Só as palavras do usuário seguem: anexos e matérias ficam no campo para o próximo pedido.
-      if (
-        matterId &&
-        adjustsStructure({
-          structureTabActive: currentPiece?.structureTabActive ?? piece?.structureTabActive,
-          guided: Boolean(guidanceState),
-          matterId,
-          chosenAction: action,
-        })
-      ) {
-        onSubmit(structureAdjustInput({ objective: goal, matterId }), authorization);
-        return;
-      }
       const build = (block: string): StartInput => ({
         objective: goal,
         ...(actionId ? { actionId } : {}),
@@ -413,11 +391,9 @@ export function Composer({
           placeholder={
             guided
               ? 'Descreva o que você precisa resolver…'
-              : structureCue
-                ? STRUCTURE_COMPOSER_PLACEHOLDER
-                : followUp
-                  ? 'Peça um ajuste, pesquise fundamentos ou revise o texto…'
-                  : 'Descreva o que você precisa. Você pode incluir a peça e as fontes do pedido.'
+              : followUp
+                ? 'Peça um ajuste, pesquise fundamentos ou revise o texto…'
+                : 'Descreva o que você precisa. Você pode incluir a peça e as fontes do pedido.'
           }
         />
         {chipsOn && (

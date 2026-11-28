@@ -4,7 +4,6 @@ import {
   AnalysisSourceSchema,
   TaskEvidenceMatrixSchema,
   ApprovedItemSnapshotSchema,
-  STRUCTURE_QUESTION_REASONS,
 } from '@forgelex/domain';
 const reviewItemShape = {
   ...AnalysisItemSchema.shape,
@@ -33,29 +32,9 @@ export const savedReviewSchema = z.strictObject({
   ),
   added: z.array(z.strictObject(reviewItemShape)).max(50).optional(),
   commands: z.record(z.string().uuid(), z.strictObject({ inputHash: z.string().regex(/^[a-f0-9]{64}$/) })),
-  adjustments: z
-    .record(
-      z.string().uuid(),
-      z.strictObject({
-        executionId: z.string().min(1).max(200),
-        applied: z.number().int().nonnegative(),
-        questions: z
-          .array(
-            z.strictObject({
-              itemId: z
-                .string()
-                .regex(/^[a-f0-9]{64}$/)
-                .optional(),
-              texto: z.string().min(1).max(4000).optional(),
-              reason: z.enum(STRUCTURE_QUESTION_REASONS),
-            }),
-          )
-          .max(100),
-        caseSummary: z.string().min(1).max(1500).optional(),
-        recordedAt: z.string().datetime(),
-      }),
-    )
-    .optional(),
+  // Records of the structure adjustment through the conversation (removed on 27/11/2026, item 16). Never written now;
+  // accepted so a review saved before still reads.
+  adjustments: z.record(z.string().uuid(), z.unknown()).optional(),
   reapprovals: z.record(z.string().regex(/^[a-f0-9]{64}$/), z.array(ApprovedItemSnapshotSchema).max(100)).optional(),
   reapprovalCommands: z
     .record(z.string().uuid(), z.strictObject({ inputHash: z.string().regex(/^[a-f0-9]{64}$/) }))

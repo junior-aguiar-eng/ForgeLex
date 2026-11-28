@@ -25,15 +25,13 @@ import {
 } from '@forgelex/legal-workflows';
 import {
   AgenticTaskActionSchema,
-  structureItemsSource,
   structureContextSource,
   type AgenticExecution,
   type AgenticOwner,
   type TaskBinding,
 } from '@forgelex/domain';
-import { findCaseStructure } from './case-structure.js';
+import { findCaseStructure, structureSourceKey } from './case-structure.js';
 import { caseHistorySource, type CaseHistoryEntry } from './case-history-source.js';
-import { applyStructureAdjustment, structureSourceKey } from './apply-structure-adjustment.js';
 import type { AgentTool, ToolExecutionContext } from '@forgelex/agent-core';
 import type { SearchCaseLawInput } from '@forgelex/legal-tools';
 import type { IndexedLegislationProvider } from '@forgelex/source-providers';
@@ -76,29 +74,8 @@ export function createCaseTaskDriver(
   ]);
   const reviews = new NativeEvidenceReviewRepository(database, options.authorizeNative);
   const workspace = new AgenticWorkspaceRepository(database);
-  // adjust_structure: the items of all the case's analyses (E4; the same ones the Estrutura tab sums), with id and text.
-  const structureSource = async (owner: AgenticOwner, matterId: string | undefined) => {
-    if (!matterId) throw new Error('STRUCTURE_NOT_AVAILABLE');
-    const entries = await findCaseStructure(
-      { store: { workspace }, native, manages: options.manages },
-      owner,
-      matterId,
-    );
-    if (!entries.length) throw new Error('STRUCTURE_NOT_AVAILABLE');
-    // One at a time: each preview is its own transaction.
-    const previews: Awaited<ReturnType<typeof reviews.preview>>[] = [];
-    for (const entry of entries) previews.push(await reviews.preview(owner, entry.deliveryId));
-    return structureItemsSource(
-      structureSourceKey(
-        matterId,
-        entries.map((entry) => entry.deliveryId),
-      ),
-      previews.flatMap((review) => review.items),
-      new Set(previews.flatMap((review) => Object.keys(review.decisions))),
-    );
-  };
-  // E3/E4: the case structure for drafting (confirmed and still unchecked items of all the analyses, a line per document
-  // and the latest summary). Best effort: a case without structure, or one that cannot be read, drafts exactly as before.
+  // E3/E4: the case structure for drafting (confirmed and still unchecked items of all the analyses and a line per
+  // document). Best effort: a case without structure, or one that cannot be read, drafts exactly as before.
   const contextSource = async (owner: AgenticOwner, matterId: string | undefined, actionId: string | undefined) => {
     if (!matterId || (actionId && actionId !== 'create_document')) return undefined;
     try {
@@ -110,16 +87,12 @@ export function createCaseTaskDriver(
       if (!entries.length) return undefined;
       const items: Awaited<ReturnType<typeof reviews.preview>>['items'] = [];
       const decisions = new Map<string, 'ADOPT' | 'DISCARD'>();
-      let summary: { text: string; recordedAt: string } | undefined;
       const documents: { title: string; pieceType?: string; parties: string[]; parts: number }[] = [];
       const byKey = new Map<string, number>();
       for (const entry of entries) {
         const review = await reviews.preview(owner, entry.deliveryId);
         items.push(...review.items);
         for (const [id, decision] of Object.entries(review.decisions)) decisions.set(id, decision.action);
-        for (const record of Object.values(review.adjustments ?? {}))
-          if (record.caseSummary?.trim() && (!summary || record.recordedAt > summary.recordedAt))
-            summary = { text: record.caseSummary.trim(), recordedAt: record.recordedAt };
         const { delivery } = await native.getDelivery(owner, entry.deliveryId);
         const profile = delivery.documentProfile;
         const parties = (profile?.parties ?? []).map((party) => `${party.name} (${party.role})`);
@@ -159,7 +132,7 @@ export function createCaseTaskDriver(
         ),
         items,
         decisions,
-        summary?.text,
+        undefined,
         lines,
       );
     } catch {
@@ -180,26 +153,12 @@ export function createCaseTaskDriver(
         const deliveryId = execution.deliveryIds.at(-1);
         if (!deliveryId) continue;
         const { delivery } = await native.getDelivery(owner, deliveryId);
-        if (delivery.action === 'adjust_structure') continue;
         entries.push({ conversationId: conversation.conversationId, objective: conversation.objective, delivery });
       }
       return caseHistorySource(matterId, entries);
     } catch {
       return undefined;
     }
-  };
-  const applyAdjustment = async (owner: AgenticOwner, matterId: string | undefined, id: string) => {
-    if (!matterId) throw new Error('STRUCTURE_NOT_AVAILABLE');
-    const { delivery } = await native.getDelivery(owner, id);
-    return applyStructureAdjustment(
-      { store: { workspace }, native, reviews, manages: options.manages },
-      owner,
-      matterId,
-      {
-        id,
-        delivery,
-      },
-    );
   };
   const driver: ExecutionDriver = {
     next: ({ execution }) => ({
@@ -216,22 +175,6 @@ export function createCaseTaskDriver(
           matterId: execution.matterId ?? undefined,
           previousDeliveryIds: caseTaskPreviousDeliveryIds(execution.checkpoint?.caseTask),
         };
-        // Re-run of a step whose adjust_structure delivery is already persisted: the review has changed since (that is
-        // the point), so the structure source cannot be rebuilt; finish by (re)applying, which is idempotent.
-        if (binding.actionId === 'adjust_structure') {
-          const id = `delivery:${execution.id}`;
-          const saved = await native.getDelivery(owner, id).then(
-            () => true,
-            (error: unknown) => {
-              if (error instanceof Error && error.message === 'DELIVERY_NOT_FOUND') return false;
-              throw error;
-            },
-          );
-          if (saved) {
-            await applyAdjustment(owner, binding.matterId, id);
-            return { kind: 'completed', checkpoint: execution.checkpoint ?? {}, deliveryIds: [id] };
-          }
-        }
         const tools: AgentTool<any, any>[] = [createNativeSelectedSourceTool(native, binding)];
         if (researchTools) {
           let ordinal = 0;
@@ -277,27 +220,20 @@ export function createCaseTaskDriver(
           workflowVersion: options.workflowVersion ?? 10,
           guidedWorkflow: options.guidedWorkflow,
           skills: options.skills,
-          context:
-            binding.actionId === 'adjust_structure'
-              ? native.withTrustedSources([await structureSource(owner, binding.matterId)])
-              : await (async () => {
-                  // Em sequência: o banco de desenvolvimento e o de teste têm conexão única (ver E4).
-                  const structure = await contextSource(owner, binding.matterId, binding.actionId);
-                  const history = await historySource(owner, binding.matterId, binding.conversationId);
-                  const sources = [structure, history].filter((source): source is NonNullable<typeof source> =>
-                    Boolean(source),
-                  );
-                  return sources.length ? native.withTrustedSources(sources) : native;
-                })(),
+          context: await (async () => {
+            // Em sequência: o banco de desenvolvimento e o de teste têm conexão única (ver E4).
+            const structure = await contextSource(owner, binding.matterId, binding.actionId);
+            const history = await historySource(owner, binding.matterId, binding.conversationId);
+            const sources = [structure, history].filter((source): source is NonNullable<typeof source> =>
+              Boolean(source),
+            );
+            return sources.length ? native.withTrustedSources(sources) : native;
+          })(),
           tools,
           createProvider: options.createProvider,
           authorizeRealProvider: options.authorizeRealProvider,
         });
         const result = await task.step(binding, execution.checkpoint?.caseTask, signal);
-        // adjust_structure: once its delivery is persisted, apply the commands to the current analysis (idempotent per
-        // execution; what cannot be applied safely is kept as questions with the analysis' review).
-        if (binding.actionId === 'adjust_structure' && result.kind === 'completed' && result.deliveryIds?.length)
-          await applyAdjustment(owner, binding.matterId, result.deliveryIds.at(-1)!);
         if (result.kind === 'question')
           return { kind: 'question', checkpoint: { caseTask: result.state }, question: result.question! };
         return {
