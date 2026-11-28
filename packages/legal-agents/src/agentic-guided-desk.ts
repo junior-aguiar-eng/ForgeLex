@@ -2,8 +2,7 @@ import { z } from 'zod';
 import { DecisionValueSchema } from '@forgelex/domain';
 import type { CaseTaskRole } from './agentic-case-contracts.js';
 import { DeliveryTaskPlanSchema } from './agentic-delivery.js';
-import { DESK_TASK_POLICY, deskTaskProfile, LEGACY_DESK_EDIT_INSTRUCTIONS } from './agentic-desk.js';
-import { CASE_TASK_INSTRUCTIONS, REVISED_RESEARCH_INSTRUCTIONS } from './instructions/case-task.js';
+import { DESK_TASK_POLICY, deskTaskProfile } from './agentic-desk.js';
 
 export const GuidedDeskPlanSchema = DeliveryTaskPlanSchema.extend({
   guidanceProposals: z
@@ -62,29 +61,5 @@ export function scopedDeskEditProfile(role: CaseTaskRole) {
     version: '1.13.0',
     policyVersion: SCOPED_DESK_EDIT_POLICY.version,
     instructions: prior.instructions + instructions,
-  };
-}
-
-// 1.17.0 (was 1.14.0): that identity was taken by the structure adjustment contract (v13) while this front was open.
-export const REVISED_DESK_PROMPT_POLICY = { ...SCOPED_DESK_EDIT_POLICY, version: '1.17.0' } as const;
-
-export function revisedDeskPromptProfile(role: CaseTaskRole) {
-  const prior = scopedDeskEditProfile(role);
-  const research = REVISED_RESEARCH_INSTRUCTIONS[role];
-  let instructions = research
-    ? prior.instructions.replace(CASE_TASK_INSTRUCTIONS[role].join(' '), research)
-    : prior.instructions;
-  if (role === 'legal-drafter')
-    instructions = instructions
-      .replace(' Protocolo da mesa v10: ' + LEGACY_DESK_EDIT_INSTRUCTIONS, '')
-      .replace(
-        scopedDrafterInstructions,
-        ' Em EDIT, use a versão DRAFT selecionada e trabalhe exclusivamente sobre editScope. Retorne editProposal com target igual ao alvo de editScope e changes limitados à seção e ao intervalo autorizados. Copie before literalmente, use offsets UTF-16 absolutos e preserve literalmente o conteúdo externo, inclusive espaços e quebras. after vazio significa exclusão. Não gere document em EDIT. Sem editScope, registre a impossibilidade de editar sem seleção. Em CREATE, retorne document.',
-      );
-  return {
-    ...prior,
-    version: REVISED_DESK_PROMPT_POLICY.version,
-    policyVersion: REVISED_DESK_PROMPT_POLICY.version,
-    instructions,
   };
 }

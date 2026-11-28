@@ -8,13 +8,6 @@ import { LedgerService } from './ledger-service.js';
 import { billingOperations, ledgerAccounts, ledgerEntries, usageEvents } from './schema/ledger-schema.js';
 import { billingCreditLots } from './schema/billing-schema.js';
 import { commercialCalls, commercialExecutions } from './schema/commercial-inference-schema.js';
-import {
-  commercialInferenceProfile,
-  CommercialCallProfileSchema,
-  CommercialProfileSetSchema,
-  type CommercialCallProfile,
-  type CommercialProfileSet,
-} from './commercial-inference-profiles.js';
 
 export const COMMERCIAL_POLICY_VERSION = 'commercial-brl-2026-11-10-v2';
 export const COMMERCIAL_POLICY = Object.freeze({
@@ -45,7 +38,6 @@ const callInput = z.object({
   inputTokens: integer,
   maxOutputTokens: integer.positive(),
   upperBoundMicroUsd: integer.positive(),
-  profile: CommercialCallProfileSchema.optional(),
 });
 const usageInput = z.object({ inputTokens: integer, outputTokens: integer, cachedInputTokens: integer.optional() });
 export interface CommercialCall {
@@ -58,7 +50,6 @@ export interface CommercialCall {
   inputTokens: number;
   maxOutputTokens: number;
   upperBoundMicroUsd: number;
-  profile?: CommercialCallProfile;
   actualMicroUsd: number | null;
   inputHash: string;
   usageHash?: string;
@@ -100,7 +91,6 @@ interface CommercialRecord extends CommercialReceipt {
   idempotencyKey: string;
   inputHash: string;
   policy: typeof COMMERCIAL_POLICY;
-  profileSet?: CommercialProfileSet;
   reservedPaidCents: number;
   reservedPromoCents: number;
   promoExpiresAt: string | null;
@@ -404,7 +394,6 @@ export class CommercialInferenceService {
       idempotencyKey: string;
       requestFingerprint: string;
       policyVersion: string;
-      profileSet?: CommercialProfileSet;
     },
   ): Promise<CommercialReceipt> {
     const input = z
@@ -413,7 +402,6 @@ export class CommercialInferenceService {
         idempotencyKey: identifier,
         requestFingerprint: identifier,
         policyVersion: identifier,
-        profileSet: CommercialProfileSetSchema.optional(),
       })
       .parse(raw);
     if (input.policyVersion !== COMMERCIAL_POLICY_VERSION) throw new Error('COMMERCIAL_POLICY_MISMATCH');
@@ -453,7 +441,6 @@ export class CommercialInferenceService {
         currency: 'BRL',
         policyVersion: COMMERCIAL_POLICY_VERSION,
         policy: COMMERCIAL_POLICY,
-        ...(input.profileSet ? { profileSet: input.profileSet } : {}),
         reservedCents: COMMERCIAL_POLICY.reserveCents,
         chargedCents: 0,
         releasedCents: 0,
@@ -504,8 +491,7 @@ export class CommercialInferenceService {
         return { ...existing, shouldExecute: false };
       }
       if (record.status !== 'ACTIVE') throw new Error('COMMERCIAL_EXECUTION_NOT_ACTIVE');
-      if (input.profile?.set !== record.profileSet) throw new Error('COMMERCIAL_POLICY_MISMATCH');
-      const profile = input.profile ? commercialInferenceProfile(input.profile) : record.policy;
+      const profile = record.policy;
       await this.authorized(db, owner, executionId);
       await this.assertReconciled(db, account);
       const now = this.now();
@@ -516,9 +502,7 @@ export class CommercialInferenceService {
         throw new Error('COMMERCIAL_TIME_LIMIT');
       if (
         calls.length >= record.policy.maxCalls ||
-        (input.profile
-          ? input.maxOutputTokens !== profile.maxOutputTokens
-          : input.maxOutputTokens > profile.maxOutputTokens) ||
+        input.maxOutputTokens > profile.maxOutputTokens ||
         input.upperBoundMicroUsd < commercialCallUpperBound(profile, input.inputTokens, input.maxOutputTokens)
       )
         throw new Error('COMMERCIAL_CALL_LIMIT');
@@ -577,8 +561,12 @@ export class CommercialInferenceService {
       if (call.usageHash !== usageHash) throw new Error('IDEMPOTENCY_CONFLICT');
       return call;
     }
-    const profile = call.profile ? commercialInferenceProfile(call.profile) : record.policy;
-    const actual = commercialProviderPrice(profile, usage.inputTokens, usage.outputTokens, usage.cachedInputTokens);
+    const actual = commercialProviderPrice(
+      record.policy,
+      usage.inputTokens,
+      usage.outputTokens,
+      usage.cachedInputTokens,
+    );
     if (
       usage.inputTokens > call.inputTokens ||
       usage.outputTokens > call.maxOutputTokens ||

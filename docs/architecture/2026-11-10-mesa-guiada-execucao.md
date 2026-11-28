@@ -2649,6 +2649,29 @@ Para reproduzir os orçamentos offline, definir `FORGELEX_A3_EXPERIMENT_BUDGET=1
 **Renumeração da versão dos prompts revisados (24/11/2026).** Ao integrar a Frente A com `main`, a versão 13 do workflow (prompts revisados, perfil `1.14.0`) passou a ser a **16** e o perfil passou a `1.17.0`: a versão 13 e o perfil `1.14.0` já tinham sido tomados pelo ajuste da estrutura do caso (E2), e as versões 14 e 15 pela estrutura na redação (E3) e pela identificação do documento (E4). O comportamento dos prompts revisados não mudou; os registros acima mantêm os nomes da época das medições ("versão 13", `1.14.0`). A seleção continua sendo `workflowVersion: 16`, e o ajuste da estrutura segue na 13.
 
 
+## Item 17 · Frente A encerrada sem adoção (28/11/2026)
+
+Sobre `main` em `2f4cc7e`. **Decisão de Boni (28/11, regra do mínimo):** encerrar a Frente A sem adotar nada e tirar
+do código o que era só experimento. A Mesa continua com os prompts atuais e a política comercial
+`commercial-brl-2026-11-10-v2` (Sol, esforço `low`, teto de 2.048 tokens), que nunca deixaram de ser o padrão.
+
+**Base da decisão (fases pagas de 14 e 15/11):** prompts atuais e revisados empataram em desfechos e custo; perfis por
+papel custaram 30,5% menos com os mesmos desfechos, sem avaliação jurídica; cache e schemas estritos ficaram só na
+simulação.
+
+**O que saiu:**
+- Prompts revisados: contrato v16 de `AgenticCaseTask`, perfil `1.17.0` (`revisedDeskPromptProfile`) e as instruções
+  revisadas de pesquisa. O número 16 fica sem uso.
+- Perfis por papel: `commercial-inference-profiles.ts` e o campo de perfil na reserva, na liquidação e no registro da
+  chamada (ledger e transporte comercial); as composições de avaliação (`createProfiledEvaluationOpenAIRuntime`,
+  `createOfflineProfiledOpenAIRuntime`).
+- Schemas estritos no provider OpenAI (`strictSourceList`, `strictAuthorityLookup`); as ferramentas seguem com
+  `strict: false`, como sempre em produção.
+- Roteiros e testes da A3 em `scripts/forgelex-final-evaluation/api-prompts-a3-*` e a comparação offline
+  `api-prompts-offline.test.ts`.
+
+**Compatibilidade:** a chave de idempotência da reserva e da chamada não muda (os campos removidos eram opcionais e
+nunca enviados em produção). Os registros de calibração e as evidências das fases pagas continuam neste arquivo.
 ## MIN — Mesa mínima no gelo e Pasta de casos (26/11/2026)
 
 **Decisão de Boni (26/11/2026):** regra do mínimo, registrada no `AGENTS.md`: o produto é uma conversa (anexar e pedir);
