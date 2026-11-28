@@ -65,7 +65,7 @@ it('histórico grande demais perde primeiro as conversas mais antigas, sem erro'
 
 it('estrutura e histórico do caso são fontes do servidor, fora da conferência do contexto do usuário', async () => {
   const { isServerAssembledSource } = await import('./commercial-runtime.js');
-  for (const id of ['structure-context:delivery:x', 'structure:delivery:x', `${CASE_HISTORY_SOURCE_PREFIX}abc`])
+  for (const id of ['structure-context:delivery:x', `${CASE_HISTORY_SOURCE_PREFIX}abc`])
     expect(isServerAssembledSource({ kind: 'PREVIOUS_DELIVERY', id })).toBe(true);
   expect(isServerAssembledSource({ kind: 'PREVIOUS_DELIVERY', id: 'delivery:abc' })).toBe(false);
   expect(isServerAssembledSource({ kind: 'USER_TEXT', id: `${CASE_HISTORY_SOURCE_PREFIX}abc` })).toBe(false);

@@ -2686,6 +2686,28 @@ mandar peças, que esperam revisão. Testes: `case-ai-access.spec.ts` reescrita 
 gratuita, uma permissão por conexão, sessão do site e token desconhecido barrados, revogação que não volta, caso
 arquivado fora e caso novo dentro); unitários de persistência, servidor e conector 491/491.
 
+## Item 16 · estrutura do caso só nos bastidores (28/11/2026)
+
+Sobre `main` em `2f4cc7e`. **Decisão de Boni (27/11, regra do mínimo):** remover o que ficou sem uso no gelo e reduzir o
+ensaio com o modelo real a dois pedidos.
+
+**O que saiu:**
+- Ajuste da estrutura pela conversa (E2): a ação `adjust_structure`, o contrato v13 (perfis, política e plano em
+  `agentic-structure.ts`), a aplicação dos comandos (`apply-structure-adjustment.ts`), os comandos e perguntas do
+  domínio (`structure-commands.ts` ficou só com a fonte da redação) e os métodos da revisão que acrescentavam itens e
+  gravavam o resultado do ajuste. O número 13 fica sem uso, para não mudar o hash dos outros contratos.
+- No site: a aba Estrutura e todo o mecanismo de abas da peça (já desligado na MIN), a dica e o envio de ajuste no
+  compositor e o modelo da aba (`case-structure-model.ts` ficou só com a linha da orientação guiada).
+
+**O que ficou, nos bastidores:** a análise de fatos e provas pedida na conversa de um caso gera a estrutura; a redação
+no mesmo caso recebe essa estrutura (v14) e diz em quais itens ainda não conferidos se apoiou.
+
+**Compatibilidade:** o ajuste nunca rodou em produção (o clássico não tinha a aba e o gelo publicado já não a mostrava).
+Mesmo assim, a revisão gravada aceita na leitura o registro antigo `adjustments` e os itens `userAdded`, sem nunca
+mais gravá-los.
+
+**Verificação (local, 28/11):** typecheck e lint limpos; unitários do site 485/485, API agêntica 380/380, pacotes
+(domínio, agentes, fluxos, persistência) verdes, salvo as 2 falhas antigas do `db-busy-timeout` no Windows.
 ## Item 20 · fim da divisão do anexo em trechos (27/11/2026)
 
 Sobre `main` em `81d0557`. **Defeito:** no modo comercial, o PDF dividido em trechos (E4) parava no 1º trecho, porque o

@@ -116,7 +116,7 @@ it('análise escondida do histórico continua sendo contexto da redação (E4)',
   expect(structureOf(await firstStep())).toBeDefined();
 });
 
-it.each(['analyze_evidence', 'adjust_structure', 'research_question', 'review_text'])(
+it.each(['analyze_evidence', 'research_question', 'review_text'])(
   'com a ação %s a redação não recebe a fonte da estrutura',
   async (actionId) => {
     const { firstStep } = await setup(actionId);

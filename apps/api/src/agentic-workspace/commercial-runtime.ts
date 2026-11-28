@@ -25,13 +25,9 @@ import { digest } from './execution-store.js';
 import { createCommercialOpenAIRuntime, COMMERCIAL_MODEL } from './commercial-provider.js';
 import type { NativeCaseTaskOptions } from './case-task-driver.js';
 import { CASE_HISTORY_SOURCE_PREFIX } from './case-history-source.js';
-import { STRUCTURE_CONTEXT_SOURCE_PREFIX, STRUCTURE_ITEMS_SOURCE_PREFIX, type TaskSource } from '@forgelex/domain';
+import { STRUCTURE_CONTEXT_SOURCE_PREFIX, type TaskSource } from '@forgelex/domain';
 
-const SERVER_ASSEMBLED_PREFIXES = [
-  STRUCTURE_CONTEXT_SOURCE_PREFIX,
-  STRUCTURE_ITEMS_SOURCE_PREFIX,
-  CASE_HISTORY_SOURCE_PREFIX,
-];
+const SERVER_ASSEMBLED_PREFIXES = [STRUCTURE_CONTEXT_SOURCE_PREFIX, CASE_HISTORY_SOURCE_PREFIX];
 /** Fonte que o servidor monta e entrega à execução, fora do contexto gravado pelo usuário. */
 export const isServerAssembledSource = (source: Pick<TaskSource, 'kind' | 'id'>) =>
   source.kind === 'PREVIOUS_DELIVERY' && SERVER_ASSEMBLED_PREFIXES.some((prefix) => source.id.startsWith(prefix));
@@ -63,8 +59,6 @@ export type CommercialRuntime = Awaited<ReturnType<typeof createCommercialRuntim
 export function hasUsableResult(delivery: AgenticTaskDelivery, actionId?: string) {
   if (actionId && delivery.action !== actionId) return false;
   if (delivery.action === 'create_document') return Boolean(delivery.document?.sections.length);
-  // A structure adjustment is usable only when it proposes at least one command; a summary alone is not.
-  if (delivery.action === 'adjust_structure') return Boolean(delivery.structureAdjustment?.commands.length);
   if (delivery.action === 'analyze_evidence')
     return Boolean(
       delivery.evidenceMatrix?.rows.some((row) =>

@@ -28,16 +28,7 @@ interface TaskEvidenceMatrix {
   contradictions: { id: string; claimIds: string[]; explanation: string }[];
 }
 export type ActionId =
-  | 'analyze_documents'
-  | 'research_question'
-  | 'create_document'
-  | 'review_text'
-  | 'analyze_evidence'
-  | 'adjust_structure';
-export type StructureCommand =
-  | { op: 'ALTERAR'; itemId: string; texto?: string; dataEvento?: string }
-  | { op: 'REMOVER'; itemId: string }
-  | { op: 'ACRESCENTAR'; texto: string; frase: string };
+  'analyze_documents' | 'research_question' | 'create_document' | 'review_text' | 'analyze_evidence';
 export interface Question {
   id: string;
   version: number;
@@ -150,7 +141,6 @@ export interface Delivery {
       integrityAlerts: { kind: string; statement: string; sourceIds: string[] }[];
     };
     evidenceMatrix?: TaskEvidenceMatrix;
-    structureAdjustment?: { commands: StructureCommand[]; caseSummary: string };
     /** Itens da estrutura ainda não conferidos em que a peça se apoia (create_document). */
     structureUse?: { itemId: string; label?: string }[];
     /** Tipo da peça e partes que a análise identificou no texto (E4); a citação de cada parte foi conferida pelo servidor. */

@@ -108,3 +108,7 @@ export async function findCaseStructure<E extends CaseStructureExecution>(
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
     .map(({ createdAt: _createdAt, ...entry }) => entry);
 }
+
+/** Id of the structure source for drafting: the analysis' own id with one analysis, the case with several. */
+export const structureSourceKey = (matterId: string, deliveryIds: readonly string[]): string =>
+  deliveryIds.length === 1 ? deliveryIds[0]! : `case:${matterId}`;
