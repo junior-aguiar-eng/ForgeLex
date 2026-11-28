@@ -107,8 +107,6 @@ import {
   guidedDeskTaskProfile,
   SCOPED_DESK_EDIT_POLICY,
   scopedDeskEditProfile,
-  REVISED_DESK_PROMPT_POLICY,
-  revisedDeskPromptProfile,
   bindDeskSkills,
   skillReferencesForRole,
   ExecutionSkillSnapshotSchema,
@@ -224,17 +222,13 @@ const DocumentProfileStateSchema = StructureDraftStateSchema.omit({ version: tru
   version: z.literal(15),
   documentProfile: DocumentProfileSchema.optional(),
 });
-// v16 (Frente A, revised prompts): the v12 desk with the revised prompt profile. It was v13 before the structure work
-// took that number, so the state keeps the v12 shape and only the version and profile identity change.
-const RevisedDeskPromptStateSchema = ScopedDeskEditStateSchema.omit({ version: true }).extend({
-  version: z.literal(16),
-});
-/** Versions with guidance, skills and guided questions (v11, v12, v14, v15 and v16). */
-const isGuidedDesk = (state: CaseTaskState): state is Extract<CaseTaskState, { version: 11 | 12 | 14 | 15 | 16 }> =>
-  state.version === 11 || state.version === 12 || state.version === 14 || state.version === 15 || state.version === 16;
-/** Versions that can scope an edit to the user's selection in an open piece (v12, v14, v15 and v16). */
-const isDeskEdit = (state: CaseTaskState): state is Extract<CaseTaskState, { version: 12 | 14 | 15 | 16 }> =>
-  state.version === 12 || state.version === 14 || state.version === 15 || state.version === 16;
+// v16 (Frente A, revised prompts, profile 1.17.0) was removed on 28/11/2026 (item 17): it never ran in production.
+/** Versions with guidance, skills and guided questions (v11, v12, v14 and v15). */
+const isGuidedDesk = (state: CaseTaskState): state is Extract<CaseTaskState, { version: 11 | 12 | 14 | 15 }> =>
+  state.version === 11 || state.version === 12 || state.version === 14 || state.version === 15;
+/** Versions that can scope an edit to the user's selection in an open piece (v12, v14 and v15). */
+const isDeskEdit = (state: CaseTaskState): state is Extract<CaseTaskState, { version: 12 | 14 | 15 }> =>
+  state.version === 12 || state.version === 14 || state.version === 15;
 /** Server conferral: every id the drafter reports must be an unchecked item of the structure it received. */
 function auditStructureUse(use: StructureUse | undefined, sources: readonly TaskSource[]) {
   if (!use?.length) return;
@@ -265,7 +259,6 @@ const StateSchema = z.discriminatedUnion('version', [
   StructureStateSchema,
   StructureDraftStateSchema,
   DocumentProfileStateSchema,
-  RevisedDeskPromptStateSchema,
 ]);
 export type CaseTaskState = z.infer<typeof StateSchema>;
 export function caseTaskStepIndex(raw: unknown): number {
@@ -330,9 +323,7 @@ const profileFor = (version: StateVersion, role: CaseTaskRole) =>
                             ? structureTaskProfile(role)
                             : version === 14
                               ? structureDraftProfile(role)
-                              : version === 15
-                                ? documentProfileProfile(role)
-                                : revisedDeskPromptProfile(role);
+                              : documentProfileProfile(role);
 const policyFor = (version: StateVersion) =>
   version === 1
     ? CASE_TASK_POLICY
@@ -362,9 +353,7 @@ const policyFor = (version: StateVersion) =>
                             ? STRUCTURE_TASK_POLICY
                             : version === 14
                               ? STRUCTURE_DRAFT_TASK_POLICY
-                              : version === 15
-                                ? DOCUMENT_PROFILE_TASK_POLICY
-                                : REVISED_DESK_PROMPT_POLICY;
+                              : DOCUMENT_PROFILE_TASK_POLICY;
 const legacyClaimsSchema = TaskSpecialistResultSchema.shape.claims.element.extend({
   classification: z.enum(['ALLEGATION', 'INFERENCE', 'CONFLICT']),
 });
@@ -450,7 +439,7 @@ export interface CaseTaskProviderInput {
 }
 export interface CaseTaskOptions {
   /** New contract is opt-in until its calibration is explicitly authorized. Restored versions win. */
-  workflowVersion?: 8 | 9 | 10 | 11 | 12 | 16;
+  workflowVersion?: 8 | 9 | 10 | 11 | 12;
   guidedWorkflow?: boolean;
   skills?: Pick<SkillBindingRequest, 'catalog' | 'budget' | 'loadContent'>;
   context: NativeTaskContextPort;
@@ -1491,18 +1480,16 @@ export class AgenticCaseTask {
       restored?.version ??
       (binding.actionId === 'adjust_structure'
         ? 13
-        : this.options.workflowVersion === 16
-          ? 16
-          : binding.actionId === 'analyze_evidence'
-            ? 15
-            : this.options.guidedWorkflow && readStructureContext(loaded.sources)
-              ? 14
-              : loaded.deskEdit ||
-                  (this.options.guidedWorkflow && loaded.sources.some((source) => source.kind === 'DRAFT'))
-                ? 12
-                : this.options.guidedWorkflow && loaded.guidance
-                  ? 11
-                  : (this.options.workflowVersion ?? 8));
+        : binding.actionId === 'analyze_evidence'
+          ? 15
+          : this.options.guidedWorkflow && readStructureContext(loaded.sources)
+            ? 14
+            : loaded.deskEdit ||
+                (this.options.guidedWorkflow && loaded.sources.some((source) => source.kind === 'DRAFT'))
+              ? 12
+              : this.options.guidedWorkflow && loaded.guidance
+                ? 11
+                : (this.options.workflowVersion ?? 8));
     const currentContract = contractHash(version);
     if (
       restored &&

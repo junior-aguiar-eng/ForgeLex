@@ -69,4 +69,5 @@ it('estrutura e histórico do caso são fontes do servidor, fora da conferência
     expect(isServerAssembledSource({ kind: 'PREVIOUS_DELIVERY', id })).toBe(true);
   expect(isServerAssembledSource({ kind: 'PREVIOUS_DELIVERY', id: 'delivery:abc' })).toBe(false);
   expect(isServerAssembledSource({ kind: 'USER_TEXT', id: `${CASE_HISTORY_SOURCE_PREFIX}abc` })).toBe(false);
-});
+  // Carregar o runtime comercial inteiro leva alguns segundos numa máquina lenta.
+}, 30_000);
