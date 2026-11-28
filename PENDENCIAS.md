@@ -2,7 +2,25 @@
 
 <a id="estado-publicado-atual"></a>
 
-## Estado publicado atual — 25/11/2026: SHA `9ccb9e7`
+## Estado publicado atual — 28/11/2026: SHA `2f4cc7e` (tema gelo e site novo ligados)
+
+**Aprovação.** Boni autorizou a publicação em 27/11/2026, depois de ler o resultado do `deploy-from-main.ps1 -DryRun
+-Theme gelo -PublicModelEnabled true` (sem impedimentos; CI de `main` verde em `2f4cc7e`; sem migration entre `81d0557`
+e `2f4cc7e`). Publicado pelo roteiro oficial às 01:34 UTC de 28/11: build `78d162ae-c43d-48bb-9bb3-59ae6979f57a`,
+digest `sha256:06869725…`. As revisões `forgelex-api-prod-2f4cc7e-78d162ae` e
+`forgelex-closure-hml-private-2f4cc7e-78d162ae` recebem 100% do tráfego; o script conferiu que só a imagem e
+`FORGELEX_SOURCE_SHA` mudaram. Flags trocadas de propósito: `_VITE_FORGELEX_THEME=gelo` (V6) e
+`_VITE_FORGELEX_PUBLIC_MODEL=true` (V5A). Recibo e comandos de reversão:
+[recibo](docs/operations/deploy-receipts/2026-11-28-0134Z-2f4cc7e-publicado.md). Inclui #219 (ajustes do gelo, logo),
+#220 (documentação) e #221 (imagem de prévia social).
+
+**Verificação feita.** Página inicial de `https://nexojuris.ia.br` aberta depois da troca, com o logo novo e o título do
+modelo novo. **Não verificado:** a seção 8 do checklist (uso do site autenticado por Boni).
+
+**Regra da seção 0, item 6:** a virada de domínio (item 14, D2) não sai na mesma semana do tema gelo; não antes de
+04/12/2026.
+
+## Publicação anterior — 25/11/2026: SHA `9ccb9e7`
 
 **Aprovação.** Boni autorizou a publicação em 25/11/2026, depois de ler o resultado do `deploy-from-main.ps1 -DryRun`
 (sem impedimentos; CI de `main` verde em `9ccb9e7`; sem migration entre `6fe4f75` e `9ccb9e7`). Publicado pelo roteiro

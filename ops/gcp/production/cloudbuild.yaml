@@ -28,6 +28,8 @@ steps:
       - VITE_FORGELEX_THEME=${_VITE_FORGELEX_THEME}
       - --build-arg
       - VITE_FORGELEX_PUBLIC_MODEL=${_VITE_FORGELEX_PUBLIC_MODEL}
+      - --build-arg
+      - VITE_PUBLIC_ORIGIN=${_VITE_PUBLIC_ORIGIN}
       - --tag
       - ${_IMAGE_URI}:${_SOURCE_SHA}
       - .
@@ -43,3 +45,4 @@ substitutions:
   _VITE_FORGELEX_OCR_ENABLED: 'false'
   _VITE_FORGELEX_THEME: 'classico'
   _VITE_FORGELEX_PUBLIC_MODEL: 'false'
+  _VITE_PUBLIC_ORIGIN: 'https://nexojuris.ia.br'

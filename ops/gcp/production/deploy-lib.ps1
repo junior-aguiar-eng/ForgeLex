@@ -31,6 +31,10 @@ $script:OptionalFlagSubstitutions = @(
 # Ausente no build anterior = 'classico', igual ao padrão do cloudbuild.yaml; quando o build traz, o valor dele é preservado.
 $script:ThemeSubstitution = '_VITE_FORGELEX_THEME'
 $script:AllowedThemes = @('classico', 'gelo')
+# Domínio do site (item 14). Ausente no build anterior = o domínio atual, igual ao padrão do cloudbuild.yaml; quando o
+# build traz, o valor dele é preservado. Só muda na virada de domínio, de propósito, com -PublicOrigin.
+$script:PublicOriginSubstitution = '_VITE_PUBLIC_ORIGIN'
+$script:DefaultPublicOrigin = 'https://nexojuris.ia.br'
 $script:FlagSubstitutions = @(
   '_VITE_FORGELEX_SAVED_RESEARCH_ENABLED',
   '_VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED',
@@ -171,9 +175,10 @@ function New-BuildSubstitutions {
     $result[$key] = if ($Previous.ContainsKey($key) -and -not [string]::IsNullOrWhiteSpace($Previous[$key])) { [string]$Previous[$key] } else { 'false' }
   }
   $result[$script:ThemeSubstitution] = if ($Previous.ContainsKey($script:ThemeSubstitution) -and -not [string]::IsNullOrWhiteSpace($Previous[$script:ThemeSubstitution])) { [string]$Previous[$script:ThemeSubstitution] } else { 'classico' }
+  $result[$script:PublicOriginSubstitution] = if ($Previous.ContainsKey($script:PublicOriginSubstitution) -and -not [string]::IsNullOrWhiteSpace($Previous[$script:PublicOriginSubstitution])) { [string]$Previous[$script:PublicOriginSubstitution] } else { $script:DefaultPublicOrigin }
   $result['_SOURCE_SHA'] = $Sha
   foreach ($key in $Overrides.Keys) {
-    if ($key -notin $script:FlagSubstitutions -and $key -ne $script:ThemeSubstitution) { throw "Só as flags de interface e o tema podem ser trocados: $key" }
+    if ($key -notin $script:FlagSubstitutions -and $key -notin @($script:ThemeSubstitution, $script:PublicOriginSubstitution)) { throw "Só as flags de interface, o tema e o domínio podem ser trocados: $key" }
     $result[$key] = [string]$Overrides[$key]
   }
   if ($result['_SOURCE_SHA'] -notmatch '^[0-9a-f]{40}$') { throw 'SHA de origem inválido.' }
@@ -188,6 +193,9 @@ function New-BuildSubstitutions {
   }
   if ($result[$script:ThemeSubstitution] -cnotin $script:AllowedThemes) {
     throw "Tema inválido: $($script:ThemeSubstitution) deve ser 'classico' ou 'gelo' em produção."
+  }
+  if ($result[$script:PublicOriginSubstitution] -notmatch '^https://[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$') {
+    throw "Domínio público inválido: $($script:PublicOriginSubstitution) deve ser https://host, sem barra nem caminho."
   }
   foreach ($value in $result.Values) {
     if ($value -match '[,\s]') { throw 'Valor de substituição com vírgula ou espaço não é suportado.' }

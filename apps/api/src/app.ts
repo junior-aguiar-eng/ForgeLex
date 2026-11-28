@@ -76,6 +76,7 @@ import { classifyResearchError } from './distribution/research-error.js';
 import { WEBHOOK_EVENT_TYPES, WEBHOOK_TEST_EVENT_TYPE } from './distribution/webhooks.js';
 import { WebhookRepository } from '@forgelex/persistence';
 import { WEBHOOK_MAX_TIMEOUT_MS, WebhookService } from './distribution/webhook-service.js';
+import { registerLegacyHostRedirect } from './legacy-host-redirect.js';
 import type { Client } from '@forgelex/persistence';
 import { createLegalResearchMemoTool, LegalResearchMemoExecutionService, type DeskMatter, type DeskPiece } from '@forgelex/legal-workflows';
 import { RequestMetrics, structuredLog } from './observability.js';
@@ -183,6 +184,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     }
   });
   const environment = options.environment ?? process.env;
+  registerLegacyHostRedirect(app, environment);
   registerDataJudRoutes(app, new DataJudTjalClient({ apiKey: environment.FORGELEX_DATAJUD_API_KEY }),
     environment.FORGELEX_DATAJUD_TRUSTED_LB_IPS?.split(',').map((ip) => ip.trim()));
   if (environment.NODE_ENV !== 'test' &&
